@@ -1,0 +1,78 @@
+{
+  "name": "web-vision/deepltranslate-glossary",
+  "description": "This extension provides option to auto and renew translate within TYPO3 CMS",
+  "license": [
+    "GPL-2.0-or-later"
+  ],
+  "type": "typo3-cms-extension",
+  "keywords": [
+    "TYPO3 CMS",
+    "extension",
+    "translate",
+    "deepl"
+  ],
+  "authors": [
+    {
+      "name": "web-vision GmbH",
+      "email": "hello@web-vision.de",
+      "role": "Maintainer"
+    },
+    {
+      "name": "Mark Houben",
+      "email": "markhouben91@gmail.com",
+      "role": "Developer"
+    }
+  ],
+  "homepage": "https://www.web-vision.de/en/automated-translations-with-typo3-and-deepl.html",
+  "support": {
+    "issues": "https://github.com/web-vision/deepltranslate-glossary/issues",
+    "source": "https://github.com/web-vision/deepltranslate-glossary"
+  },
+  "require": {
+    "php": "^8.0",
+    "ext-curl": "*",
+    "ext-json": "*",
+    "ext-pdo": "*",
+    "typo3/cms-core": "^12.4.2",
+    "web-vision/deepltranslate-core": "~5.0@dev"
+  },
+  "require-dev": {
+    "typo3/cms-belog": "^12.4.2",
+    "typo3/cms-lowlevel": "^12.4.2",
+    "typo3/cms-rte-ckeditor": "^12.4.2",
+    "typo3/cms-setup": "^12.4.2",
+    "typo3/cms-tstemplate": "^12.4.2",
+    "typo3/cms-workspaces": "^12.4.2",
+    "typo3/testing-framework": "^8.2.7"
+  },
+  "autoload": {
+    "psr-4": {
+      "WebVision\\Deepltranslate\\Glossary\\": "Classes"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "WebVision\\Deepltranslate\\Glossary\\Tests\\": "Tests"
+    }
+  },
+  "config": {
+    "allow-plugins": {
+      "ergebnis/composer-normalize": true,
+      "helhum/typo3-console-plugin": true,
+      "php-http/discovery": true,
+      "typo3/class-alias-loader": true,
+      "typo3/cms-composer-installers": true
+    },
+    "bin-dir": ".Build/bin",
+    "optimize-autoloader": true,
+    "sort-packages": true,
+    "vendor-dir": ".Build/vendor"
+  },
+  "extra": {
+    "typo3/cms": {
+      "app-dir": ".Build",
+      "extension-key": "deepltranslate_glossary",
+      "web-dir": ".Build/Web"
+    }
+  }
+}
