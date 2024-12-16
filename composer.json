@@ -33,16 +33,17 @@
     "ext-curl": "*",
     "ext-json": "*",
     "ext-pdo": "*",
-    "typo3/cms-core": "^12.4.2",
+    "typo3/cms-core": "^12.4.2 || ^13.4",
     "web-vision/deepltranslate-core": "~5.0@dev"
   },
   "require-dev": {
-    "typo3/cms-belog": "^12.4.2",
-    "typo3/cms-lowlevel": "^12.4.2",
-    "typo3/cms-rte-ckeditor": "^12.4.2",
-    "typo3/cms-setup": "^12.4.2",
-    "typo3/cms-tstemplate": "^12.4.2",
-    "typo3/cms-workspaces": "^12.4.2",
+    "typo3/cms-belog": "^12.4.2 || ^13.4",
+    "typo3/cms-lowlevel": "^12.4.2 || ^13.4",
+    "typo3/cms-rte-ckeditor": "^12.4.2 || ^13.4",
+    "typo3/cms-setup": "^12.4.2 || ^13.4",
+    "typo3/cms-tstemplate": "^12.4.2 || ^13.4",
+    "typo3/cms-workspaces": "^12.4.2 || ^13.4",
+    "typo3/minimal": "^12",
     "typo3/testing-framework": "^8.2.7"
   },
   "autoload": {
