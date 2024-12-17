@@ -4,7 +4,7 @@ pages
 ,2,1,254,"Glossary","",0,0,""
 ,3,1,254,"Glossar","",1,2,""
 ,4,1,1,"proton beam","glossary term",0,0,"/proton-beam"
-tx_wvdeepltranslate_glossaryentry
+tx_deepltranslate_glossaryentry
 ,uid,pid,term,sys_language_uid,l10n_parent
 ,1,2,"glossary term",0,0
 ,2,2,"Glossareintrag",1,1

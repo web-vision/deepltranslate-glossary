@@ -1,0 +1,26 @@
+services:
+  _defaults:
+    autowire: true
+    autoconfigure: true
+    public: false
+
+  cache.deepltranslate_glossary:
+    class: TYPO3\CMS\Core\Cache\Frontend\FrontendInterface
+    factory: ['@TYPO3\CMS\Core\Cache\CacheManager', 'getCache']
+    arguments: ['deepltranslate_glossary']
+
+  WebVision\Deepltranslate\Glossary\:
+    resource: '../Classes/*'
+    exclude:
+      - '../Classes/Domain/Model/*'
+
+  WebVision\Deepltranslate\Glossary\Service\DeeplGlossaryService:
+    public: true
+    arguments:
+      $cache: '@cache.deepltranslate_glossary'
+
+  WebVision\Deepltranslate\Glossary\EventListener\GlossarySyncButtonProvider:
+    tags:
+      - name: 'event.listener'
+        identifier: 'glossary.syncbutton'
+        event: TYPO3\CMS\Backend\Template\Components\ModifyButtonBarEvent

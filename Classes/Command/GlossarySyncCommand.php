@@ -5,13 +5,18 @@ declare(strict_types=1);
 namespace WebVision\Deepltranslate\Glossary\Command;
 
 use Exception;
+use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
-class GlossarySyncCommand extends Command
+#[AsCommand(
+    name: 'deepl:glossary:sync',
+    description: 'Sync all glossaries to DeepL API'
+)]
+final class GlossarySyncCommand extends Command
 {
     use GlossaryCommandTrait;
 

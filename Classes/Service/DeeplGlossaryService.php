@@ -12,9 +12,9 @@ use Doctrine\DBAL\Driver\Exception;
 use TYPO3\CMS\Core\Cache\Frontend\FrontendInterface;
 use TYPO3\CMS\Core\Exception\SiteNotFoundException;
 use WebVision\Deepltranslate\Core\ClientInterface;
-use WebVision\Deepltranslate\Core\Domain\Repository\GlossaryRepository;
-use WebVision\Deepltranslate\Core\Exception\FailedToCreateGlossaryException;
-use WebVision\Deepltranslate\Core\Exception\GlossaryEntriesNotExistException;
+use WebVision\Deepltranslate\Glossary\Domain\Repository\GlossaryRepository;
+use WebVision\Deepltranslate\Glossary\Exception\FailedToCreateGlossaryException;
+use WebVision\Deepltranslate\Glossary\Exception\GlossaryEntriesNotExistException;
 
 final class DeeplGlossaryService
 {
