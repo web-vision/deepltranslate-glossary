@@ -28,3 +28,12 @@ services:
   WebVision\Deepltranslate\Glossary\Upgrade\MigrateTablesFromOldStructureWizard:
     arguments:
       $cache: '@cache.runtime'
+
+  WebVision\Deepltranslate\Glossary\Hooks\UpdatedGlossaryEntryTermHook:
+    public: true
+
+  WebVision\Deepltranslate\Glossary\EventListener\LocalGlossary:
+    tags:
+      - name: 'event.listener'
+        class: WebVision\Deepltranslate\Core\Event\GlossaryKeyEvent
+        identifier: 'deepltranslate.localGlossary'
