@@ -1,0 +1,26 @@
+<html
+        data-namespace-typo3-fluid="true"
+        xmlns:deepl="http://typo3.org/ns/WebVision/Deepltranslate/Core/ViewHelpers"
+        xmlns:f="http://typo3.org/ns/TYPO3Fluid/Fluid/ViewHelpers"
+        xmlns:core="http://typo3.org/ns/TYPO3/CMS/Core/ViewHelpers"
+        xmlns:be="http://typo3.org/ns/TYPO3/CMS/Backend/ViewHelpers"
+>
+<deepl:be.access.deeplTranslateAllowed>
+    <f:alias map="{deeplLanguages: '{deepl:deeplTranslate(context: \'{context}\')}'}">
+        <f:if condition="{deeplLanguages -> f:count()} > 0">
+            <div class="row row-cols-auto align-items-end g-3 mb-3">
+                <div class="col row">
+                    <div class="col col-sm-8">
+                        <select class="form-select" name="createNewLanguage" data-global-event="change" data-action-navigate="$value">
+                            <option><f:translate key="pages.glossary.translate" extensionName="deepltranslate_core" /></option>
+                            <f:for each="{deeplLanguages}" as="languageName" key="url">
+                                <option value="{url}">{languageName}</option>
+                            </f:for>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </f:if>
+    </f:alias>
+</deepl:be.access.deeplTranslateAllowed>
+</html>
