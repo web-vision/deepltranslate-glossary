@@ -16,6 +16,8 @@ use TYPO3\CMS\Core\Exception\SiteNotFoundException;
 use TYPO3\CMS\Core\Site\Entity\Site;
 use TYPO3\CMS\Core\Site\SiteFinder;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+use WebVision\Deepltranslate\Core\Domain\Dto\CurrentPage;
+use WebVision\Deepltranslate\Glossary\Domain\Dto\Glossary;
 use WebVision\Deepltranslate\Glossary\Service\DeeplGlossaryService;
 
 // @todo Consider to rename/move this as service class.
@@ -127,7 +129,7 @@ final class GlossaryRepository
      * @return array<string, mixed>|null
      * @throws Exception
      */
-    public function findByGlossaryId(string $glossaryId): ?array
+    public function findByGlossaryId(string $glossaryId): ?Glossary
     {
         $db = GeneralUtility::makeInstance(ConnectionPool::class)
             ->getConnectionForTable('tx_deepltranslate_glossary');
@@ -143,7 +145,7 @@ final class GlossaryRepository
             1
         );
 
-        return $result->fetchAssociative() ?: null;
+        return $result ? Glossary::fromDatabase($result) : null;
     }
 
     public function updateLocalGlossary(GlossaryInfo $information, int $uid): void
@@ -190,13 +192,7 @@ final class GlossaryRepository
 
     /**
      * @param array{uid: int, title: string}|array<empty> $page
-     * @return array{
-     *     uid: int,
-     *     glossary_name: string,
-     *     glossary_id: string,
-     *     glossary_lastsync: int,
-     *     glossary_ready: int
-     * }
+     * @return Glossary
      *
      * @throws Exception
      * @throws SiteNotFoundException
@@ -205,16 +201,10 @@ final class GlossaryRepository
     public function getGlossaryBySourceAndTarget(
         string $sourceLanguage,
         string $targetLanguage,
-        array $page
-    ): array {
-        $defaultGlossary = [
-            'uid' => 0,
-            'glossary_id' => '',
-            'glossary_name' => 'UNDEFINED',
-            'glossary_lastsync' => 0,
-            'glossary_ready' => 0,
-        ];
-        if (empty($page)) {
+        ?CurrentPage $page
+    ): Glossary {
+        $defaultGlossary = Glossary::createDummy();
+        if ($page === null) {
             return $defaultGlossary;
         }
         $lowerSourceLang = strtolower($sourceLanguage);
@@ -225,20 +215,13 @@ final class GlossaryRepository
         return $this->getGlossary(
             $lowerSourceLang,
             $lowerTargetLang,
-            (int)$page['uid'],
+            $page->getUid(),
             true
         ) ?? $defaultGlossary;
     }
 
     /**
      * @param array{uid: int, title: string} $page
-     * @return array{
-     *     uid: int,
-     *     glossary_name: string,
-     *     glossary_id: string,
-     *     glossary_lastsync: int,
-     *     glossary_ready: int
-     * }
      * @throws Exception
      * @throws SiteNotFoundException
      * @throws \Doctrine\DBAL\Exception
@@ -247,7 +230,7 @@ final class GlossaryRepository
         string $sourceLanguage,
         string $targetLanguage,
         array $page
-    ): array {
+    ): Glossary {
         $lowerSourceLang = strtolower($sourceLanguage);
         $lowerTargetLang = strtolower($targetLanguage);
         if (strlen($lowerTargetLang) > 2) {
@@ -415,13 +398,6 @@ final class GlossaryRepository
     }
 
     /**
-     * @return array{
-     *     uid: int,
-     *     glossary_name: string,
-     *     glossary_id: string,
-     *     glossary_lastsync: int,
-     *     glossary_ready: int
-     * }|null
      * @throws SiteNotFoundException
      * @throws Exception
      * @throws \Doctrine\DBAL\Exception
@@ -431,7 +407,7 @@ final class GlossaryRepository
         string $targetLanguage,
         int $pageUid,
         bool $recursive = false
-    ): ?array {
+    ): ?Glossary {
         $db = GeneralUtility::makeInstance(ConnectionPool::class)
             ->getQueryBuilderForTable('tx_deepltranslate_glossary');
 
@@ -459,9 +435,13 @@ final class GlossaryRepository
                 'glossary_ready',
             )
             ->from('tx_deepltranslate_glossary')
-            ->where($where);
+            ->where($where)
+            ->setMaxResults(1);
 
-        return $statement->executeQuery()->fetchAssociative() ?: null;
+        $result = $statement->executeQuery()->fetchAssociative();
+
+
+        return $result ? Glossary::fromDatabase($result) : null;
     }
 
     /**
