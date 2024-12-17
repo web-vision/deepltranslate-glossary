@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace WebVision\Deepltranslate\Glossary\Command;
 
-use WebVision\Deepltranslate\Core\Domain\Repository\GlossaryRepository;
-use WebVision\Deepltranslate\Core\Service\DeeplGlossaryService;
+use WebVision\Deepltranslate\Glossary\Domain\Repository\GlossaryRepository;
+use WebVision\Deepltranslate\Glossary\Service\DeeplGlossaryService;
 
 trait GlossaryCommandTrait
 {

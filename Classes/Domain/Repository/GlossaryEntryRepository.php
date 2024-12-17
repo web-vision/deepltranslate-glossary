@@ -26,11 +26,11 @@ final class GlossaryEntryRepository
     public function findEntriesByGlossary(int $parentId): array
     {
         $connection = GeneralUtility::makeInstance(ConnectionPool::class)
-            ->getConnectionForTable('tx_wvdeepltranslate_glossaryentry');
+            ->getConnectionForTable('tx_deepltranslate_glossaryentry');
 
         $result = $connection->select(
             ['*'],
-            'tx_wvdeepltranslate_glossaryentry',
+            'tx_deepltranslate_glossaryentry',
             [
                 'glossary' => $parentId,
             ]
@@ -45,11 +45,11 @@ final class GlossaryEntryRepository
     public function findEntryByUid(int $uid): array
     {
         $connection = GeneralUtility::makeInstance(ConnectionPool::class)
-            ->getConnectionForTable('tx_wvdeepltranslate_glossaryentry');
+            ->getConnectionForTable('tx_deepltranslate_glossaryentry');
 
         $result = $connection->select(
             ['*'],
-            'tx_wvdeepltranslate_glossaryentry',
+            'tx_deepltranslate_glossaryentry',
             [
                 'uid' => $uid,
             ]

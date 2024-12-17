@@ -22,7 +22,7 @@ use WebVision\Deepltranslate\Core\Access\AllowedGlossarySyncAccess;
 
 final class GlossarySyncButtonProvider
 {
-    private const TABLE_NAME = 'tx_wvdeepltranslate_glossaryentry';
+    private const TABLE_NAME = 'tx_deepltranslate_glossaryentry';
 
     private const ALLOWED_MODULES = [
         'web_layout',

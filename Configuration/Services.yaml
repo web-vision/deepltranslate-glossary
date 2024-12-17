@@ -24,3 +24,7 @@ services:
       - name: 'event.listener'
         identifier: 'glossary.syncbutton'
         event: TYPO3\CMS\Backend\Template\Components\ModifyButtonBarEvent
+
+  WebVision\Deepltranslate\Glossary\Upgrade\MigrateTablesFromOldStructureWizard:
+    arguments:
+      $cache: '@cache.runtime'

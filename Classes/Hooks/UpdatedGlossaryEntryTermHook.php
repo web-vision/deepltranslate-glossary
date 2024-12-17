@@ -42,7 +42,7 @@ final class UpdatedGlossaryEntryTermHook
             return;
         }
 
-        if ($table !== 'tx_wvdeepltranslate_glossaryentry') {
+        if ($table !== 'tx_deepltranslate_glossaryentry') {
             return;
         }
 

@@ -16,7 +16,7 @@ use TYPO3\CMS\Core\Exception\SiteNotFoundException;
 use TYPO3\CMS\Core\Site\Entity\Site;
 use TYPO3\CMS\Core\Site\SiteFinder;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
-use WebVision\Deepltranslate\Core\Service\DeeplGlossaryService;
+use WebVision\Deepltranslate\Glossary\Service\DeeplGlossaryService;
 
 // @todo Consider to rename/move this as service class.
 final class GlossaryRepository
@@ -130,11 +130,11 @@ final class GlossaryRepository
     public function findByGlossaryId(string $glossaryId): ?array
     {
         $db = GeneralUtility::makeInstance(ConnectionPool::class)
-            ->getConnectionForTable('tx_wvdeepltranslate_glossary');
+            ->getConnectionForTable('tx_deepltranslate_glossary');
 
         $result = $db->select(
             ['*'],
-            'tx_wvdeepltranslate_glossary',
+            'tx_deepltranslate_glossary',
             [
                 'glossary_id' => $glossaryId,
             ],
@@ -155,10 +155,10 @@ final class GlossaryRepository
         ];
 
         $db = GeneralUtility::makeInstance(ConnectionPool::class)
-            ->getConnectionForTable('tx_wvdeepltranslate_glossary');
+            ->getConnectionForTable('tx_deepltranslate_glossary');
 
         $db->update(
-            'tx_wvdeepltranslate_glossary',
+            'tx_deepltranslate_glossary',
             $insertParams,
             [
                 'uid' => $uid,
@@ -272,9 +272,9 @@ final class GlossaryRepository
                 'pid' => $page['uid'],
             ];
             $db = GeneralUtility::makeInstance(ConnectionPool::class)
-                ->getConnectionForTable('tx_wvdeepltranslate_glossary');
-            $db->insert('tx_wvdeepltranslate_glossary', $insert);
-            $lastInsertId = $db->lastInsertId('tx_wvdeepltranslate_glossary');
+                ->getConnectionForTable('tx_deepltranslate_glossary');
+            $db->insert('tx_deepltranslate_glossary', $insert);
+            $lastInsertId = $db->lastInsertId('tx_deepltranslate_glossary');
             $insert['uid'] = $lastInsertId;
             unset($insert['pid']);
             return $insert;
@@ -286,10 +286,10 @@ final class GlossaryRepository
     public function removeGlossarySync(string $glossaryId): bool
     {
         $db = GeneralUtility::makeInstance(ConnectionPool::class)
-            ->getConnectionForTable('tx_wvdeepltranslate_glossary');
+            ->getConnectionForTable('tx_deepltranslate_glossary');
 
         $count = $db->update(
-            'tx_wvdeepltranslate_glossary',
+            'tx_deepltranslate_glossary',
             [
                 'glossary_id' => '',
                 'glossary_lastsync' => 0,
@@ -312,10 +312,10 @@ final class GlossaryRepository
     public function getGlossariesDeeplConnected(): array
     {
         $db = GeneralUtility::makeInstance(ConnectionPool::class)
-            ->getQueryBuilderForTable('tx_wvdeepltranslate_glossary');
+            ->getQueryBuilderForTable('tx_deepltranslate_glossary');
         $statement = $db
             ->select('uid', 'glossary_id')
-            ->from('tx_wvdeepltranslate_glossary')
+            ->from('tx_deepltranslate_glossary')
             ->where(
                 $db->expr()->neq('glossary_id', $db->createNamedParameter(''))
             );
@@ -337,10 +337,10 @@ final class GlossaryRepository
     private function getOriginalEntries(int $pageId): array
     {
         $db = GeneralUtility::makeInstance(ConnectionPool::class)
-            ->getQueryBuilderForTable('tx_wvdeepltranslate_glossaryentry');
+            ->getQueryBuilderForTable('tx_deepltranslate_glossaryentry');
         $statement = $db
             ->select('uid', 'term')
-            ->from('tx_wvdeepltranslate_glossaryentry')
+            ->from('tx_deepltranslate_glossaryentry')
             ->where(
                 $db->expr()->eq(
                     'pid',
@@ -367,10 +367,10 @@ final class GlossaryRepository
     private function getLocalizedEntries(int $pageId, int $languageId): array
     {
         $db = GeneralUtility::makeInstance(ConnectionPool::class)
-            ->getQueryBuilderForTable('tx_wvdeepltranslate_glossaryentry');
+            ->getQueryBuilderForTable('tx_deepltranslate_glossaryentry');
         $statement = $db
             ->select('uid', 'term', 'l10n_parent')
-            ->from('tx_wvdeepltranslate_glossaryentry')
+            ->from('tx_deepltranslate_glossaryentry')
             ->where(
                 $db->expr()->eq(
                     'pid',
@@ -433,7 +433,7 @@ final class GlossaryRepository
         bool $recursive = false
     ): ?array {
         $db = GeneralUtility::makeInstance(ConnectionPool::class)
-            ->getQueryBuilderForTable('tx_wvdeepltranslate_glossary');
+            ->getQueryBuilderForTable('tx_deepltranslate_glossary');
 
         $pidConstraint = null;
         if ($recursive === true) {
@@ -458,7 +458,7 @@ final class GlossaryRepository
                 'glossary_lastsync',
                 'glossary_ready',
             )
-            ->from('tx_wvdeepltranslate_glossary')
+            ->from('tx_deepltranslate_glossary')
             ->where($where);
 
         return $statement->executeQuery()->fetchAssociative() ?: null;
@@ -516,9 +516,9 @@ final class GlossaryRepository
     public function setGlossaryNotSyncOnPage(int $pageId): void
     {
         $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)
-            ->getQueryBuilderForTable('tx_wvdeepltranslate_glossary');
+            ->getQueryBuilderForTable('tx_deepltranslate_glossary');
 
-        $queryBuilder->update('tx_wvdeepltranslate_glossary')
+        $queryBuilder->update('tx_deepltranslate_glossary')
             ->set('glossary_ready', 0)
             ->where(
                 $queryBuilder->expr()->eq('pid', $pageId)
