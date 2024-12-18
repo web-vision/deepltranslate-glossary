@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace WebVision\Deepltranslate\Glossary\EventListener;
 
-use WebVision\Deepltranslate\Core\Event\GlossaryKeyEvent;
+use WebVision\Deepltranslate\Core\Event\DeepLGlossaryIdEvent;
 use WebVision\Deepltranslate\Glossary\Domain\Repository\GlossaryRepository;
 
 final class LocalGlossary
@@ -14,16 +14,16 @@ final class LocalGlossary
     ) {
     }
 
-    public function __invoke(GlossaryKeyEvent $event): void
+    public function __invoke(DeepLGlossaryIdEvent $event): void
     {
         $glossary = $this->glossaryRepository->getGlossaryBySourceAndTarget(
-            $event->getSourceLanguage(),
-            $event->getTargetLanguage(),
-            $event->getCurrentPage()
+            $event->sourceLanguage,
+            $event->targetLanguage,
+            $event->currentPage
         );
 
         if ($glossary->isReady()) {
-            $event->setGlossaryId($glossary->getGlossaryId());
+            $event->glossaryId =  $glossary->getGlossaryId();
         }
     }
 }

@@ -9,13 +9,6 @@ use TYPO3\CMS\Core\Utility\MathUtility;
 
 final class Glossary
 {
-    /*
-     * 'uid' => 0,
-            'glossary_id' => '',
-            'glossary_name' => 'UNDEFINED',
-            'glossary_lastsync' => 0,
-            'glossary_ready' => 0,
-     */
     private function __construct(
         private readonly int                $uid,
         private readonly string             $glossaryId,
