@@ -109,6 +109,16 @@
                 <source>Synchronise Glossaries</source>
                 <target>Glossare synchronisieren</target>
             </trans-unit>
+
+            <!-- Translation Access | be_groups -->
+            <trans-unit id="be_groups.deepltranslate_access.items.allowedGlossarySync.title">
+                <source>Allowed Glossary Sync</source>
+                <target>Erlaube Synchronisierung von Glossaren</target>
+            </trans-unit>
+            <trans-unit id="be_groups.deepltranslate_access.items.allowedGlossarySync.description">
+                <source></source>
+                <target></target>
+            </trans-unit>
         </body>
     </file>
 </xliff>

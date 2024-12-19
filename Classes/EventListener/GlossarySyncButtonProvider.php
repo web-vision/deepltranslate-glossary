@@ -17,7 +17,7 @@ use TYPO3\CMS\Core\Localization\LanguageService;
 use TYPO3\CMS\Core\Localization\LanguageServiceFactory;
 use TYPO3\CMS\Core\Type\Bitmask\Permission;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
-use WebVision\Deepltranslate\Core\Access\AllowedGlossarySyncAccess;
+use WebVision\Deepltranslate\Glossary\Access\AllowedGlossarySyncAccess;
 
 
 final class GlossarySyncButtonProvider
