@@ -18,8 +18,7 @@ final class MigrateTablesFromOldStructureWizard implements UpgradeWizardInterfac
     public function __construct(
         private readonly ConnectionPool $connectionPool,
         private readonly FrontendInterface $cache
-    )
-    {
+    ) {
     }
 
     /**
@@ -69,11 +68,12 @@ final class MigrateTablesFromOldStructureWizard implements UpgradeWizardInterfac
         $glossariesResult = $selectGlossariesStatement->executeQuery();
 
         $data = [
-            ''
+            '',
         ];
         while ($glossary = $glossariesResult->fetchAssociative()) {
 
         }
+        return true;
     }
 
     /**
@@ -114,7 +114,6 @@ final class MigrateTablesFromOldStructureWizard implements UpgradeWizardInterfac
                 $queryBuilder->expr()->eq('deleted', $queryBuilder->createNamedParameter(0, Connection::PARAM_INT))
             );
         $countGlossary = (int)$countGlossaryStatement->executeQuery()->fetchOne();
-
 
         $countEntryStatement = $queryBuilder
             ->count('*')

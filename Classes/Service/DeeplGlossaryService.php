@@ -103,6 +103,9 @@ final class DeeplGlossaryService
         return $this->client->getGlossaryEntries($glossaryId);
     }
 
+    /**
+     * @return array<string, array<array-key, string>>
+     */
     public function getPossibleGlossaryLanguageConfig(): array
     {
         $cacheIdentifier = 'wv-deepl-glossary-pairs';

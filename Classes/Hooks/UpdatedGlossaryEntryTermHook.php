@@ -53,7 +53,7 @@ final class UpdatedGlossaryEntryTermHook
             return;
         }
 
-        $glossary = $this->glossaryEntryRepository->findEntryByUid($id);
+        $glossary = $this->glossaryEntryRepository->findEntryByUid((int)$id);
 
         if (empty($glossary)) {
             return;

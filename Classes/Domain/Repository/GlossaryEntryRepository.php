@@ -20,7 +20,7 @@ final class GlossaryEntryRepository
     }
 
     /**
-     * @return array<string, mixed>
+     * @return array<int, array<string, mixed>>
      * @deprecated
      */
     public function findEntriesByGlossary(int $parentId): array
@@ -40,7 +40,7 @@ final class GlossaryEntryRepository
     }
 
     /**
-     * @return array<non-empty-string, mixed>
+     * @return array<string, mixed>
      */
     public function findEntryByUid(int $uid): array
     {

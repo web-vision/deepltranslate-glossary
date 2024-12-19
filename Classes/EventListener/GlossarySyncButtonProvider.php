@@ -19,7 +19,6 @@ use TYPO3\CMS\Core\Type\Bitmask\Permission;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use WebVision\Deepltranslate\Glossary\Access\AllowedGlossarySyncAccess;
 
-
 final class GlossarySyncButtonProvider
 {
     private const TABLE_NAME = 'tx_deepltranslate_glossaryentry';
@@ -142,7 +141,7 @@ final class GlossarySyncButtonProvider
     {
         return [
             'uid' => $id,
-            'returnUrl' => $this->getRequest()->getAttribute('normalizedParams')->getRequestUri(),
+            'returnUrl' => (string)$this->getRequest()->getAttribute('normalizedParams')?->getRequestUri(),
         ];
     }
 }

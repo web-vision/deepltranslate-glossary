@@ -9,6 +9,9 @@ use TYPO3\CMS\Core\Utility\MathUtility;
 
 final class Glossary
 {
+    /**
+     * @var array<array-key, array{source: string, target: string}>
+     */
     public array $entries = [];
     public string $sourceLanguage = '';
     public string $targetLanguage = '';
@@ -51,7 +54,7 @@ final class Glossary
             (int)$result['uid'],
             $result['glossary_id'],
             $result['glossary_name'],
-            $lastSync,
+            $lastSync ?: null,
             $ready
         );
     }
