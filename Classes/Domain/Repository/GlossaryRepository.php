@@ -46,11 +46,15 @@ final class GlossaryRepository
         }
         /** @var array{uid: int, title: string} $page */
         $entries = $this->getOriginalEntries($pageId);
+        if ($entries === []) {
+            return [];
+        }
         $localizationLanguageIds = $this->getAvailableLocalizations($pageId);
         $site = GeneralUtility::makeInstance(SiteFinder::class)
             ->getSiteByPageId($pageId);
         $sourceLangIsoCode = $site->getDefaultLanguage()->getLocale()->getLanguageCode();
 
+        /** @var array<string, array<int, array{uid: int, term: string}>> $localizationArray */
         $localizationArray[$sourceLangIsoCode] = $entries;
 
         // fetch all language information available for building all glossaries
@@ -123,7 +127,6 @@ final class GlossaryRepository
     }
 
     /**
-     * @return array<string, mixed>|null
      * @throws Exception
      */
     public function findByGlossaryId(string $glossaryId): ?Glossary
@@ -131,16 +134,18 @@ final class GlossaryRepository
         $db = GeneralUtility::makeInstance(ConnectionPool::class)
             ->getConnectionForTable('tx_deepltranslate_glossary');
 
-        $result = $db->select(
-            ['*'],
-            'tx_deepltranslate_glossary',
-            [
-                'glossary_id' => $glossaryId,
-            ],
-            [],
-            [],
-            1
-        );
+        $result = $db
+            ->select(
+                ['*'],
+                'tx_deepltranslate_glossary',
+                [
+                    'glossary_id' => $glossaryId,
+                ],
+                [],
+                [],
+                1
+            )
+            ->fetchAssociative();
 
         return $result ? Glossary::fromDatabase($result) : null;
     }
@@ -188,7 +193,6 @@ final class GlossaryRepository
     }
 
     /**
-     * @param array{uid: int, title: string}|array<empty> $page
      * @return Glossary
      *
      * @throws Exception
@@ -309,7 +313,7 @@ final class GlossaryRepository
     }
 
     /**
-     * @return array<int, array{uid: int, term: string}>|array
+     * @return array<int, array{uid: int, term: string}>|array<empty>
      * @throws Exception
      * @throws \Doctrine\DBAL\Exception
      * @throws DBALException
@@ -339,7 +343,7 @@ final class GlossaryRepository
     }
 
     /**
-     * @return array<int, array{uid: int, term: string, l10n_parent: int}>
+     * @return array<int, array{uid: int, term: string, l10n_parent: int}>|array<array<string, mixed>>
      * @throws Exception
      * @throws \Doctrine\DBAL\Exception
      * @throws DBALException
@@ -362,8 +366,10 @@ final class GlossaryRepository
                 )
             );
 
+        $result = $statement->executeQuery();
+
         $localizedEntries = [];
-        foreach ($statement->executeQuery()->fetchAllAssociative() as $localizedEntry) {
+        while ($localizedEntry = $result->fetchAssociative()) {
             $localizedEntries[$localizedEntry['l10n_parent']] = $localizedEntry;
         }
         return $localizedEntries;
@@ -441,6 +447,7 @@ final class GlossaryRepository
     }
 
     /**
+     * @return int[]
      * @throws SiteNotFoundException
      * @throws Exception
      * @throws \Doctrine\DBAL\Exception

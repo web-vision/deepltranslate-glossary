@@ -73,6 +73,7 @@ final class MigrateTablesFromOldStructureWizard implements UpgradeWizardInterfac
         while ($glossary = $glossariesResult->fetchAssociative()) {
 
         }
+        return true;
     }
 
     /**
