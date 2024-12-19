@@ -15,4 +15,7 @@ use WebVision\Deepltranslate\Glossary\Hooks\UpdatedGlossaryEntryTermHook;
     // hook registration
     $GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['t3lib/class.t3lib_tcemain.php']['processDatamapClass'][]
         = UpdatedGlossaryEntryTermHook::class;
+
+    $accessRegistry = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance(\WebVision\Deepltranslate\Core\Access\AccessRegistry::class);
+    $accessRegistry->addAccess((new \WebVision\Deepltranslate\Glossary\Access\AllowedGlossarySyncAccess()));
 })();

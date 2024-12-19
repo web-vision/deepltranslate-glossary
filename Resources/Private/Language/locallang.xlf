@@ -104,6 +104,14 @@
             <trans-unit id="entry.target">
                 <source>Target</source>
             </trans-unit>
+
+            <!-- Translation Access | be_groups -->
+            <trans-unit id="be_groups.deepltranslate_access.items.allowedGlossarySync.title">
+                <source>Allowed Glossary Sync</source>
+            </trans-unit>
+            <trans-unit id="be_groups.deepltranslate_access.items.allowedGlossarySync.description">
+                <source></source>
+            </trans-unit>
         </body>
     </file>
 </xliff>
