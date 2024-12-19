@@ -72,7 +72,7 @@ jobs:
 
   testsuite:
     name: all tests with core v13
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-22.04
     needs: code-quality
     strategy:
       fail-fast: false
@@ -114,21 +114,21 @@ jobs:
 
       - name: "Unit"
         run: "Build/Scripts/runTests.sh -t 13 -p ${{ matrix.php-version }} -s unit"
-# @todo  Enable after functional tests setup has been fixed
-#      - name: "Functional SQLite"
-#        run: "Build/Scripts/runTests.sh -t 13 -p ${{ matrix.php-version }} -s functional -d sqlite"
-#
-#      - name: "Functional MariaDB 10.5 mysqli"
-#        run: "Build/Scripts/runTests.sh -t 13 -p ${{ matrix.php-version }} -s functional -d mariadb -a mysqli"
-#
-#      - name: "Functional MariaDB 10.5 pdo_mysql"
-#        run: "Build/Scripts/runTests.sh -t 13 -p ${{ matrix.php-version }} -s functional -d mariadb -a pdo_mysql"
-#
-#      - name: "Functional MySQL 8.0 mysqli"
-#        run: "Build/Scripts/runTests.sh -t 13 -p ${{ matrix.php-version }} -s functional -d mariadb -a mysqli"
-#
-#      - name: "Functional MySQL 8.0 pdo_mysql"
-#        run: "Build/Scripts/runTests.sh -t 13 -p ${{ matrix.php-version }} -s functional -d mariadb -a pdo_mysql"
-#
-#      - name: "Functional PostgresSQL 10"
-#        run: "Build/Scripts/runTests.sh -t 13 -p ${{ matrix.php-version }} -s functional -d postgres"
+
+      - name: "Functional SQLite"
+        run: "Build/Scripts/runTests.sh -t 13 -p ${{ matrix.php-version }} -s functional -d sqlite"
+
+      - name: "Functional MariaDB 10.5 mysqli"
+        run: "Build/Scripts/runTests.sh -t 13 -p ${{ matrix.php-version }} -s functional -d mariadb -a mysqli"
+
+      - name: "Functional MariaDB 10.5 pdo_mysql"
+        run: "Build/Scripts/runTests.sh -t 13 -p ${{ matrix.php-version }} -s functional -d mariadb -a pdo_mysql"
+
+      - name: "Functional MySQL 8.0 mysqli"
+        run: "Build/Scripts/runTests.sh -t 13 -p ${{ matrix.php-version }} -s functional -d mariadb -a mysqli"
+
+      - name: "Functional MySQL 8.0 pdo_mysql"
+        run: "Build/Scripts/runTests.sh -t 13 -p ${{ matrix.php-version }} -s functional -d mariadb -a pdo_mysql"
+
+      - name: "Functional PostgresSQL 10"
+        run: "Build/Scripts/runTests.sh -t 13 -p ${{ matrix.php-version }} -s functional -d postgres"

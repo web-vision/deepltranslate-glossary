@@ -85,12 +85,7 @@ final class GlossaryRegressionTest extends AbstractDeepLTestCase
         $commandMap = [
             'pages' => [
                 4 => [
-                    'localize' => 1,
-                ],
-            ],
-            'localization' => [
-                'custom' => [
-                    'mode' => 'deepl',
+                    'deepltranslate' => 1,
                 ],
             ],
         ];
