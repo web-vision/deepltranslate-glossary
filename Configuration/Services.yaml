@@ -35,5 +35,17 @@ services:
   WebVision\Deepltranslate\Glossary\EventListener\LocalGlossary:
     tags:
       - name: 'event.listener'
-        class: WebVision\Deepltranslate\Core\Event\GlossaryKeyEvent
+        class: WebVision\Deepltranslate\Core\Event\DeepLGlossaryIdEvent
         identifier: 'deepltranslate.localGlossary'
+
+  WebVision\Deepltranslate\Glossary\EventListener\GlossaryModuleShouldNotRenderDeepLTranslationDropdown:
+    tags:
+      - name: 'event.listener'
+        class: WebVision\Deepltranslate\Core\Event\RenderLocalizationSelectAllowed
+        identifier: 'deepltranslate-glossary/forbidDropdownRendering'
+
+  WebVision\Deepltranslate\Glossary\EventListener\ExcludeGlossaryTablesFromDeeplTranslation:
+    tags:
+      - name: 'event.listener'
+        event: WebVision\Deepltranslate\Core\Event\DisallowTableFromDeeplTranslateEvent
+        identifier: 'deepltranslate-glossary/disallow-entries'

@@ -24,14 +24,7 @@ use WebVision\Deepltranslate\Glossary\Service\DeeplGlossaryService;
 final class GlossaryRepository
 {
     /**
-     * @return array<int, array{
-     *     glossary_name: string,
-     *     uid: int,
-     *     glossary_id: string,
-     *     source_lang: string,
-     *     target_lang: string,
-     *     entries: array<int, array{source: string, target: string}>
-     * }>
+     * @return Glossary[]
      *
      * @throws DBALException
      * @throws Exception
@@ -88,8 +81,8 @@ final class GlossaryRepository
                     $targetLang,
                     $page
                 );
-                $glossaryInformation['source_lang'] = $sourceLang;
-                $glossaryInformation['target_lang'] = $targetLang;
+                $glossaryInformation->sourceLanguage = $sourceLang;
+                $glossaryInformation->targetLanguage = $targetLang;
 
                 $entries = [];
                 foreach ($localizationArray[$sourceLang] as $entryId => $sourceEntry) {
@@ -117,7 +110,7 @@ final class GlossaryRepository
                 }
 
                 // reset entries keys
-                $glossaryInformation['entries'] = array_values($entries);
+                $glossaryInformation->entries = array_values($entries);
                 $glossaries[] = $glossaryInformation;
             }
         }
@@ -215,7 +208,7 @@ final class GlossaryRepository
         return $this->getGlossary(
             $lowerSourceLang,
             $lowerTargetLang,
-            $page->getUid(),
+            $page->uid,
             true
         ) ?? $defaultGlossary;
     }
@@ -260,7 +253,7 @@ final class GlossaryRepository
             $lastInsertId = $db->lastInsertId('tx_deepltranslate_glossary');
             $insert['uid'] = $lastInsertId;
             unset($insert['pid']);
-            return $insert;
+            return Glossary::fromDatabase($insert);
         }
 
         return $result;

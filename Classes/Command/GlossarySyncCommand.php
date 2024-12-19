@@ -29,7 +29,7 @@ final class GlossarySyncCommand extends Command
                 'pageId',
                 'p',
                 InputOption::VALUE_OPTIONAL,
-                'Page to sync, not set, sync all glossaries',
+                'Page to sync. If not set, all glossaries are synced',
                 null
             );
     }

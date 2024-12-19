@@ -53,8 +53,7 @@ final class GlossaryListCommand extends Command
     {
         $glossaries = $this->deeplGlossaryService->listGlossaries();
 
-        $this->io->writeln('Read more here: https://www.deepl.com/docs-api/managing-glossaries/listing-glossaries/');
-        $this->io->newLine();
+        $this->io->info('Read more here: https://www.deepl.com/docs-api/managing-glossaries/listing-glossaries/');
         if ($glossaries === []) {
             $this->io->info('No Glossaries found.');
             return;
@@ -98,7 +97,7 @@ final class GlossaryListCommand extends Command
         }
         $entries = $this->deeplGlossaryService->glossaryEntries($id);
         if ($entries === null) {
-            $this->io->warning('The API giv entries.');
+            $this->io->error(sprintf('No entries found in glossary with ID "%s", but count has "%d" entries.', $id, $glossaryInformation->entryCount));
             return;
         }
 

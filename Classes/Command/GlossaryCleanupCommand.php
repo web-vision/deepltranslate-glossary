@@ -34,22 +34,21 @@ final class GlossaryCleanupCommand extends Command
                 'glossaryId',
                 null,
                 InputOption::VALUE_OPTIONAL,
-                'Deleted single Glossary',
+                'Delete a single glossary',
                 null
             )
             ->addOption(
                 'all',
                 null,
                 InputOption::VALUE_NONE,
-                'Deleted all Glossaries',
+                'Delete all glossaries according to the API key.',
             )
             ->addOption(
                 'notinsync',
                 null,
                 InputOption::VALUE_NONE,
-                'Deleted all Glossaries without synchronization information',
-            )
-        ;
+                'Delete all Glossaries without synchronization information',
+            );
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
@@ -58,13 +57,12 @@ final class GlossaryCleanupCommand extends Command
         $this->io->title('Glossary cleanup');
 
         $question = new ConfirmationQuestion(
-            'Do you will execute the glossary cleanup?',
-            false,
-            '/^(y|j)/i'
+            'Execute glossary cleanup',
+            false
         );
 
         if (!$this->io->askQuestion($question)) {
-            $this->io->writeln('<warning>Delete not confirmed, process was cancel.</warning>');
+            $this->io->warning('Delete not confirmed, the process is canceled.');
             return Command::SUCCESS;
         }
 
@@ -77,8 +75,20 @@ final class GlossaryCleanupCommand extends Command
         if (!empty($input->getOption('all'))) {
             $glossaries = $this->deeplGlossaryService->listGlossaries();
             if (empty($glossaries)) {
-                $this->io->writeln('No glossaries found with sync to API');
+                $this->io->info('No glossaries found with sync to API');
                 return Command::FAILURE;
+            }
+
+            $this->io->warning('This will delete all glossaries from DeepL according to the actual API key.');
+
+            $allDeletionQuestion = new ConfirmationQuestion(
+                'Really delete all glossaries',
+                false
+            );
+
+            if ($this->io->askQuestion($allDeletionQuestion) === false) {
+                $this->io->info('Not confirmed, abort.');
+                return Command::SUCCESS;
             }
 
             $this->removeGlossaries($glossaries);
@@ -88,7 +98,7 @@ final class GlossaryCleanupCommand extends Command
             $this->removeGlossariesWithNoSync();
         }
 
-        $this->io->writeln('Success!');
+        $this->io->success('Success!');
 
         return Command::SUCCESS;
     }
@@ -129,7 +139,7 @@ final class GlossaryCleanupCommand extends Command
         $findNotConnected = $this->glossaryRepository->getGlossariesDeeplConnected();
 
         if (count($findNotConnected) === 0) {
-            $this->io->writeln('No glossaries with sync mismatch.');
+            $this->io->info('No glossaries with sync mismatch.');
         }
 
         $this->io->progressStart(count($findNotConnected));
@@ -139,7 +149,7 @@ final class GlossaryCleanupCommand extends Command
         }
         $this->io->progressFinish();
 
-        $this->io->writeln(
+        $this->io->info(
             sprintf('Found %d glossaries with possible sync mismatch. Cleaned up.', count($findNotConnected))
         );
     }

@@ -6,21 +6,28 @@ namespace WebVision\Deepltranslate\Glossary\Hooks;
 
 use Doctrine\DBAL\Driver\Exception;
 use Doctrine\DBAL\Exception as DBALException;
+use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\DataHandling\DataHandler;
+use TYPO3\CMS\Core\Localization\LanguageService;
+use TYPO3\CMS\Core\Localization\LanguageServiceFactory;
 use TYPO3\CMS\Core\Messaging\FlashMessage;
 use TYPO3\CMS\Core\Messaging\FlashMessageService;
 use TYPO3\CMS\Core\Type\ContextualFeedbackSeverity;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
-use TYPO3\CMS\Extbase\Utility\LocalizationUtility;
 use WebVision\Deepltranslate\Glossary\Domain\Repository\GlossaryEntryRepository;
 use WebVision\Deepltranslate\Glossary\Domain\Repository\GlossaryRepository;
 
 final class UpdatedGlossaryEntryTermHook
 {
+    private LanguageService $languageService;
+
     public function __construct(
         private readonly GlossaryRepository $glossaryRepository,
-        private readonly GlossaryEntryRepository $glossaryEntryRepository
+        private readonly GlossaryEntryRepository $glossaryEntryRepository,
+        LanguageServiceFactory $languageServiceFactory
     ) {
+        $this->languageService = $languageServiceFactory
+            ->createFromUserPreferences($this->getBackendUser());
     }
 
     /**
@@ -54,16 +61,9 @@ final class UpdatedGlossaryEntryTermHook
 
         $this->glossaryRepository->setGlossaryNotSyncOnPage($glossary['pid']);
 
-        // @todo get rid of LocalizationUtility!
         $flashMessage = new FlashMessage(
-            (string)LocalizationUtility::translate(
-                'glossary.not-sync.message',
-                'DeepltranslateCore'
-            ),
-            (string)LocalizationUtility::translate(
-                'glossary.not-sync.title',
-                'DeepltranslateCore'
-            ),
+            $this->languageService->sL('LLL:EXT:deepltranslate_glossary/Resources/Private/Language/locallang.xlf:glossary.not-sync.message'),
+            $this->languageService->sL('LLL:EXT:deepltranslate_glossary/Resources/Private/Language/locallang.xlf:glossary.not-sync.title'),
             ContextualFeedbackSeverity::INFO,
             true
         );
@@ -72,5 +72,10 @@ final class UpdatedGlossaryEntryTermHook
         GeneralUtility::makeInstance(FlashMessageService::class)
             ->getMessageQueueByIdentifier()
             ->enqueue($flashMessage);
+    }
+
+    private function getBackendUser(): ?BackendUserAuthentication
+    {
+        return $GLOBALS['BE_USER'] ?? null;
     }
 }

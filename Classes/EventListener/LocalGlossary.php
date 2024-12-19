@@ -22,8 +22,8 @@ final class LocalGlossary
             $event->currentPage
         );
 
-        if ($glossary->isReady()) {
-            $event->glossaryId =  $glossary->getGlossaryId();
+        if ($glossary->ready) {
+            $event->glossaryId =  $glossary->glossaryId;
         }
     }
 }

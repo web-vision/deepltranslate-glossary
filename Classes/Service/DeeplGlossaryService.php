@@ -126,6 +126,7 @@ final class DeeplGlossaryService
      * @throws Exception
      * @throws SiteNotFoundException
      * @throws \Doctrine\DBAL\Exception
+     * @throws FailedToCreateGlossaryException
      */
     public function syncGlossaries(int $uid): void
     {
@@ -138,18 +139,18 @@ final class DeeplGlossaryService
         }
 
         foreach ($glossaries as $glossaryInformation) {
-            if ($glossaryInformation['glossary_id'] !== '') {
-                $this->deleteGlossary($glossaryInformation['glossary_id']);
+            if ($glossaryInformation->glossaryId !== '') {
+                $this->deleteGlossary($glossaryInformation->glossaryId);
             }
 
             try {
                 $glossary = $this->createGlossary(
-                    $glossaryInformation['glossary_name'],
-                    $glossaryInformation['entries'],
-                    $glossaryInformation['source_lang'],
-                    $glossaryInformation['target_lang']
+                    $glossaryInformation->name,
+                    $glossaryInformation->entries,
+                    $glossaryInformation->sourceLanguage,
+                    $glossaryInformation->targetLanguage
                 );
-            } catch (GlossaryEntriesNotExistException $exception) {
+            } catch (GlossaryEntriesNotExistException) {
                 $glossary = new GlossaryInfo(
                     '',
                     '',
@@ -163,7 +164,7 @@ final class DeeplGlossaryService
 
             $this->glossaryRepository->updateLocalGlossary(
                 $glossary,
-                (int)$glossaryInformation['uid']
+                $glossaryInformation->uid
             );
         }
     }

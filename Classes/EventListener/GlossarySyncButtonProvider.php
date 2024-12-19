@@ -14,9 +14,9 @@ use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\Imaging\Icon;
 use TYPO3\CMS\Core\Imaging\IconFactory;
 use TYPO3\CMS\Core\Localization\LanguageService;
+use TYPO3\CMS\Core\Localization\LanguageServiceFactory;
 use TYPO3\CMS\Core\Type\Bitmask\Permission;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
-use TYPO3\CMS\Extbase\Utility\LocalizationUtility;
 use WebVision\Deepltranslate\Core\Access\AllowedGlossarySyncAccess;
 
 
@@ -65,10 +65,9 @@ final class GlossarySyncButtonProvider
         }
 
         $parameters = $this->buildParamsArrayForListView((int)$id);
-        $title = (string)LocalizationUtility::translate(
-            'glossary.sync.button.all',
-            'DeepltranslateCore'
-        );
+        $title = GeneralUtility::makeInstance(LanguageServiceFactory::class)
+            ->createFromUserPreferences($GLOBALS['BE_USER'] ?? null)
+            ->sL('LLL:EXT:deepltranslate_glossary/Resources/Private/Language/locallang.xlf:glossary.sync.button.all');
         // Style button
         $iconFactory = GeneralUtility::makeInstance(IconFactory::class);
         $button = $event->getButtonBar()->makeLinkButton();

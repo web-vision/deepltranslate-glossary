@@ -9,12 +9,16 @@ use TYPO3\CMS\Core\Utility\MathUtility;
 
 final class Glossary
 {
+    public array $entries = [];
+    public string $sourceLanguage = '';
+    public string $targetLanguage = '';
+
     private function __construct(
-        private readonly int                $uid,
-        private readonly string             $glossaryId,
-        private readonly string             $name,
-        private readonly ?DateTimeImmutable $lastSync,
-        private readonly bool               $ready
+        public readonly int $uid,
+        public readonly string $glossaryId,
+        public readonly string $name,
+        public readonly ?DateTimeImmutable $lastSync,
+        public readonly bool $ready
     ) {
     }
 
@@ -61,30 +65,5 @@ final class Glossary
             null,
             false
         );
-    }
-
-    public function getUid(): ?int
-    {
-        return $this->uid;
-    }
-
-    public function getGlossaryId(): string
-    {
-        return $this->glossaryId;
-    }
-
-    public function getName(): string
-    {
-        return $this->name;
-    }
-
-    public function getLastSync(): ?DateTimeImmutable
-    {
-        return $this->lastSync;
-    }
-
-    public function isReady(): bool
-    {
-        return $this->ready;
     }
 }
