@@ -41,6 +41,10 @@ final class GlossaryRepository
             $pageId
         );
 
+        if ($page === null) {
+            return [];
+        }
+        /** @var array{uid: int, title: string} $page */
         $entries = $this->getOriginalEntries($pageId);
         $localizationLanguageIds = $this->getAvailableLocalizations($pageId);
         $site = GeneralUtility::makeInstance(SiteFinder::class)
@@ -432,7 +436,6 @@ final class GlossaryRepository
             ->setMaxResults(1);
 
         $result = $statement->executeQuery()->fetchAssociative();
-
 
         return $result ? Glossary::fromDatabase($result) : null;
     }

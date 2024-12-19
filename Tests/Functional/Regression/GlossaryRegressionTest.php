@@ -8,9 +8,9 @@ use PHPUnit\Framework\Attributes\Test;
 use TYPO3\CMS\Core\DataHandling\DataHandler;
 use TYPO3\CMS\Core\Localization\LanguageServiceFactory;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
-use WebVision\Deepltranslate\Core\Tests\Functional\AbstractDeepLTestCase;
-use WebVision\Deepltranslate\Core\Tests\Functional\Fixtures\Traits\SiteBasedTestTrait;
 use WebVision\Deepltranslate\Glossary\Service\DeeplGlossaryService;
+use WebVision\Deepltranslate\Glossary\Tests\Functional\AbstractDeepLTestCase;
+use WebVision\Deepltranslate\Glossary\Tests\Functional\Fixtures\Traits\SiteBasedTestTrait;
 
 final class GlossaryRegressionTest extends AbstractDeepLTestCase
 {
@@ -52,7 +52,7 @@ final class GlossaryRegressionTest extends AbstractDeepLTestCase
     protected array $testExtensionsToLoad = [
         'web-vision/deepltranslate-core',
         'web-vision/deepltranslate-glossary',
-        __DIR__ . '/../Fixtures/Extensions/test_services_override'
+        __DIR__ . '/../Fixtures/Extensions/test_services_override',
     ];
 
     protected function setUp(): void
