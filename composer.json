@@ -41,6 +41,7 @@
     "php-mock/php-mock-phpunit": "^2.6",
     "phpstan/phpstan": "^1.10",
     "phpunit/phpunit": "^10.5",
+    "ramsey/uuid": "^4.7",
     "saschaegerer/phpstan-typo3": "^1.9",
     "typo3/cms-belog": "^12.4.2 || ^13.4",
     "typo3/cms-lowlevel": "^12.4.2 || ^13.4",

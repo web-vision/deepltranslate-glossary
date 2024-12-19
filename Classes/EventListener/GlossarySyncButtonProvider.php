@@ -141,7 +141,7 @@ final class GlossarySyncButtonProvider
     {
         return [
             'uid' => $id,
-            'returnUrl' => $this->getRequest()->getAttribute('normalizedParams')->getRequestUri(),
+            'returnUrl' => (string)$this->getRequest()->getAttribute('normalizedParams')?->getRequestUri(),
         ];
     }
 }
