@@ -1,0 +1,16 @@
+{
+	"name": "web-vision/test-migration-deleted",
+	"type": "typo3-cms-extension",
+	"description": "Add table definitions for migration tests.",
+	"license": ["GPL-2.0-or-later"],
+	"extra": {
+		"typo3/cms": {
+			"extension-key": "test_migration_deleted"
+		}
+	},
+	"require": {
+		"typo3/cms-core": "*",
+		"web-vision/deepltranslate-core": "*",
+		"web-vision/deepltranslate-glossary": "*"
+	}
+}

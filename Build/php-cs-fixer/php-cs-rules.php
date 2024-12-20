@@ -48,7 +48,7 @@ return (new PhpCsFixer\Config())
         'no_blank_lines_after_phpdoc' => true,
         'array_syntax' => ['syntax' => 'short'],
         'whitespace_after_comma_in_array' => true,
-        'function_typehint_space' => true,
+        'type_declaration_spaces' => true,
         'no_alias_functions' => true,
         'lowercase_cast' => true,
         'no_leading_namespace_whitespace' => true,
@@ -70,14 +70,16 @@ return (new PhpCsFixer\Config())
         'declare_equal_normalize' => ['space' => 'none'],
         'dir_constant' => true,
         'phpdoc_no_access' => true,
-        'compact_nullable_typehint' => true,
+        'compact_nullable_type_declaration' => true,
         'method_argument_space' => ['on_multiline' => 'ensure_fully_multiline'],
         'modernize_types_casting' => true,
-        'new_with_braces' => true,
+        'new_with_parentheses' => true,
         'no_empty_phpdoc' => true,
         'no_null_property_initialization' => true,
         'php_unit_mock_short_will_return' => true,
-        'php_unit_test_case_static_method_calls' => ['call_type' => 'static'],
+        // @todo validate, how to handle self:: to static:: mappings, as this makes no sense for
+        //       final classes
+        //'php_unit_test_case_static_method_calls' => ['call_type' => 'self'],
         'single_trait_insert_per_statement' => true,
     ])
     ->setFinder($finder);

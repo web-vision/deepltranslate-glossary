@@ -1,0 +1,19 @@
+tx_deepltranslate_glossary
+,uid,pid,tstamp,crdate,deleted,glossary_ready,glossary_lastsync,glossary_id,glossary_name,source_lang,target_lang
+,1,2,0,0,0,0,0,"",Glossary: en => de,en,de
+,2,2,0,0,0,0,0,"",Glossary: de => da,de,da
+,3,2,0,0,0,0,0,"",Glossary: en => da,en,da
+,4,2,0,0,0,0,0,"",Glossary: da => de,da,de
+tx_deepltranslate_glossaryentry
+,uid,pid,tstamp,crdate,deleted,hidden,sys_language_uid,l10n_parent,l10n_source,l10n_state,l10n_diffsource,term
+,1,2,1734598459,1734598459,0,0,0,0,0,,"",web-vision
+,2,2,1734598463,1734598463,0,0,2,1,1,,"{""l10n_parent"":""0"",""l10n_diffsource"":"""",""hidden"":""0"",""sys_language_uid"":""0"",""l10n_source"":""0"",""term"":""web-vision""}",web-vision
+,3,2,1734607018,1734607018,0,0,1,1,1,,"{""l10n_parent"":""0"",""l10n_diffsource"":"""",""hidden"":""0"",""sys_language_uid"":""0"",""l10n_source"":""0"",""term"":""web-vision""}",web-vision
+,4,2,1734607426,1734607426,0,0,0,0,0,,"",Rauch
+,5,2,1734607429,1734607429,0,0,1,4,4,,"{""l10n_parent"":""0"",""l10n_diffsource"":"""",""hidden"":""0"",""sys_language_uid"":""0"",""l10n_source"":""0"",""term"":""Rauch""}",Rauch
+,6,2,1734607432,1734607432,0,0,2,4,4,,"{""l10n_parent"":""0"",""l10n_diffsource"":"""",""hidden"":""0"",""sys_language_uid"":""0"",""l10n_source"":""0"",""term"":""Rauch""}",Rauch
+,7,2,1734607517,1734607517,0,0,0,0,0,,"",Smokey
+,8,2,1734607519,1734607519,0,0,1,7,7,,"{""l10n_parent"":""0"",""l10n_diffsource"":"""",""hidden"":""0"",""sys_language_uid"":""0"",""l10n_source"":""0"",""term"":""Smokey""}",Smokey
+,9,2,1734607521,1734607521,0,0,2,7,7,,"{""l10n_parent"":""0"",""l10n_diffsource"":"""",""hidden"":""0"",""sys_language_uid"":""0"",""l10n_source"":""0"",""term"":""Smokey""}",Smokey
+,10,2,1734607621,1734607621,0,0,0,0,0,,"",Love line
+,11,2,1734607623,1734607623,0,0,2,10,10,,"{""l10n_parent"":""0"",""l10n_diffsource"":"""",""hidden"":""0"",""sys_language_uid"":""0"",""l10n_source"":""0"",""term"":""Love line""}",Love line

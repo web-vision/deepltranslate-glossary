@@ -49,30 +49,13 @@ final class MigrateTablesFromOldStructureWizard implements UpgradeWizardInterfac
             $tableEntry = sprintf('zzz_deleted_%s', $tableEntry);
         }
 
-        $queryBuilder = $this->connectionPool->getQueryBuilderForTable('tx_deepltranslate_glossary');
-        $selectGlossariesStatement = $queryBuilder
-            ->select(
-                'pid',
-                'glossary_ready',
-                'glossary_lastsync',
-                'glossary_id',
-                'glossary_name',
-                'source_lang',
-                'target_lang',
-                'sys_language_uid',
-            )
-            ->from($tableGlossary)
-            ->where(
-                $queryBuilder->expr()->eq('deleted', $queryBuilder->createNamedParameter(0, Connection::PARAM_INT))
-            );
-        $glossariesResult = $selectGlossariesStatement->executeQuery();
-
-        $data = [
-            '',
-        ];
-        while ($glossary = $glossariesResult->fetchAssociative()) {
-
+        if (!$this->tablesEmpty()) {
+            return false;
         }
+
+        $this->updateTable($tableGlossary, 'tx_deepltranslate_glossary');
+        $this->updateTable($tableEntry, 'tx_deepltranslate_glossaryentry');
+
         return true;
     }
 
@@ -94,34 +77,23 @@ final class MigrateTablesFromOldStructureWizard implements UpgradeWizardInterfac
             $foundTables = false;
         }
 
-        $tableGlossary = sprintf('zzz_deleted_%s', $tableGlossary);
-        $tableEntry = sprintf('zzz_deleted_%s', $tableEntry);
+        $deletedTableGlossary = sprintf('zzz_deleted_%s', $tableGlossary);
+        $deletedTableEntry = sprintf('zzz_deleted_%s', $tableEntry);
         if (
-            !in_array($tableGlossary, $existingTables)
-            && !in_array($tableEntry, $existingTables)
+            in_array($deletedTableGlossary, $existingTables)
+            && in_array($deletedTableEntry, $existingTables)
         ) {
             $this->setTablesDeleted();
             $foundTables = true;
+            $tableGlossary = $deletedTableGlossary;
+            $tableEntry = $deletedTableEntry;
         }
         if (!$foundTables) {
             return false;
         }
 
-        $countGlossaryStatement = $queryBuilder
-            ->count('*')
-            ->from($tableGlossary)
-            ->where(
-                $queryBuilder->expr()->eq('deleted', $queryBuilder->createNamedParameter(0, Connection::PARAM_INT))
-            );
-        $countGlossary = (int)$countGlossaryStatement->executeQuery()->fetchOne();
-
-        $countEntryStatement = $queryBuilder
-            ->count('*')
-            ->from($tableEntry)
-            ->where(
-                $queryBuilder->expr()->eq('deleted', $queryBuilder->createNamedParameter(0, Connection::PARAM_INT))
-            );
-        $countEntry = (int)$countEntryStatement->executeQuery()->fetchOne();
+        $countGlossary = $this->countTable($tableGlossary, true);
+        $countEntry = $this->countTable($tableEntry, true);
 
         if ($countGlossary === 0 && $countEntry === 0) {
             return false;
@@ -152,5 +124,55 @@ final class MigrateTablesFromOldStructureWizard implements UpgradeWizardInterfac
     private function setTablesDeleted(): void
     {
         $this->cache->set('deepltranslateGlossary_migrateGlossaryTables', true);
+    }
+
+    private function updateTable(string $oldTable, string $newTable): void
+    {
+        $queryBuilder = $this->connectionPool->getQueryBuilderForTable($newTable);
+        $selectStatement = $queryBuilder
+            ->select('*')
+            ->from($oldTable)
+            ->where(
+                $queryBuilder->expr()->eq('deleted', $queryBuilder->createNamedParameter(0, Connection::PARAM_INT))
+            );
+        $result = $selectStatement->executeQuery();
+        while ($entry = $result->fetchAssociative()) {
+            // remove potentially existing breaking fields
+            // https://docs.typo3.org/c/typo3/cms-core/main/en-us/Changelog/12.0/Breaking-98024-TCA-option-cruserid-removed.html
+            unset($entry['cruser_id']);
+            // remove potentially set deleted fields
+            foreach ($entry as $fieldName => $_) {
+                if (str_starts_with('zzz_deleted_', $fieldName)) {
+                    unset($entry[$fieldName]);
+                }
+            }
+            $insertQueryBuilder = $this->connectionPool->getQueryBuilderForTable($newTable);
+            $insertQueryBuilder
+                ->insert($newTable)
+                ->values($entry)
+                ->executeStatement();
+        }
+    }
+
+    private function tablesEmpty(): bool
+    {
+        return
+            $this->countTable('tx_deepltranslate_glossary') === 0
+            && $this->countTable('tx_deepltranslate_glossaryentry') === 0
+        ;
+    }
+
+    private function countTable(string $tableName, bool $respectDeleted = false): int
+    {
+        $queryBuilder = $this->connectionPool->getQueryBuilderForTable('tx_deepltranslate_glossary');
+        $countQuery = $queryBuilder
+            ->count('*')
+            ->from($tableName);
+        if ($respectDeleted) {
+            $countQuery->where(
+                $queryBuilder->expr()->eq('deleted', $queryBuilder->createNamedParameter(0, Connection::PARAM_INT))
+            );
+        }
+        return (int)$countQuery->executeQuery()->fetchOne();
     }
 }
