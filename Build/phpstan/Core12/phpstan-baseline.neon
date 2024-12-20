@@ -84,3 +84,13 @@ parameters:
 			message: "#^Parameter \\#3 \\$coreCache of class TYPO3\\\\CMS\\\\Core\\\\Configuration\\\\SiteConfiguration constructor expects TYPO3\\\\CMS\\\\Core\\\\Cache\\\\Frontend\\\\PhpFrontend\\|null, TYPO3\\\\CMS\\\\Core\\\\Site\\\\Set\\\\SetRegistry given\\.$#"
 			count: 1
 			path: ../../../Tests/Functional/Regression/GlossaryRegressionTest.php
+
+		-
+			message: "#^Variable \\$_EXTKEY might not be defined\\.$#"
+			count: 1
+			path: ../../../Tests/Functional/Upgrade/Fixtures/Extensions/test_migration/ext_emconf.php
+
+		-
+			message: "#^Variable \\$_EXTKEY might not be defined\\.$#"
+			count: 1
+			path: ../../../Tests/Functional/Upgrade/Fixtures/Extensions/test_migration_deleted/ext_emconf.php

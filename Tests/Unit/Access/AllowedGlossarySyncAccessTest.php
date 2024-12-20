@@ -22,30 +22,30 @@ class AllowedGlossarySyncAccessTest extends UnitTestCase
     #[Test]
     public function hasInterfaceImplementation(): void
     {
-        static::assertInstanceOf(AccessItemInterface::class, $this->accessInstance);
+        self::assertInstanceOf(AccessItemInterface::class, $this->accessInstance);
     }
 
     #[Test]
     public function getIdentifier(): void
     {
-        static::assertSame('allowedGlossarySync', $this->accessInstance->getIdentifier());
+        self::assertSame('allowedGlossarySync', $this->accessInstance->getIdentifier());
     }
 
     #[Test]
     public function getTitle(): void
     {
-        static::assertIsString($this->accessInstance->getTitle());
+        self::assertIsString($this->accessInstance->getTitle());
     }
 
     #[Test]
     public function getDescription(): void
     {
-        static::assertIsString($this->accessInstance->getDescription());
+        self::assertIsString($this->accessInstance->getDescription());
     }
 
     #[Test]
     public function getIconIdentifier(): void
     {
-        static::assertSame('deepl-logo', $this->accessInstance->getIconIdentifier());
+        self::assertSame('deepl-logo', $this->accessInstance->getIconIdentifier());
     }
 }
