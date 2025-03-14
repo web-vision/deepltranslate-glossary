@@ -26,8 +26,9 @@ Install with your favour:
 * [Git](https://github.com/web-vision/deepltranslate-glossary)
 
 We prefer composer installation:
+
 ```bash
-composer require web-vision/deepltranslate-core
+composer require web-vision/deepltranslate-glossary
 ```
 
 ## Sponsors
