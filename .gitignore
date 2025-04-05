@@ -13,7 +13,9 @@ var
 /*.http
 http-client.env.json
 /.test-results
-Build/testing-docker/.env
+/Build/testing-docker/.env
 /config/
 Build/node_modules/
-vendor
+/vendor
+/tailor-version-artefact/
+/tailor-version-upload/
