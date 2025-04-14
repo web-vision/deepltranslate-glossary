@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace WebVision\Deepltranslate\Glossary\Tests\Functional\Regression;
 
 use PHPUnit\Framework\Attributes\Test;
+use SBUERK\TYPO3\Testing\SiteHandling\SiteBasedTestTrait;
 use TYPO3\CMS\Core\DataHandling\DataHandler;
 use TYPO3\CMS\Core\Localization\LanguageServiceFactory;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use WebVision\Deepltranslate\Glossary\Service\DeeplGlossaryService;
 use WebVision\Deepltranslate\Glossary\Tests\Functional\AbstractDeepLTestCase;
-use WebVision\Deepltranslate\Glossary\Tests\Functional\Fixtures\Traits\SiteBasedTestTrait;
 
 final class GlossaryRegressionTest extends AbstractDeepLTestCase
 {
@@ -59,15 +59,13 @@ final class GlossaryRegressionTest extends AbstractDeepLTestCase
     {
         parent::setUp();
 
-        $site = $this->buildSiteConfiguration(1, '/', 'Home');
-
         $this->writeSiteConfiguration(
-            'acme',
-            $site,
-            [
+            identifier: 'acme',
+            site: $this->buildSiteConfiguration(rootPageId: 1),
+            languages: [
                 $this->buildDefaultLanguageConfiguration('EN', '/'),
                 $this->buildLanguageConfiguration('DE', '/de/', ['EN'], 'strict'),
-            ]
+            ],
         );
 
         $this->importCSVDataSet(__DIR__ . '/Fixtures/glossary.csv');
