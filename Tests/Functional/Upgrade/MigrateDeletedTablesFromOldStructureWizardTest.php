@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace WebVision\Deepltranslate\Glossary\Tests\Functional\Upgrade;
 
 use PHPUnit\Framework\Attributes\Test;
-use TYPO3\TestingFramework\Core\Functional\FunctionalTestCase;
+use SBUERK\TYPO3\Testing\TestCase\FunctionalTestCase;
 use WebVision\Deepltranslate\Glossary\Upgrade\MigrateTablesFromOldStructureWizard;
 
 final class MigrateDeletedTablesFromOldStructureWizardTest extends FunctionalTestCase
