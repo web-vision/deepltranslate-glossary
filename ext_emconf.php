@@ -1,8 +1,8 @@
 <?php
 
 $EM_CONF[$_EXTKEY] = [
-    'title' => 'DeepL Translate',
-    'description' => 'This extension provides option to translate content element, and TCA record texts to DeepL supported languages.',
+    'title' => 'DeepL Translate: Glossary',
+    'description' => 'DeepL Translate Add-On providing glossary functionality',
     'category' => 'backend',
     'author' => 'web-vision GmbH Team',
     'author_company' => 'web-vision GmbH',
