@@ -1,6 +1,6 @@
 {
 	"name": "web-vision/deepltranslate-glossary",
-	"description": "This extension provides option to auto and renew translate within TYPO3 CMS",
+	"description": "DeepL Translate Add-On providing glossary functionality within TYPO3 CMS",
 	"license": [
 		"GPL-2.0-or-later"
 	],
