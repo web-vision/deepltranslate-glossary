@@ -11,6 +11,8 @@ use WebVision\Deepltranslate\Glossary\Upgrade\MigrateTablesFromOldStructureWizar
 final class MigrateDeletedTablesFromOldStructureWizardTest extends FunctionalTestCase
 {
     protected array $testExtensionsToLoad = [
+        'web-vision/deeplcom-deepl-php',
+        'web-vision/deepl-base',
         'web-vision/deepltranslate-core',
         'web-vision/deepltranslate-glossary',
         __DIR__ . '/Fixtures/Extensions/test_migration_deleted',
