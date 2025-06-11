@@ -50,6 +50,8 @@ final class GlossaryRegressionTest extends AbstractDeepLTestCase
     ];
 
     protected array $testExtensionsToLoad = [
+        'web-vision/deeplcom-deepl-php',
+        'web-vision/deepl-base',
         'web-vision/deepltranslate-core',
         'web-vision/deepltranslate-glossary',
         __DIR__ . '/../Fixtures/Extensions/test_services_override',
