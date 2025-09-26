@@ -69,7 +69,7 @@ final class GlossaryCleanupCommand extends Command
         // Remove single glossary by deepl-id
         $glossaryId = $input->getOption('glossaryId');
         if ($glossaryId !== null) {
-            $this->removeGlossaries($glossaryId);
+            $this->removeGlossary($glossaryId);
         }
         // Remove all glossaries
         if (!empty($input->getOption('all'))) {
