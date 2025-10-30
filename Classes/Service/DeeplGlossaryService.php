@@ -9,10 +9,12 @@ use DeepL\GlossaryEntries;
 use DeepL\GlossaryInfo;
 use DeepL\GlossaryLanguagePair;
 use Doctrine\DBAL\Driver\Exception;
+use Psr\EventDispatcher\EventDispatcherInterface;
 use TYPO3\CMS\Core\Cache\Frontend\FrontendInterface;
 use TYPO3\CMS\Core\Exception\SiteNotFoundException;
 use WebVision\Deepltranslate\Core\ClientInterface;
 use WebVision\Deepltranslate\Glossary\Domain\Repository\GlossaryRepository;
+use WebVision\Deepltranslate\Glossary\Event\GlossarySyncDone;
 use WebVision\Deepltranslate\Glossary\Exception\FailedToCreateGlossaryException;
 use WebVision\Deepltranslate\Glossary\Exception\GlossaryEntriesNotExistException;
 
@@ -24,14 +26,18 @@ final class DeeplGlossaryService
 
     protected GlossaryRepository $glossaryRepository;
 
+    protected EventDispatcherInterface $eventDispatcher;
+
     public function __construct(
         FrontendInterface $cache,
         ClientInterface $client,
-        GlossaryRepository $glossaryRepository
+        GlossaryRepository $glossaryRepository,
+        EventDispatcherInterface $eventDispatcher,
     ) {
         $this->cache = $cache;
         $this->client = $client;
         $this->glossaryRepository = $glossaryRepository;
+        $this->eventDispatcher = $eventDispatcher;
     }
 
     /**
@@ -170,5 +176,7 @@ final class DeeplGlossaryService
                 $glossaryInformation->uid
             );
         }
+
+        $this->eventDispatcher->dispatch(new GlossarySyncDone($uid));
     }
 }
