@@ -7,6 +7,7 @@ namespace WebVision\Deepltranslate\Glossary\Hooks;
 use Doctrine\DBAL\Driver\Exception;
 use Doctrine\DBAL\Exception as DBALException;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
+use TYPO3\CMS\Core\Core\Environment;
 use TYPO3\CMS\Core\DataHandling\DataHandler;
 use TYPO3\CMS\Core\Localization\LanguageService;
 use TYPO3\CMS\Core\Localization\LanguageServiceFactory;
@@ -24,7 +25,7 @@ final class UpdatedGlossaryEntryTermHook
     public function __construct(
         private readonly GlossaryRepository $glossaryRepository,
         private readonly GlossaryEntryRepository $glossaryEntryRepository,
-        LanguageServiceFactory $languageServiceFactory
+        LanguageServiceFactory $languageServiceFactory,
     ) {
         $this->languageService = $languageServiceFactory
             ->createFromUserPreferences($this->getBackendUser());
@@ -43,7 +44,7 @@ final class UpdatedGlossaryEntryTermHook
         string $table,
         $id,
         array $fieldArray,
-        DataHandler $dataHandler
+        DataHandler $dataHandler,
     ): void {
         if ($status !== 'update') {
             return;
@@ -61,17 +62,19 @@ final class UpdatedGlossaryEntryTermHook
 
         $this->glossaryRepository->setGlossaryNotSyncOnPage($glossary['pid']);
 
-        $flashMessage = new FlashMessage(
-            $this->languageService->sL('LLL:EXT:deepltranslate_glossary/Resources/Private/Language/locallang.xlf:glossary.not-sync.message'),
-            $this->languageService->sL('LLL:EXT:deepltranslate_glossary/Resources/Private/Language/locallang.xlf:glossary.not-sync.title'),
-            ContextualFeedbackSeverity::INFO,
-            true
-        );
-
-        // @todo analyze behavior and refactor for CLI compatible mode not using flash messages
-        GeneralUtility::makeInstance(FlashMessageService::class)
-            ->getMessageQueueByIdentifier()
-            ->enqueue($flashMessage);
+        // Flash messages do not work in CLI mode. Ensure to not run into an exception if this hook may be executed in CLI mode.
+        if (!Environment::isCli()) {
+            $flashMessage = new FlashMessage(
+                $this->languageService->sL('LLL:EXT:deepltranslate_glossary/Resources/Private/Language/locallang.xlf:glossary.not-sync.message'),
+                $this->languageService->sL('LLL:EXT:deepltranslate_glossary/Resources/Private/Language/locallang.xlf:glossary.not-sync.title'),
+                ContextualFeedbackSeverity::INFO,
+                true
+            );
+            // @todo analyze behavior and refactor for CLI compatible mode not using flash messages
+            GeneralUtility::makeInstance(FlashMessageService::class)
+                ->getMessageQueueByIdentifier()
+                ->enqueue($flashMessage);
+        }
     }
 
     private function getBackendUser(): ?BackendUserAuthentication
