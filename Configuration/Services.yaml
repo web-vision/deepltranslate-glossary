@@ -13,15 +13,3 @@ services:
     resource: '../Classes/*'
     exclude:
       - '../Classes/Domain/Model/*'
-
-  WebVision\Deepltranslate\Glossary\Service\DeeplGlossaryService:
-    public: true
-    arguments:
-      $cache: '@cache.deepltranslate_glossary'
-
-  WebVision\Deepltranslate\Glossary\Upgrade\MigrateTablesFromOldStructureWizard:
-    arguments:
-      $cache: '@cache.runtime'
-
-  WebVision\Deepltranslate\Glossary\Hooks\UpdatedGlossaryEntryTermHook:
-    public: true

@@ -514,6 +514,7 @@ case ${TEST_SUITE} in
         cleanCacheFiles
         # backup current composer.json
         cp -Rf composer.json composer.json.orig
+        rm -rf .Build/vendor
         ${CONTAINER_BIN} run ${CONTAINER_SIMPLE_PARAMS} --name composer-update-${CORE_VERSION}-${SUFFIX} -e COMPOSER_CACHE_DIR=.Build/.cache/composer -e COMPOSER_ROOT_VERSION=${COMPOSER_ROOT_VERSION} ${IMAGE_PHP} composer require --dev "typo3/minimal":"^${CORE_VERSION}"
         SUITE_EXIT_CODE=$?
         # restore composer json
