@@ -99,6 +99,9 @@
 			"app-dir": ".Build",
 			"extension-key": "deepltranslate_glossary",
 			"web-dir": ".Build/Web"
+		},
+		"branch-alias": {
+			"dev-main": "6.0.0-dev"
 		}
 	}
 }

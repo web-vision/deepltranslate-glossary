@@ -22,9 +22,10 @@ This extension provides glossary-flavoured translations for the TYPO3 extension
 
 ## Compatibility
 
-| Branch | State                       | Composer Package Name              | TYPO3 Extension Key     | Version       | TYPO3     | PHP                                               |
-|--------|-----------------------------|------------------------------------|-------------------------|---------------|-----------|---------------------------------------------------|
-| main   | development, active support | web-vision/deepltranslate-glossary | deepltranslate_glossary | ^5, 5.1.x-dev | v12 + v13 | 8.1, 8.2, 8.3, 8.4, 8.5 (depending on TYPO3)      |
+| Branch | State                       | Composer Package Name              | TYPO3 Extension Key     | Version       | TYPO3     | PHP                                          |
+|--------|-----------------------------|------------------------------------|-------------------------|---------------|-----------|----------------------------------------------|
+| main   | development, active support | web-vision/deepltranslate-glossary | deepltranslate_glossary | ^6, 6.0.x-dev | v12 + v13 | 8.2, 8.3, 8.4, 8.5 (depending on TYPO3)      |
+| 5      | active support              | web-vision/deepltranslate-glossary | deepltranslate_glossary | ^5, 5.1.x-dev | v12 + v13 | 8.1, 8.2, 8.3, 8.4, 8.5 (depending on TYPO3) |
 
 ## Features
 
@@ -45,7 +46,7 @@ We prefer composer installation:
 
 ```bash
 composer require \
-  'web-vision/deepltranslate-glossary':'~5.1.1'
+  'web-vision/deepltranslate-glossary':'~6.0.0@dev'
 ```
 
 ## Sponsors
@@ -80,8 +81,8 @@ Prerequisites:
 ```shell
 echo '>> Create release' ; \
   RELEASE_BRANCH='main' ; \
-  RELEASE_VERSION='5.1.2' ; \
-  NEXT_DEV_VERSION='5.1.3' ; \
+  RELEASE_VERSION='6.0.0' ; \
+  NEXT_DEV_VERSION='6.0.1' ; \
   git checkout main && \
   git fetch --all && \
   git pull --rebase && \
@@ -108,8 +109,8 @@ echo '>> Create release' ; \
   tailor set-version ${NEXT_DEV_VERSION} && \
   echo "${NEXT_DEV_VERSION}-dev" > VERSION && \
   sed -i "s/^COMPOSER_ROOT_VERSION.*/COMPOSER_ROOT_VERSION=\"${NEXT_DEV_VERSION}-dev\"/" Build/Scripts/runTests.sh && \
-  sed -i "s/^  RELEASE_VERSION=.*/  RELEASE_VERSION='${RELEASE_VERSION}' ; \\/" README.md && \
-  sed -i "s/^  NEXT_DEV_VERSION=.*/  NEXT_DEV_VERSION='${NEXT_DEV_VERSION}' ; \\/" README.md && \
+  sed -i "s/^  RELEASE_VERSION=.*/  RELEASE_VERSION='${RELEASE_VERSION}' ; \\\/" README.md && \
+  sed -i "s/^  NEXT_DEV_VERSION=.*/  NEXT_DEV_VERSION='${NEXT_DEV_VERSION}' ; \\\/" README.md && \
   git add . && \
   git commit -m "[TASK] Set \"${NEXT_DEV_VERSION}-dev\"" && \
   gh pr create --fill --base ${RELEASE_BRANCH} --title "[TASK] Set \"${NEXT_DEV_VERSION}-dev\"" && \
