@@ -73,17 +73,24 @@ Prerequisites:
 > Set `RELEASE_BRANCH` to branch release should happen, for example: 'main'.
 > Set `RELEASE_VERSION` to release version working on, for example: '5.0.0'.
 
+> [!IMPORTANT]
+> Requires `GitHub cli tool` with personal token and
+> maintainer permission on the extension repository.
+
 ```shell
 echo '>> Create release' ; \
   RELEASE_BRANCH='main' ; \
   RELEASE_VERSION='5.1.1' ; \
+  NEXT_DEV_VERSION='5.1.2' ; \
   git checkout main && \
   git fetch --all && \
   git pull --rebase && \
   git checkout ${RELEASE_BRANCH} && \
   git pull --rebase && \
   git checkout -b release-${RELEASE_VERSION} && \
+  sed -i "s/^COMPOSER_ROOT_VERSION.*/COMPOSER_ROOT_VERSION=\"${RELEASE_VERSION}\"/" Build/Scripts/runTests.sh && \
   tailor set-version ${RELEASE_VERSION} && \
+  echo "${RELEASE_VERSION}-dev" > VERSION && \
   git add . && \
   git commit -m "[RELEASE] ${RELEASE_VERSION}" && \
   git push --set-upstream origin release-${RELEASE_VERSION} && \
@@ -95,7 +102,22 @@ echo '>> Create release' ; \
   gh pr merge -rd --admin && \
   git remote prune origin && \
   git tag ${RELEASE_VERSION} && \
-  git push --tags
+  git push --tags && \
+  git checkout -b set-dev-version-${NEXT_DEV_VERSION} && \
+  tailor set-version ${NEXT_DEV_VERSION} && \
+  echo "${NEXT_DEV_VERSION}-dev" > VERSION && \
+  sed -i "s/^COMPOSER_ROOT_VERSION.*/COMPOSER_ROOT_VERSION=\"${NEXT_DEV_VERSION}-dev\"/" Build/Scripts/runTests.sh && \
+  sed -i "s/^  RELEASE_VERSION=.*/RELEASE_VERSION='${RELEASE_VERSION}'/" README.md && \
+  sed -i "s/^  NEXT_DEV_VERSION=.*/NEXT_DEV_VERSION='${NEXT_DEV_VERSION}'/" README.md && \
+  git add . && \
+  git commit -m "[TASK] Set \"${NEXT_DEV_VERSION}-dev\"" && \
+  gh pr create --fill --base ${RELEASE_BRANCH} --title "[TASK] Set \"${NEXT_DEV_VERSION}-dev\"" && \
+  gh pr view --web && \
+  sleep 30 && \
+  gh pr checks --watch --interval 2 && \
+  sleep 5 && \
+  gh pr merge -rd --admin && \
+  git remote prune origin
 ```
 
 This triggers the `on push tags` workflow (`publish.yml`) which creates the upload package,

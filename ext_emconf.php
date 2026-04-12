@@ -11,11 +11,11 @@ $EM_CONF[$_EXTKEY] = [
     'version' => '5.1.1',
     'constraints' => [
         'depends' => [
-            'php' => '8.1.0-8.4.99',
+            'php' => '8.1.0-8.5.99',
             'typo3' => '12.4.0-13.4.99',
             'backend' => '12.4.0-13.4.99',
             'setup' => '12.4.0-13.4.99',
-            'deepltranslate_core' => '5.1.1-5.99.99',
+            'deepltranslate_core' => '5.1.4-5.99.99',
         ],
         'conflicts' => [
             'wv_deepltranslate' => '*',

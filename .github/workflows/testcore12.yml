@@ -55,6 +55,9 @@ jobs:
       - name: "Prepare dependencies for TYPO3 v12"
         run: "Build/Scripts/runTests.sh -t 12 -p ${{ matrix.php-version }} -s composerUpdate"
 
+      - name: "Run PHP lint"
+        run: "Build/Scripts/runTests.sh -t 12 -p ${{ matrix.php-version }} -s lintPhp"
+
       - name: "Unit"
         run: "Build/Scripts/runTests.sh -t 12 -p ${{ matrix.php-version }} -s unit"
 
