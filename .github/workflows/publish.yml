@@ -53,12 +53,18 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: 8.1
+          php-version: 8.2
           extensions: intl, mbstring, json, zip, curl
           tools: composer:v2
 
       - name: Install tailor
         run: composer global require typo3/tailor --prefer-dist --no-progress --no-suggest
+
+      - name: Set composer.json version and extra.typo3/cms.version
+        run: |
+          composer config "version" "${{ env.version }}" \
+          && composer config "extra"."typo3/cms"."version" "${{ env.version }}" \
+          && composer validate --strict --no-check-lock --no-check-version
 
       # Note that step will fail when `env.version` does not match the `ext_emconf.php` version.
       - name: Create local TER package upload artifact

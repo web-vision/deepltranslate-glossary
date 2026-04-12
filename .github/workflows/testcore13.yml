@@ -19,6 +19,9 @@ jobs:
       - name: "Prepare dependencies for TYPO3 v13"
         run: "Build/Scripts/runTests.sh -t 13 -p ${{ matrix.php-version }} -s composerUpdate"
 
+      - name: "Validate composer.json"
+        run: "Build/Scripts/runTests.sh -t 13 -p ${{ matrix.php-version }} -s composer -- validate --strict --no-check-lock --no-check-version"
+
       - name: "Run PHP lint"
         run: "Build/Scripts/runTests.sh -t 13 -p ${{ matrix.php-version }} -s lintPhp"
 
