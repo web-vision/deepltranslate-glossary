@@ -35,6 +35,29 @@
         (new \SBUERK\AvailableFixturePackages())->adoptFixtureExtensions();
     }
 
+    /**
+     * @todo Fix testing-framework extension package information loading within the framework and remove workaround
+     *       here after upgrade to testing-framework release containing the fix.
+     */
+    $frameworkExtension = [
+        'Resources/Core/Functional/Extensions/json_response',
+        'Resources/Core/Functional/Extensions/private_container',
+    ];
+    $composerPackageManager = new \TYPO3\TestingFramework\Composer\ComposerPackageManager();
+    $testingFrameworkPath = $composerPackageManager->getPackageInfo('typo3/testing-framework')->getRealPath();
+    foreach ($frameworkExtension as $frameworkExtensionPath) {
+        $packageInfo = $composerPackageManager->getPackageInfoWithFallback(rtrim($testingFrameworkPath, '/') . '/' . $frameworkExtensionPath);
+        if ($packageInfo === null) {
+            throw new \RuntimeException(
+                sprintf(
+                    'Could not preload "typo3/testing-framework" extension "%s".',
+                    basename($frameworkExtensionPath),
+                ),
+                1734217315,
+            );
+        }
+    }
+
     $testbase = new \TYPO3\TestingFramework\Core\Testbase();
     $testbase->defineOriginalRootPath();
     $testbase->createDirectory(ORIGINAL_ROOT . 'typo3temp/var/tests');
