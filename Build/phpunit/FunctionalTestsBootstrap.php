@@ -1,4 +1,5 @@
 <?php
+
 /*
  * This file is part of the TYPO3 CMS project.
  *
@@ -23,30 +24,17 @@
  * before instantiating the test suites.
  */
 (static function () {
+
     /**
-     * @todo Fix testing-framework extension package information loading within the framework and remove workaround
-     *       here after upgrade to testing-framework release containing the fix.
+     * Automatically add fixture extensions to the `typo3/testing-framework`
+     * {@see \TYPO3\TestingFramework\Composer\ComposerPackageManager} to
+     * allow composer package name or extension keys of fixture extension in
+     * {@see \TYPO3\TestingFramework\Core\Functional\FunctionalTestCase::$testExtensionToLoad}.
      */
-    $frameworkExtension = [
-        'Resources/Core/Functional/Extensions/json_response',
-        'Resources/Core/Functional/Extensions/private_container',
-    ];
-    $composerPackageManager = new \TYPO3\TestingFramework\Composer\ComposerPackageManager();
-    $testingFrameworkPath = $composerPackageManager->getPackageInfo('typo3/testing-framework')->getRealPath();
-    foreach ($frameworkExtension as $frameworkExtensionPath) {
-        $packageInfo = $composerPackageManager->getPackageInfoWithFallback(rtrim($testingFrameworkPath, '/') . '/' . $frameworkExtensionPath);
-        if ($packageInfo === null) {
-            throw new \RuntimeException(
-                sprintf(
-                    'Could not preload "typo3/testing-framework" extension "%s".',
-                    basename($frameworkExtensionPath),
-                ),
-                1734217315,
-            );
-        }
+    if (class_exists(\SBUERK\AvailableFixturePackages::class)) {
+        (new \SBUERK\AvailableFixturePackages())->adoptFixtureExtensions();
     }
 
-    // Original typo3/testing-framework bootstrap
     $testbase = new \TYPO3\TestingFramework\Core\Testbase();
     $testbase->defineOriginalRootPath();
     $testbase->createDirectory(ORIGINAL_ROOT . 'typo3temp/var/tests');
