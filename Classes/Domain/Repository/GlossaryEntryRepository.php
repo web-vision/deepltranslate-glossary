@@ -55,7 +55,7 @@ final class GlossaryEntryRepository
             ]
         );
 
-        // @todo Should we not better returning null instead of an empty array if nor recourd could be retrieved ?
+        // @todo Should we not better returning null instead of an empty array if nor record could be retrieved ?
         return $result->fetchAssociative() ?: [];
     }
 }

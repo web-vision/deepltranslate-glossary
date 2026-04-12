@@ -44,12 +44,12 @@
 		"source": "https://github.com/web-vision/deepltranslate-glossary"
 	},
 	"require": {
-		"php": "^8.1 || ^8.2 || ^8.3 || ^8.4 || ^8.5",
+		"php": "^8.2 || ^8.3 || ^8.4 || ^8.5",
 		"ext-curl": "*",
 		"ext-json": "*",
-		"typo3/cms-backend": "^12.4.2 || ^13.4",
-		"typo3/cms-core": "^12.4.2 || ^13.4",
-		"web-vision/deepltranslate-core": "^5.1.4@dev"
+		"typo3/cms-backend": "^13.4.27",
+		"typo3/cms-core": "^13.4.27",
+		"web-vision/deepltranslate-core": "~6.0.0@dev"
 	},
 	"require-dev": {
 		"friendsofphp/php-cs-fixer": "^3.95.0",
@@ -59,15 +59,16 @@
 		"ramsey/uuid": "^4.7",
 		"saschaegerer/phpstan-typo3": "^1.10.2",
 		"sbuerk/typo3-site-based-test-trait": "^1.0.2 || ^2.0.1",
-		"typo3/cms-belog": "^12.4.2 || ^13.4",
-		"typo3/cms-install": "^12.4.2 || ^13.4",
-		"typo3/cms-lowlevel": "^12.4.2 || ^13.4",
-		"typo3/cms-rte-ckeditor": "^12.4.2 || ^13.4",
-		"typo3/cms-scheduler": "^12.4.2 || ^13.4",
-		"typo3/cms-setup": "^12.4.2 || ^13.4",
-		"typo3/cms-tstemplate": "^12.4.2 || ^13.4",
-		"typo3/cms-workspaces": "^12.4.2 || ^13.4",
-		"typo3/testing-framework": "^8.3.1"
+		"typo3/cms-belog": "^13.4.27",
+		"typo3/cms-install": "^13.4.27",
+		"typo3/cms-lowlevel": "^13.4.27",
+		"typo3/cms-rte-ckeditor": "^13.4.27",
+		"typo3/cms-scheduler": "^13.4.27",
+		"typo3/cms-setup": "^13.4.27",
+		"typo3/cms-tstemplate": "^13.4.27",
+		"typo3/cms-workspaces": "^13.4.27",
+		"typo3/testing-framework": "^8.3.1",
+		"web-vision/deepl-base": "~2.0.0@dev"
 	},
 	"suggest": {
 		"typo3/cms-scheduler": "Add the scheduler for automatic synchronizing glossaries"
