@@ -29,6 +29,7 @@ This extension provides glossary-flavoured translations for the TYPO3 extension
 
 ## Features
 
+* Extends `EXT:deepltranslate_core` as public available addon.
 * TYPO3-conform database records for own glossaries
 * Synchronize button in glossary module folders
 * Managing for glossaries by CLI
@@ -45,9 +46,16 @@ Install with your favour:
 We prefer composer installation:
 
 ```bash
-composer require \
+composer require -W \
+  'web-vision/deepltranslate-core':'~6.0.0@dev' \
   'web-vision/deepltranslate-glossary':'~6.0.0@dev'
 ```
+
+> [!NOTE]
+> **Be aware** that `EXT:deepltranslate_glossary` is a public addon for the
+> `EXT:deepltranslate_core` extension  and cannot be used **standalone**,
+> and requires having `EXT:deepltranslate_core` DeepL API key set and site
+> configuration set according to the `EXT:deepltranslate_core` documentation.
 
 ## Sponsors
 
