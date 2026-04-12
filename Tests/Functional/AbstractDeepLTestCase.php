@@ -14,7 +14,6 @@ use Ramsey\Uuid\Uuid;
 use RuntimeException;
 use SBUERK\TYPO3\Testing\TestCase\FunctionalTestCase;
 use Symfony\Component\DependencyInjection\Container;
-use TYPO3\CMS\Core\Information\Typo3Version;
 use TYPO3\CMS\Core\Utility\StringUtility;
 use WebVision\Deepltranslate\Core\Client;
 use WebVision\Deepltranslate\Core\ClientInterface;
@@ -105,6 +104,7 @@ abstract class AbstractDeepLTestCase extends FunctionalTestCase
     protected array $coreExtensionsToLoad = [
         'typo3/cms-setup',
         'typo3/cms-scheduler',
+        'typo3/cms-install',
     ];
 
     /**
@@ -114,6 +114,7 @@ abstract class AbstractDeepLTestCase extends FunctionalTestCase
         'web-vision/deeplcom-deepl-php',
         'web-vision/deepl-base',
         'web-vision/deepltranslate-core',
+        'web-vision/deepltranslate-glossary',
         __DIR__ . '/Fixtures/Extensions/test_services_override',
     ];
 
@@ -127,9 +128,6 @@ abstract class AbstractDeepLTestCase extends FunctionalTestCase
 
     protected function setUp(): void
     {
-        if ((new Typo3Version())->getMajorVersion() >= 13) {
-            $this->coreExtensionsToLoad[] = 'typo3/cms-install';
-        }
         $this->EXAMPLE_LARGE_DOCUMENT_INPUT = str_repeat(AbstractDeepLTestCase::EXAMPLE_TEXT['en'] . PHP_EOL, 1000);
         $this->EXAMPLE_LARGE_DOCUMENT_OUTPUT = str_repeat(AbstractDeepLTestCase::EXAMPLE_TEXT['de'] . PHP_EOL, 1000);
         $this->serverUrl = getenv('DEEPL_SERVER_URL');
