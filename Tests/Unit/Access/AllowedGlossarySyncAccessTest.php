@@ -34,13 +34,13 @@ class AllowedGlossarySyncAccessTest extends UnitTestCase
     #[Test]
     public function getTitle(): void
     {
-        self::assertIsString($this->accessInstance->getTitle());
+        self::assertSame('LLL:EXT:deepltranslate_glossary/Resources/Private/Language/locallang.xlf:be_groups.deepltranslate_access.items.allowedGlossarySync.title', $this->accessInstance->getTitle());
     }
 
     #[Test]
     public function getDescription(): void
     {
-        self::assertIsString($this->accessInstance->getDescription());
+        self::assertSame('LLL:EXT:deepltranslate_glossary/Resources/Private/Language/locallang.xlf:be_groups.deepltranslate_access.items.allowedGlossarySync.description', $this->accessInstance->getDescription());
     }
 
     #[Test]

@@ -54,11 +54,12 @@
 	"require-dev": {
 		"friendsofphp/php-cs-fixer": "^3.95.0",
 		"php-mock/php-mock-phpunit": "^2.15.0",
-		"phpstan/phpstan": "^1.12.33",
-		"phpunit/phpunit": "^10.5.63",
+		"phpstan/phpstan": "^2.1.46",
+		"phpunit/phpunit": "^11.5.55",
 		"ramsey/uuid": "^4.7",
-		"saschaegerer/phpstan-typo3": "^1.10.2",
-		"sbuerk/typo3-site-based-test-trait": "^1.0.2 || ^2.0.1",
+		"saschaegerer/phpstan-typo3": "2.1.1 || ^3.0.1",
+		"sbuerk/fixture-packages": "^1.1.3",
+		"sbuerk/typo3-site-based-test-trait": "^2.0.1 || ^3.0.0",
 		"typo3/cms-belog": "^13.4.27",
 		"typo3/cms-install": "^13.4.27",
 		"typo3/cms-lowlevel": "^13.4.27",
@@ -67,7 +68,7 @@
 		"typo3/cms-setup": "^13.4.27",
 		"typo3/cms-tstemplate": "^13.4.27",
 		"typo3/cms-workspaces": "^13.4.27",
-		"typo3/testing-framework": "^8.3.1",
+		"typo3/testing-framework": "^9.5.0",
 		"web-vision/deepl-base": "~2.0.0@dev"
 	},
 	"suggest": {
@@ -87,7 +88,8 @@
 		"allow-plugins": {
 			"php-http/discovery": true,
 			"typo3/class-alias-loader": true,
-			"typo3/cms-composer-installers": true
+			"typo3/cms-composer-installers": true,
+			"sbuerk/fixture-packages": true
 		},
 		"bin-dir": ".Build/bin",
 		"optimize-autoloader": true,
@@ -100,6 +102,13 @@
 			"app-dir": ".Build",
 			"extension-key": "deepltranslate_glossary",
 			"web-dir": ".Build/Web"
+		},
+		"sbuerk/fixture-packages": {
+			"paths": {
+				"Tests/Functional/Fixtures/Extensions/*": [
+					"autoload"
+				]
+			}
 		},
 		"branch-alias": {
 			"dev-main": "6.0.x-dev"

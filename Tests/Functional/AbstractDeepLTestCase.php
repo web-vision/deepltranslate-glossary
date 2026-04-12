@@ -115,7 +115,7 @@ abstract class AbstractDeepLTestCase extends FunctionalTestCase
         'web-vision/deepl-base',
         'web-vision/deepltranslate-core',
         'web-vision/deepltranslate-glossary',
-        __DIR__ . '/Fixtures/Extensions/test_services_override',
+        'web-vision/test-services-override',
     ];
 
     protected const EXAMPLE_DOCUMENT_INPUT = AbstractDeepLTestCase::EXAMPLE_TEXT['en'];
@@ -150,7 +150,7 @@ abstract class AbstractDeepLTestCase extends FunctionalTestCase
                     1733938290,
                 );
             }
-            $this->authKey = getenv('DEEPL_AUTH_KEY');
+            $this->authKey = getenv('DEEPL_AUTH_KEY') ?: '';
         }
         parent::setUp();
         $this->instantiateMockServerClient();

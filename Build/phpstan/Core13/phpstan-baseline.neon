@@ -9,13 +9,3 @@ parameters:
 			message: "#^Parameter \\#2 \\$length of function fread expects int\\<1, max\\>, int\\<0, max\\> given\\.$#"
 			count: 1
 			path: ../../../Tests/Functional/AbstractDeepLTestCase.php
-
-		-
-			message: "#^Variable \\$_EXTKEY might not be defined\\.$#"
-			count: 1
-			path: ../../../Tests/Functional/Upgrade/Fixtures/Extensions/test_migration/ext_emconf.php
-
-		-
-			message: "#^Variable \\$_EXTKEY might not be defined\\.$#"
-			count: 1
-			path: ../../../Tests/Functional/Upgrade/Fixtures/Extensions/test_migration_deleted/ext_emconf.php
