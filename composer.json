@@ -84,8 +84,6 @@
 	},
 	"config": {
 		"allow-plugins": {
-			"ergebnis/composer-normalize": true,
-			"helhum/typo3-console-plugin": true,
 			"php-http/discovery": true,
 			"typo3/class-alias-loader": true,
 			"typo3/cms-composer-installers": true
