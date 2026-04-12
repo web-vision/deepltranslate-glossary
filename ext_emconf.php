@@ -2,7 +2,7 @@
 
 $EM_CONF[$_EXTKEY] = [
     'title' => 'DeepL Translate: Glossary',
-    'description' => 'DeepL Translate Add-On providing glossary functionality',
+    'description' => 'Add-on providing glossary functionality',
     'category' => 'backend',
     'author' => 'web-vision GmbH Team',
     'author_company' => 'web-vision GmbH',
