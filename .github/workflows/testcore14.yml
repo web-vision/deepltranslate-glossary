@@ -40,17 +40,8 @@ jobs:
       - name: "Find duplicate exception codes"
         run: "Build/Scripts/runTests.sh -t 14 -p ${{ matrix.php-version }} -s checkExceptionCodes"
 
-# @todo Disabled due to following finding with `-t 14 -s phpstan`:
-#
-#  ------ -----------------------------------------------------------------------
-#  Line   Classes/EventListener/GlossarySyncButtonProvider.php
-#  ------ -----------------------------------------------------------------------
-#  85     Access to undefined constant TYPO3\CMS\Core\Imaging\Icon::SIZE_SMALL.
-#  🪪  classConstant.notFound
-#  ------ -----------------------------------------------------------------------
-#
-#      - name: "Run PHPStan"
-#        run: "Build/Scripts/runTests.sh -t 14 -p ${{ matrix.php-version }} -s phpstan"
+      - name: "Run PHPStan"
+        run: "Build/Scripts/runTests.sh -t 14 -p ${{ matrix.php-version }} -s phpstan"
 
   testsuite:
     name: all tests with core v14

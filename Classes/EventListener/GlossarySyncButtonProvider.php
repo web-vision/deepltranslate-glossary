@@ -13,8 +13,8 @@ use TYPO3\CMS\Backend\Template\Components\ModifyButtonBarEvent;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Attribute\AsEventListener;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
-use TYPO3\CMS\Core\Imaging\Icon;
 use TYPO3\CMS\Core\Imaging\IconFactory;
+use TYPO3\CMS\Core\Imaging\IconSize;
 use TYPO3\CMS\Core\Localization\LanguageService;
 use TYPO3\CMS\Core\Localization\LanguageServiceFactory;
 use TYPO3\CMS\Core\Type\Bitmask\Permission;
@@ -82,7 +82,7 @@ final class GlossarySyncButtonProvider
         $button = $event->getButtonBar()->makeLinkButton();
         $button->setIcon($iconFactory->getIcon(
             'apps-pagetree-folder-contains-glossary',
-            Icon::SIZE_SMALL
+            IconSize::SMALL,
         ));
         $button->setTitle($title);
         $button->setShowLabelText(true);
