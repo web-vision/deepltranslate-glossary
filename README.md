@@ -7,8 +7,24 @@
 
 # TYPO3 extension `deepltranslate_glossary`
 
+|                  | URL                                                                     |
+|------------------|-------------------------------------------------------------------------|
+| **Repository:**  | https://github.com/web-vision/deepltranslate-glossary                   |
+| **Read online:** | https://docs.typo3.org/p/web-vision/deepltranslate-glossary/main/en-us/ |
+| **TER:**         | https://extensions.typo3.org/extension/deepltranslate_glossary/         |
+| **ISSUES:**      | https://github.com/web-vision/deepltranslate-glossary/issues/           |
+| **RELEASES:**    | https://github.com/web-vision/deepltranslate-glossary/releases/         |
+
+## Description
+
 This extension provides glossary-flavoured translations for the TYPO3 extension
 [deepltranslate_core](https://github.com/web-vision/deepltranslate-core).
+
+## Compatibility
+
+| Branch | State                       | Composer Package Name              | TYPO3 Extension Key     | Version       | TYPO3     | PHP                                               |
+|--------|-----------------------------|------------------------------------|-------------------------|---------------|-----------|---------------------------------------------------|
+| main   | development, active support | web-vision/deepltranslate-glossary | deepltranslate_glossary | ^5, 5.1.x-dev | v12 + v13 | 8.1, 8.2, 8.3, 8.4, 8.5 (depending on TYPO3)      |
 
 ## Features
 
@@ -28,7 +44,8 @@ Install with your favour:
 We prefer composer installation:
 
 ```bash
-composer require web-vision/deepltranslate-glossary
+composer require \
+  'web-vision/deepltranslate-glossary':'~5.1.1'
 ```
 
 ## Sponsors
@@ -51,49 +68,32 @@ Prerequisites:
 * ssh key allowed to push new branches to the repository
 * GitHub command line tool `gh` installed and configured with user having permission to create pull requests.
 
-**Prepare release locally**
+**Create release**
 
 > Set `RELEASE_BRANCH` to branch release should happen, for example: 'main'.
 > Set `RELEASE_VERSION` to release version working on, for example: '5.0.0'.
 
 ```shell
-echo '>> Prepare release pull-request' ; \
+echo '>> Create release' ; \
   RELEASE_BRANCH='main' ; \
-  RELEASE_VERSION='5.0.1' ; \
+  RELEASE_VERSION='5.1.1' ; \
   git checkout main && \
   git fetch --all && \
   git pull --rebase && \
   git checkout ${RELEASE_BRANCH} && \
   git pull --rebase && \
-  git checkout -b prepare-release-${RELEASE_VERSION} && \
-  composer require --dev "typo3/tailor" && \
-  ./.Build/bin/tailor set-version ${RELEASE_VERSION} && \
-  composer remove --dev "typo3/tailor" && \
+  git checkout -b release-${RELEASE_VERSION} && \
+  tailor set-version ${RELEASE_VERSION} && \
   git add . && \
-  git commit -m "[TASK] Prepare release ${RELEASE_VERSION}" && \
-  git push --set-upstream origin prepare-release-${RELEASE_VERSION} && \
-  gh pr create --fill-verbose --base ${RELEASE_BRANCH} --title "[TASK] Prepare release for ${RELEASE_VERSION} on ${RELEASE_BRANCH}" && \
-  git checkout main && \
-  git branch -D prepare-release-${RELEASE_VERSION}
-```
-
-Check pull-request and the pipeline run.
-
-**Merge approved pull-request and push version tag**
-
-> Set `RELEASE_PR_NUMBER` with the pull-request number of the preparation pull-request.
-> Set `RELEASE_BRANCH` to branch release should happen, for example: 'main' (same as in previous step).
-> Set `RELEASE_VERSION` to release version working on, for example: `0.1.4` (same as in previous step).
-
-```shell
-RELEASE_BRANCH='main' ; \
-RELEASE_VERSION='5.0.1' ; \
-RELEASE_PR_NUMBER='123' ; \
-  git checkout main && \
-  git fetch --all && \
-  git pull --rebase && \
-  gh pr checkout ${RELEASE_PR_NUMBER} && \
-  gh pr merge -rd ${RELEASE_PR_NUMBER} && \
+  git commit -m "[RELEASE] ${RELEASE_VERSION}" && \
+  git push --set-upstream origin release-${RELEASE_VERSION} && \
+  gh pr create --fill --base ${RELEASE_BRANCH} --title "[RELEASE] ${RELEASE_VERSION}" && \
+  gh pr view --web && \
+  sleep 30 && \
+  gh pr checks --watch --interval 2 && \
+  sleep 5 && \
+  gh pr merge -rd --admin && \
+  git remote prune origin && \
   git tag ${RELEASE_VERSION} && \
   git push --tags
 ```
