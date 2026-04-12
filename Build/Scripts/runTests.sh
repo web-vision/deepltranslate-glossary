@@ -112,6 +112,7 @@ cleanCacheFiles() {
     echo -n "Clean caches ... "
     rm -rf \
         .Build/.cache \
+        .cache/ \
         .php-cs-fixer.cache
     echo "done"
 }
@@ -386,7 +387,7 @@ fi
 
 handleDbmsOptions
 
-COMPOSER_ROOT_VERSION="5.x.x-dev"
+COMPOSER_ROOT_VERSION="5.1.2-dev"
 CONTAINER_INTERACTIVE="-it --init"
 HOST_UID=$(id -u)
 USERSET=""
@@ -504,14 +505,15 @@ case ${TEST_SUITE} in
         cleanTestFiles
         ;;
     composer)
+        cleanCacheFiles
         COMMAND=(composer "$@")
         ${CONTAINER_BIN} run ${CONTAINER_SIMPLE_PARAMS} --name composer-command-${SUFFIX} -e COMPOSER_CACHE_DIR=.Build/.cache/composer -e COMPOSER_ROOT_VERSION=${COMPOSER_ROOT_VERSION} ${IMAGE_PHP} "${COMMAND[@]}"
         SUITE_EXIT_CODE=$?
         ;;
     composerUpdate)
+        cleanCacheFiles
         # backup current composer.json
         cp -Rf composer.json composer.json.orig
-        rm -rf vendor composer.lock
         ${CONTAINER_BIN} run ${CONTAINER_SIMPLE_PARAMS} --name composer-update-${CORE_VERSION}-${SUFFIX} -e COMPOSER_CACHE_DIR=.Build/.cache/composer -e COMPOSER_ROOT_VERSION=${COMPOSER_ROOT_VERSION} ${IMAGE_PHP} composer require --dev "typo3/minimal":"^${CORE_VERSION}"
         SUITE_EXIT_CODE=$?
         # restore composer json
