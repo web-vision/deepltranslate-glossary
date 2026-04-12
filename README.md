@@ -80,8 +80,8 @@ Prerequisites:
 ```shell
 echo '>> Create release' ; \
   RELEASE_BRANCH='main' ; \
-RELEASE_VERSION='5.1.2'
-NEXT_DEV_VERSION='5.1.3'
+  RELEASE_VERSION='5.1.2' ; \
+  NEXT_DEV_VERSION='5.1.3' ; \
   git checkout main && \
   git fetch --all && \
   git pull --rebase && \
@@ -90,7 +90,8 @@ NEXT_DEV_VERSION='5.1.3'
   git checkout -b release-${RELEASE_VERSION} && \
   sed -i "s/^COMPOSER_ROOT_VERSION.*/COMPOSER_ROOT_VERSION=\"${RELEASE_VERSION}\"/" Build/Scripts/runTests.sh && \
   tailor set-version ${RELEASE_VERSION} && \
-  echo "${RELEASE_VERSION}-dev" > VERSION && \
+  echo "${RELEASE_VERSION}
+" > VERSION && \
   git add . && \
   git commit -m "[RELEASE] ${RELEASE_VERSION}" && \
   git push --set-upstream origin release-${RELEASE_VERSION} && \
@@ -107,8 +108,8 @@ NEXT_DEV_VERSION='5.1.3'
   tailor set-version ${NEXT_DEV_VERSION} && \
   echo "${NEXT_DEV_VERSION}-dev" > VERSION && \
   sed -i "s/^COMPOSER_ROOT_VERSION.*/COMPOSER_ROOT_VERSION=\"${NEXT_DEV_VERSION}-dev\"/" Build/Scripts/runTests.sh && \
-  sed -i "s/^  RELEASE_VERSION=.*/RELEASE_VERSION='${RELEASE_VERSION}'/" README.md && \
-  sed -i "s/^  NEXT_DEV_VERSION=.*/NEXT_DEV_VERSION='${NEXT_DEV_VERSION}'/" README.md && \
+  sed -i "s/^  RELEASE_VERSION=.*/  RELEASE_VERSION='${RELEASE_VERSION}' ; \\/" README.md && \
+  sed -i "s/^  NEXT_DEV_VERSION=.*/  NEXT_DEV_VERSION='${NEXT_DEV_VERSION}' ; \\/" README.md && \
   git add . && \
   git commit -m "[TASK] Set \"${NEXT_DEV_VERSION}-dev\"" && \
   gh pr create --fill --base ${RELEASE_BRANCH} --title "[TASK] Set \"${NEXT_DEV_VERSION}-dev\"" && \
