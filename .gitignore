@@ -2,9 +2,10 @@
 .vscode/
 .Build
 !.Build/Web/.gitkeep
-.ddev/docker-compose.tempfs.yaml
 composer.lock
 composer.json.testing
+composer.json.orig
+composer.json.pretty
 *.cache
 var
 .php-cs-fixer.cache
