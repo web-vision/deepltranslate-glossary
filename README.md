@@ -22,9 +22,12 @@ This extension provides glossary-flavoured translations for the TYPO3 extension
 
 ## Compatibility
 
-| Branch | State                       | Composer Package Name              | TYPO3 Extension Key     | Version       | TYPO3     | PHP                                               |
-|--------|-----------------------------|------------------------------------|-------------------------|---------------|-----------|---------------------------------------------------|
-| main   | development, active support | web-vision/deepltranslate-glossary | deepltranslate_glossary | ^5, 5.1.x-dev | v12 + v13 | 8.1, 8.2, 8.3, 8.4, 8.5 (depending on TYPO3)      |
+## Compatibility
+
+| Branch | State                       | Composer Package Name              | TYPO3 Extension Key     | Version       | TYPO3     | PHP                                          |
+|--------|-----------------------------|------------------------------------|-------------------------|---------------|-----------|----------------------------------------------|
+| main   | development, active support | web-vision/deepltranslate-glossary | deepltranslate_glossary | ^6, 6.0.x-dev | v12 + v13 | 8.2, 8.3, 8.4, 8.5 (depending on TYPO3)      |
+| 5      | active support              | web-vision/deepltranslate-glossary | deepltranslate_glossary | ^5, 5.1.x-dev | v12 + v13 | 8.1, 8.2, 8.3, 8.4, 8.5 (depending on TYPO3) |
 
 ## Features
 
@@ -108,8 +111,8 @@ echo '>> Create release' ; \
   tailor set-version ${NEXT_DEV_VERSION} && \
   echo "${NEXT_DEV_VERSION}-dev" > VERSION && \
   sed -i "s/^COMPOSER_ROOT_VERSION.*/COMPOSER_ROOT_VERSION=\"${NEXT_DEV_VERSION}-dev\"/" Build/Scripts/runTests.sh && \
-  sed -i "s/^  RELEASE_VERSION=.*/  RELEASE_VERSION='${RELEASE_VERSION}' ; \\/" README.md && \
-  sed -i "s/^  NEXT_DEV_VERSION=.*/  NEXT_DEV_VERSION='${NEXT_DEV_VERSION}' ; \\/" README.md && \
+  sed -i "s/^  RELEASE_VERSION=.*/  RELEASE_VERSION='${RELEASE_VERSION}' ; \\\/" README.md && \
+  sed -i "s/^  NEXT_DEV_VERSION=.*/  NEXT_DEV_VERSION='${NEXT_DEV_VERSION}' ; \\\/" README.md && \
   git add . && \
   git commit -m "[TASK] Set \"${NEXT_DEV_VERSION}-dev\"" && \
   gh pr create --fill --base ${RELEASE_BRANCH} --title "[TASK] Set \"${NEXT_DEV_VERSION}-dev\"" && \
