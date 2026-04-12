@@ -1,11 +1,6 @@
 parameters:
 	ignoreErrors:
 		-
-			message: "#^Parameter \\#3 \\$severity of class TYPO3\\\\CMS\\\\Core\\\\Messaging\\\\FlashMessage constructor expects TYPO3\\\\CMS\\\\Core\\\\Type\\\\ContextualFeedbackSeverity, int given\\.$#"
-			count: 1
-			path: ../../../Classes/Controller/GlossarySyncController.php
-
-		-
 			message: "#^Method TYPO3\\\\CMS\\\\Core\\\\Database\\\\Connection\\:\\:lastInsertId\\(\\) invoked with 1 parameter, 0 required\\.$#"
 			count: 1
 			path: ../../../Classes/Domain/Repository/GlossaryRepository.php

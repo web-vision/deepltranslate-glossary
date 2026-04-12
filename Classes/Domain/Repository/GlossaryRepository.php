@@ -13,6 +13,7 @@ use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Domain\Repository\PageRepository;
 use TYPO3\CMS\Core\Exception\SiteNotFoundException;
+use TYPO3\CMS\Core\Information\Typo3Version;
 use TYPO3\CMS\Core\Site\Entity\Site;
 use TYPO3\CMS\Core\Site\SiteFinder;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -258,7 +259,13 @@ final class GlossaryRepository
             $db = GeneralUtility::makeInstance(ConnectionPool::class)
                 ->getConnectionForTable('tx_deepltranslate_glossary');
             $db->insert('tx_deepltranslate_glossary', $insert);
-            $lastInsertId = $db->lastInsertId('tx_deepltranslate_glossary');
+            if ((new Typo3Version())->getMajorVersion() === 12) {
+                // @todo typo3/cms-core:>13.4 Remove this with the whole if-block handling lowest supported TYPO3 version is raised to 13.4.
+                $lastInsertId = $db->lastInsertId('tx_deepltranslate_glossary');
+            } else {
+                // @todo typo3/cms-core:>13.4 Keep this line when lowest supported TYPO3 version is raised to 13.4.
+                $lastInsertId = $db->lastInsertId();
+            }
             $insert['uid'] = $lastInsertId;
             unset($insert['pid']);
             return Glossary::fromDatabase($insert);
