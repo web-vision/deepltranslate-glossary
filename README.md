@@ -1,7 +1,7 @@
 [![Latest Stable Version](https://poser.pugx.org/web-vision/deepltranslate-glossary/v/stable.svg?style=for-the-badge)](https://packagist.org/packages/web-vision/deepltranslate-glossary)
 [![License](https://poser.pugx.org/web-vision/deepltranslate-glossary/license?style=for-the-badge)](https://packagist.org/packages/web-vision/deepltranslate-glossary)
 [![TYPO3 12.4](https://img.shields.io/badge/TYPO3-12.4-green.svg?style=for-the-badge)](https://get.typo3.org/version/12)
-[![TYPO3 12.4](https://img.shields.io/badge/TYPO3-13.4-green.svg?style=for-the-badge)](https://get.typo3.org/version/13)
+[![TYPO3 12.3](https://img.shields.io/badge/TYPO3-13.4-green.svg?style=for-the-badge)](https://get.typo3.org/version/13)
 [![Total Downloads](https://poser.pugx.org/web-vision/deepltranslate-glossary/downloads.svg?style=for-the-badge)](https://packagist.org/packages/web-vision/deepltranslate-glossary)
 [![Monthly Downloads](https://poser.pugx.org/web-vision/deepltranslate-glossary/d/monthly?style=for-the-badge)](https://packagist.org/packages/web-vision/deepltranslate-glossary)
 
@@ -22,10 +22,10 @@ This extension provides glossary-flavoured translations for the TYPO3 extension
 
 ## Compatibility
 
-| Branch | State                       | Composer Package Name              | TYPO3 Extension Key     | Version       | TYPO3     | PHP                                          |
-|--------|-----------------------------|------------------------------------|-------------------------|---------------|-----------|----------------------------------------------|
-| main   | development, active support | web-vision/deepltranslate-glossary | deepltranslate_glossary | ^6, 6.0.x-dev | v12 + v13 | 8.2, 8.3, 8.4, 8.5 (depending on TYPO3)      |
-| 5      | active support              | web-vision/deepltranslate-glossary | deepltranslate_glossary | ^5, 5.1.x-dev | v12 + v13 | 8.1, 8.2, 8.3, 8.4, 8.5 (depending on TYPO3) |
+| Branch | State                       | Composer Package Name              | TYPO3 Extension Key     | Version       | TYPO3      | PHP                                          |
+|--------|-----------------------------|------------------------------------|-------------------------|---------------|------------|----------------------------------------------|
+| main   | development, active support | web-vision/deepltranslate-glossary | deepltranslate_glossary | ^6, 6.0.x-dev | v13 + v14  | 8.2, 8.3, 8.4, 8.5 (depending on TYPO3)      |
+| 5      | active support              | web-vision/deepltranslate-glossary | deepltranslate_glossary | ^5, 5.1.x-dev | v12 + v13  | 8.1, 8.2, 8.3, 8.4, 8.5 (depending on TYPO3) |
 
 ## Features
 
