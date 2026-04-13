@@ -12,7 +12,11 @@ return [
         'crdate' => 'crdate',
         'delete' => 'deleted',
         'hideTable' => true,
-        'versioningWS' => false,
+        // @todo Ensure that glossaries are only synced using live-workspace records AND also in live workspace.
+        // This needs to be set to `true` to avoid automatic TCA migration together with following deprecation:
+        // https://docs.typo3.org/c/typo3/cms-core/main/en-us/Changelog/14.0/Deprecation-106821-WorkspaceAwareInlineChildTablesAreEnforced.html
+        // https://review.typo3.org/c/Packages/TYPO3.CMS/+/88739
+        'versioningWS' => true,
         'enablecolumns' => [],
         'searchFields' => 'glossary_name,glossary_id,glossary_ready,glossary_lastsync',
     ],
