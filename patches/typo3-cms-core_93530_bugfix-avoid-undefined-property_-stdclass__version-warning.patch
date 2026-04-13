@@ -57,5 +57,5 @@ index 3d9496a..dd9b427 100644
 -            && $manifest->version !== null;
 +            && ($manifest->version ?? null) !== null;
      }
-
+ 
      /**
