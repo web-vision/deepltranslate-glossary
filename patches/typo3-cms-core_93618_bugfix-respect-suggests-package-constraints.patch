@@ -1,0 +1,58 @@
+@package typo3/cms-core
+@label [BUGFIX] Respect `suggests` package constraints
+@link https://review.typo3.org/c/Packages/TYPO3.CMS/+/93618
+@version ~14.2.0
+@after typo3-cms-core_93536_task-allow-extension-version-declaration-in-extra.version.patch
+
+From 7a364e208c78d1f6e8ca1e3cd7e572e5963a1581 Mon Sep 17 00:00:00 2001
+From: Stefan Bürk <stefan@buerk.tech>
+Date: Fri, 10 Apr 2026 21:41:11 +0200
+Subject: [PATCH] [BUGFIX] Respect `suggests` package constraints
+
+Convert Composer names in suggested constraints to package
+keys, matching the behavior used for dependency constraints.
+
+After removing `ext_emconf.php`, constraints now contain
+Composer names instead of package keys.
+
+Updated the test to reflect both Core PackageManager ordering
+and Testing Framework ordering (the latter was not affected
+by this bug).
+
+Also updated the test to always load all framework packages,
+resolving a remaining `TODO`.
+
+This is now easily possible due to the `framework-packages.php`
+file used for dependency resolution.
+
+Resolves: #109552
+Related: #108345
+Releases: main
+Change-Id: I4ac07c28317922c2c36f1d27d5a63935a87b68c8
+Reviewed-on: https://review.typo3.org/c/Packages/TYPO3.CMS/+/93618
+Reviewed-by: Garvin Hicking <garvin@hick.ing>
+Tested-by: core-ci <typo3@b13.com>
+Reviewed-by: Anja Leichsenring <aleichsenring@ab-softlab.de>
+Tested-by: Garvin Hicking <garvin@hick.ing>
+Tested-by: Helmut Hummel <typo3@helhum.io>
+Reviewed-by: Christian Kuhn <lolli@schwarzbu.ch>
+Reviewed-by: Helmut Hummel <typo3@helhum.io>
+Tested-by: Anja Leichsenring <aleichsenring@ab-softlab.de>
+Reviewed-by: Georg Ringer <georg.ringer@gmail.com>
+Tested-by: Georg Ringer <georg.ringer@gmail.com>
+---
+
+diff --git a/Classes/Package/PackageManager.php b/Classes/Package/PackageManager.php
+index 5b1d977..cb0cb0d 100644
+--- a/Classes/Package/PackageManager.php
++++ b/Classes/Package/PackageManager.php
+@@ -778,7 +778,8 @@
+         $suggestedPackageConstraints = $this->packages[$packageKey]->getPackageMetaData()->getConstraintsByType(MetaData::CONSTRAINT_TYPE_SUGGESTS);
+         foreach ($suggestedPackageConstraints as $constraint) {
+             if ($constraint instanceof PackageConstraint) {
+-                $suggestedPackageKey = $constraint->getValue();
++                $suggestedPackageName = $constraint->getValue();
++                $suggestedPackageKey = $this->getPackageKeyFromComposerName($suggestedPackageName);
+                 if (isset($this->packages[$suggestedPackageKey])) {
+                     $suggestedPackageKeys[] = $suggestedPackageKey;
+                 }
