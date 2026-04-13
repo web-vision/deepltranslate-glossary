@@ -20,7 +20,6 @@ return [
         'enablecolumns' => [
             'disabled' => 'hidden',
         ],
-        'searchFields' => 'term',
     ],
     'inferface' => [
         'showRecordFieldList' => '',
@@ -87,6 +86,7 @@ return [
                 'type' => 'input',
                 'required' => true,
                 'eval' => 'trim',
+                'searchable' => true,
             ],
         ],
     ],

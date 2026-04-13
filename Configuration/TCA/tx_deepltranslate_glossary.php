@@ -18,7 +18,6 @@ return [
         // https://review.typo3.org/c/Packages/TYPO3.CMS/+/88739
         'versioningWS' => true,
         'enablecolumns' => [],
-        'searchFields' => 'glossary_name,glossary_id,glossary_ready,glossary_lastsync',
     ],
     'inferface' => [
         'showRecordFieldList' => '',
@@ -43,6 +42,7 @@ return [
             'config' => [
                 'type' => 'input',
                 'readOnly' => true,
+                'searchable' => true,
             ],
         ],
         'glossary_name' => [
@@ -50,6 +50,7 @@ return [
             'config' => [
                 'type' => 'input',
                 'readOnly' => true,
+                'searchable' => true,
             ],
         ],
         'glossary_lastsync' => [
@@ -58,6 +59,7 @@ return [
                 'type' => 'datetime',
                 'format' => 'datetime',
                 'readOnly' => true,
+                'searchable' => true,
             ],
         ],
         'glossary_ready' => [
@@ -65,6 +67,7 @@ return [
             'config' => [
                 'type' => 'check',
                 'readOnly' => true,
+                'searchable' => true,
             ],
         ],
     ],
