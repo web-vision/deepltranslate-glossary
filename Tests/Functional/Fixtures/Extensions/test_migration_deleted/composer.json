@@ -16,5 +16,5 @@
 		"web-vision/deepltranslate-core": "*",
 		"web-vision/deepltranslate-glossary": "*"
 	},
-	"version": "1.0.0"
+	"version": "1.0.0-dev"
 }
