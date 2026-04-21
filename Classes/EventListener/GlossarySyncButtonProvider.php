@@ -35,6 +35,9 @@ final class GlossarySyncButtonProvider
 {
     public function __construct(
         private Typo3Version $typo3Version,
+        private LanguageServiceFactory $languageServiceFactory,
+        private IconFactory $iconFactory,
+        private UriBuilder $uriBuilder,
     ) {
     }
 
@@ -42,8 +45,7 @@ final class GlossarySyncButtonProvider
     public function __invoke(ModifyButtonBarEvent $event): void
     {
         $buttons = $event->getButtons();
-        $request = $this->getRequest();
-
+        $request = $this->getRequest($event);
         $requestParams = $request->getQueryParams();
 
         $id = (int)($requestParams['id'] ?? 0);
@@ -74,22 +76,20 @@ final class GlossarySyncButtonProvider
             return;
         }
 
-        $parameters = $this->buildParamsArrayForListView((int)$id);
-        $title = GeneralUtility::makeInstance(LanguageServiceFactory::class)
+        $parameters = $this->buildParamsArrayForListView($request, (int)$id);
+        $title = $this->languageServiceFactory
             ->createFromUserPreferences($GLOBALS['BE_USER'] ?? null)
             ->sL('LLL:EXT:deepltranslate_glossary/Resources/Private/Language/locallang.xlf:glossary.sync.button.all');
         // Style button
-        $iconFactory = GeneralUtility::makeInstance(IconFactory::class);
         $button = $event->getButtonBar()->makeLinkButton();
-        $button->setIcon($iconFactory->getIcon(
+        $button->setIcon($this->iconFactory->getIcon(
             'apps-pagetree-folder-contains-glossary',
             IconSize::SMALL,
         ));
         $button->setTitle($title);
         $button->setShowLabelText(true);
 
-        $uriBuilder = GeneralUtility::makeInstance(UriBuilder::class);
-        $uri = $uriBuilder->buildUriFromRoute(
+        $uri = $this->uriBuilder->buildUriFromRoute(
             'glossaryupdate',
             $parameters
         );
@@ -101,8 +101,11 @@ final class GlossarySyncButtonProvider
         $event->setButtons($buttons);
     }
 
-    protected function getRequest(): ServerRequestInterface
+    protected function getRequest(ModifyButtonBarEvent $event): ServerRequestInterface
     {
+        if (method_exists($event, 'getRequest')) {
+            return $event->getRequest();
+        }
         return $GLOBALS['TYPO3_REQUEST'];
     }
 
@@ -149,11 +152,11 @@ final class GlossarySyncButtonProvider
     /**
      * @return array{uid: int, returnUrl: string|UriInterface}
      */
-    private function buildParamsArrayForListView(int $id): array
+    private function buildParamsArrayForListView(ServerRequestInterface $request, int $id): array
     {
         return [
             'uid' => $id,
-            'returnUrl' => (string)$this->getRequest()->getAttribute('normalizedParams')?->getRequestUri(),
+            'returnUrl' => (string)$request->getAttribute('normalizedParams')?->getRequestUri(),
         ];
     }
 
