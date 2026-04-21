@@ -19,7 +19,7 @@ use WebVision\Deepltranslate\Glossary\Domain\Repository\GlossaryRepository;
 final class LocalGlossary
 {
     public function __construct(
-        private readonly GlossaryRepository $glossaryRepository
+        private readonly GlossaryRepository $glossaryRepository,
     ) {
     }
 

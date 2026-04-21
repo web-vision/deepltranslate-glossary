@@ -12,20 +12,34 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Question\ConfirmationQuestion;
 use Symfony\Component\Console\Style\SymfonyStyle;
+use Symfony\Contracts\Service\Attribute\Required;
+use WebVision\Deepltranslate\Glossary\Domain\Repository\GlossaryRepository;
+use WebVision\Deepltranslate\Glossary\Service\DeeplGlossaryService;
 
 /**
- * ToDo: Rename Command
- * ToDo: Split command in housekeeping and remove glossary from API/remote storage
+ * @todo: Rename Command
+ * @todo: Split command in housekeeping and remove glossary from API/remote storage
  */
 #[AsCommand(
     name: 'deepl:glossary:cleanup',
-    description: 'Cleanup Glossary entries in DeepL Database'
+    description: 'Cleanup Glossary entries in DeepL Database',
 )]
 final class GlossaryCleanupCommand extends Command
 {
-    use GlossaryCommandTrait;
+    private DeeplGlossaryService $deeplGlossaryService;
+    private GlossaryRepository $glossaryRepository;
 
-    private SymfonyStyle $io;
+    #[Required]
+    public function injectDeeplGlossaryService(DeeplGlossaryService $deeplGlossaryService): void
+    {
+        $this->deeplGlossaryService = $deeplGlossaryService;
+    }
+
+    #[Required]
+    public function injectGlossaryRepository(GlossaryRepository $glossaryRepository): void
+    {
+        $this->glossaryRepository = $glossaryRepository;
+    }
 
     protected function configure(): void
     {
@@ -53,16 +67,16 @@ final class GlossaryCleanupCommand extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $this->io = new SymfonyStyle($input, $output);
-        $this->io->title('Glossary cleanup');
+        $io = new SymfonyStyle($input, $output);
+        $io->title('Glossary cleanup');
 
         $question = new ConfirmationQuestion(
             'Execute glossary cleanup',
             false
         );
 
-        if (!$this->io->askQuestion($question)) {
-            $this->io->warning('Delete not confirmed, the process is canceled.');
+        if (!$io->askQuestion($question)) {
+            $io->warning('Delete not confirmed, the process is canceled.');
             return Command::SUCCESS;
         }
 
@@ -75,30 +89,30 @@ final class GlossaryCleanupCommand extends Command
         if (!empty($input->getOption('all'))) {
             $glossaries = $this->deeplGlossaryService->listGlossaries();
             if (empty($glossaries)) {
-                $this->io->info('No glossaries found with sync to API');
+                $io->info('No glossaries found with sync to API');
                 return Command::FAILURE;
             }
 
-            $this->io->warning('This will delete all glossaries from DeepL according to the actual API key.');
+            $io->warning('This will delete all glossaries from DeepL according to the actual API key.');
 
             $allDeletionQuestion = new ConfirmationQuestion(
                 'Really delete all glossaries',
                 false
             );
 
-            if ($this->io->askQuestion($allDeletionQuestion) === false) {
-                $this->io->info('Not confirmed, abort.');
+            if ($io->askQuestion($allDeletionQuestion) === false) {
+                $io->info('Not confirmed, abort.');
                 return Command::SUCCESS;
             }
 
-            $this->removeGlossaries($glossaries);
+            $this->removeGlossaries($io, $glossaries);
         }
         // Remove glossaries without api sync id
         if (!empty($input->getOption('notinsync'))) {
-            $this->removeGlossariesWithNoSync();
+            $this->removeGlossariesWithNoSync($io);
         }
 
-        $this->io->success('Success!');
+        $io->success('Success!');
 
         return Command::SUCCESS;
     }
@@ -112,20 +126,20 @@ final class GlossaryCleanupCommand extends Command
     /**
      * @param GlossaryInfo[] $glossaries
      */
-    private function removeGlossaries(array $glossaries): void
+    private function removeGlossaries(SymfonyStyle $io, array $glossaries): void
     {
         $rows = [];
-        $this->io->progressStart(count($glossaries));
+        $io->progressStart(count($glossaries));
 
         foreach ($glossaries as $glossary) {
             $dbUpdated = $this->removeGlossary($glossary->glossaryId);
             $rows[] = [$glossary->glossaryId, $dbUpdated ? 'yes' : 'no'];
-            $this->io->progressAdvance();
+            $io->progressAdvance();
         }
 
-        $this->io->progressFinish();
+        $io->progressFinish();
 
-        $this->io->table(
+        $io->table(
             [
                 'Glossary ID',
                 'Database sync removed',
@@ -134,22 +148,21 @@ final class GlossaryCleanupCommand extends Command
         );
     }
 
-    private function removeGlossariesWithNoSync(): void
+    private function removeGlossariesWithNoSync(SymfonyStyle $io): void
     {
         $findNotConnected = $this->glossaryRepository->getGlossariesDeeplConnected();
-
         if (count($findNotConnected) === 0) {
-            $this->io->info('No glossaries with sync mismatch.');
+            $io->info('No glossaries with sync mismatch.');
         }
 
-        $this->io->progressStart(count($findNotConnected));
+        $io->progressStart(count($findNotConnected));
         foreach ($findNotConnected as $notConnected) {
             $this->glossaryRepository->removeGlossarySync($notConnected['glossary_id']);
-            $this->io->progressAdvance();
+            $io->progressAdvance();
         }
-        $this->io->progressFinish();
+        $io->progressFinish();
 
-        $this->io->info(
+        $io->info(
             sprintf('Found %d glossaries with possible sync mismatch. Cleaned up.', count($findNotConnected))
         );
     }
