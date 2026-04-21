@@ -6,7 +6,7 @@ return [
     'ctrl' => [
         'title' => 'LLL:EXT:deepltranslate_glossary/Resources/Private/Language/locallang.xlf:glossaryentry',
         'label' => 'term',
-        'iconfile' => 'EXT:deepltranslate_glossary/Resources/Public/Icons/deepl.svg',
+        'iconfile' => 'EXT:deepltranslate_glossary/Resources/Public/Icons/deepl-mode-aware.svg',
         'default_sortby' => 'term ASC',
         'tstamp' => 'tstamp',
         'crdate' => 'crdate',
