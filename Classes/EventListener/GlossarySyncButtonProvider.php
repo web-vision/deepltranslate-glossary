@@ -15,6 +15,7 @@ use TYPO3\CMS\Core\Attribute\AsEventListener;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\Imaging\IconFactory;
 use TYPO3\CMS\Core\Imaging\IconSize;
+use TYPO3\CMS\Core\Information\Typo3Version;
 use TYPO3\CMS\Core\Localization\LanguageService;
 use TYPO3\CMS\Core\Localization\LanguageServiceFactory;
 use TYPO3\CMS\Core\Type\Bitmask\Permission;
@@ -32,10 +33,10 @@ use WebVision\Deepltranslate\Glossary\Access\AllowedGlossarySyncAccess;
 #[Autoconfigure(public: true)]
 final class GlossarySyncButtonProvider
 {
-    private const ALLOWED_MODULES = [
-        'web_layout',
-        'web_list',
-    ];
+    public function __construct(
+        private Typo3Version $typo3Version,
+    ) {
+    }
 
     #[AsEventListener(identifier: 'glossary.syncbutton')]
     public function __invoke(ModifyButtonBarEvent $event): void
@@ -61,8 +62,8 @@ final class GlossarySyncButtonProvider
             || $normalizedParams === null
             || !empty($pageTSconfig['mod.']['SHARED.']['disableSysNoteButton'])
             || !$this->canCreateNewRecord($id)
-            || !in_array($module->getIdentifier(), self::ALLOWED_MODULES, true)
-            || ($module->getIdentifier() === 'web_list' && !$this->isCreationAllowed($pageTSconfig['mod.']['web_list.'] ?? []))
+            || !in_array($module->getIdentifier(), $this->getAllowedModules(), true)
+            || ($module->getIdentifier() === $this->getRecordsOrListModuleIdentifier() && !$this->isCreationAllowed($pageTSconfig['mod.']['web_list.'] ?? []))
             || !isset($page['module'])
             || $page['module'] !== 'glossary'
         ) {
@@ -154,5 +155,29 @@ final class GlossarySyncButtonProvider
             'uid' => $id,
             'returnUrl' => (string)$this->getRequest()->getAttribute('normalizedParams')?->getRequestUri(),
         ];
+    }
+
+    /**
+     * @return string[]
+     */
+    private function getAllowedModules(): array
+    {
+        return [
+            $this->getPageLayoutModuleIdentifier(),
+            $this->getRecordsOrListModuleIdentifier(),
+        ];
+    }
+
+    private function getPageLayoutModuleIdentifier(): string
+    {
+        return 'web_layout';
+    }
+
+    private function getRecordsOrListModuleIdentifier(): string
+    {
+        return match($this->typo3Version->getMajorVersion()) {
+            13 => 'web_list',
+            default => 'records',
+        };
     }
 }
