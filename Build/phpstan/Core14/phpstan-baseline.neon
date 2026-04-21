@@ -1,11 +1,19 @@
 parameters:
 	ignoreErrors:
 		-
-			message: "#^Call to an undefined method Psr\\\\Http\\\\Message\\\\RequestInterface\\:\\:getQueryParams\\(\\)\\.$#"
+			message: '#^Call to an undefined method Psr\\Http\\Message\\RequestInterface\:\:getQueryParams\(\)\.$#'
+			identifier: method.notFound
 			count: 1
 			path: ../../../Classes/EventListener/GlossaryModuleShouldNotRenderDeepLTranslationDropdown.php
 
 		-
-			message: "#^Parameter \\#2 \\$length of function fread expects int\\<1, max\\>, int\\<0, max\\> given\\.$#"
+			message: '#^Call to function method_exists\(\) with TYPO3\\CMS\\Backend\\Template\\Components\\ModifyButtonBarEvent and ''getRequest'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: ../../../Classes/EventListener/GlossarySyncButtonProvider.php
+
+		-
+			message: '#^Parameter \#2 \$length of function fread expects int\<1, max\>, int\<0, max\> given\.$#'
+			identifier: argument.type
 			count: 1
 			path: ../../../Tests/Functional/AbstractDeepLTestCase.php
