@@ -5,6 +5,7 @@ includes:
 parameters:
   # Use local .cache dir instead of /tmp
   tmpDir: ../../../.cache/phpstan
+  treatPhpDocTypesAsCertain: false
 
   level: 8
 
@@ -14,9 +15,6 @@ parameters:
 
   excludePaths:
     - ../../../.Build/*
-    - ../../../Tests/Functional/Updates/Fixtures/Extension/test_extension/ext_emconf.php
-    - ../../../Tests/Functional/Fixtures/Extensions/test_services_override/ext_emconf.php
-    - ../../../Tests/Functional/Fixtures/Extensions/testing_framework_backenduserhandler_replacement/ext_emconf.php
 
   typo3:
     contextApiGetAspectMapping:

@@ -54,7 +54,7 @@ final class GlossarySyncController
                 ->enqueue((new FlashMessage(
                     'No ID given for glossary synchronization',
                     '',
-                    2,
+                    ContextualFeedbackSeverity::ERROR,
                     true
                 )));
             return new RedirectResponse($processingParameters['returnUrl']);

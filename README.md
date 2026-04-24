@@ -1,17 +1,35 @@
 [![Latest Stable Version](https://poser.pugx.org/web-vision/deepltranslate-glossary/v/stable.svg?style=for-the-badge)](https://packagist.org/packages/web-vision/deepltranslate-glossary)
 [![License](https://poser.pugx.org/web-vision/deepltranslate-glossary/license?style=for-the-badge)](https://packagist.org/packages/web-vision/deepltranslate-glossary)
 [![TYPO3 12.4](https://img.shields.io/badge/TYPO3-12.4-green.svg?style=for-the-badge)](https://get.typo3.org/version/12)
-[![TYPO3 12.4](https://img.shields.io/badge/TYPO3-13.4-green.svg?style=for-the-badge)](https://get.typo3.org/version/13)
+[![TYPO3 12.3](https://img.shields.io/badge/TYPO3-13.4-green.svg?style=for-the-badge)](https://get.typo3.org/version/13)
 [![Total Downloads](https://poser.pugx.org/web-vision/deepltranslate-glossary/downloads.svg?style=for-the-badge)](https://packagist.org/packages/web-vision/deepltranslate-glossary)
 [![Monthly Downloads](https://poser.pugx.org/web-vision/deepltranslate-glossary/d/monthly?style=for-the-badge)](https://packagist.org/packages/web-vision/deepltranslate-glossary)
 
 # TYPO3 extension `deepltranslate_glossary`
 
+|                  | URL                                                                     |
+|------------------|-------------------------------------------------------------------------|
+| **Repository:**  | https://github.com/web-vision/deepltranslate-glossary                   |
+| **Read online:** | https://docs.typo3.org/p/web-vision/deepltranslate-glossary/main/en-us/ |
+| **TER:**         | https://extensions.typo3.org/extension/deepltranslate_glossary/         |
+| **ISSUES:**      | https://github.com/web-vision/deepltranslate-glossary/issues/           |
+| **RELEASES:**    | https://github.com/web-vision/deepltranslate-glossary/releases/         |
+
+## Description
+
 This extension provides glossary-flavoured translations for the TYPO3 extension
 [deepltranslate_core](https://github.com/web-vision/deepltranslate-core).
 
+## Compatibility
+
+| Branch | State                       | Composer Package Name              | TYPO3 Extension Key     | Version       | TYPO3      | PHP                                          |
+|--------|-----------------------------|------------------------------------|-------------------------|---------------|------------|----------------------------------------------|
+| main   | development, active support | web-vision/deepltranslate-glossary | deepltranslate_glossary | ^6, 6.0.x-dev | v13 + v14  | 8.2, 8.3, 8.4, 8.5 (depending on TYPO3)      |
+| 5      | active support              | web-vision/deepltranslate-glossary | deepltranslate_glossary | ^5, 5.1.x-dev | v12 + v13  | 8.1, 8.2, 8.3, 8.4, 8.5 (depending on TYPO3) |
+
 ## Features
 
+* Extends `EXT:deepltranslate_core` as public available addon.
 * TYPO3-conform database records for own glossaries
 * Synchronize button in glossary module folders
 * Managing for glossaries by CLI
@@ -28,8 +46,16 @@ Install with your favour:
 We prefer composer installation:
 
 ```bash
-composer require web-vision/deepltranslate-glossary
+composer require -W \
+  'web-vision/deepltranslate-core':'~6.0.0@dev' \
+  'web-vision/deepltranslate-glossary':'~6.0.0@dev'
 ```
+
+> [!NOTE]
+> **Be aware** that `EXT:deepltranslate_glossary` is a public addon for the
+> `EXT:deepltranslate_core` extension  and cannot be used **standalone**,
+> and requires having `EXT:deepltranslate_core` DeepL API key set and site
+> configuration set according to the `EXT:deepltranslate_core` documentation.
 
 ## Sponsors
 
@@ -51,51 +77,59 @@ Prerequisites:
 * ssh key allowed to push new branches to the repository
 * GitHub command line tool `gh` installed and configured with user having permission to create pull requests.
 
-**Prepare release locally**
+**Create release**
 
 > Set `RELEASE_BRANCH` to branch release should happen, for example: 'main'.
 > Set `RELEASE_VERSION` to release version working on, for example: '5.0.0'.
 
+> [!IMPORTANT]
+> Requires `GitHub cli tool` with personal token and
+> maintainer permission on the extension repository.
+
 ```shell
-echo '>> Prepare release pull-request' ; \
+echo '>> Create release based on configuration' ; \
   RELEASE_BRANCH='main' ; \
-  RELEASE_VERSION='5.0.1' ; \
+  RELEASE_VERSION='6.0.0' ; \
+  DEV_VERSION='6.0.1' ; \
+  echo ">> Checkout branches" && \
   git checkout main && \
   git fetch --all && \
   git pull --rebase && \
   git checkout ${RELEASE_BRANCH} && \
   git pull --rebase && \
-  git checkout -b prepare-release-${RELEASE_VERSION} && \
-  composer require --dev "typo3/tailor" && \
-  ./.Build/bin/tailor set-version ${RELEASE_VERSION} && \
-  composer remove --dev "typo3/tailor" && \
+  echo ">> Create release ${RELEASE_VERSION}" && \
+  git checkout -b release-${RELEASE_VERSION} && \
+  sed -i "s/^COMPOSER_ROOT_VERSION.*/COMPOSER_ROOT_VERSION=\"${RELEASE_VERSION}\"/" Build/Scripts/runTests.sh && \
+  sed -i "s/^  RELEASE_VERSION.*/  RELEASE_VERSION=\"${RELEASE_VERSION}\"/" README.md && \
+  sed -i "s/^  DEV_VERSION.*/  DEV_VERSION=\"${DEV_VERSION}\"/" README.md && \
+  tailor set-version ${RELEASE_VERSION} && \
+  composer config "extra"."typo3/cms"."version" "${RELEASE_VERSION}" && \
+  echo "${RELEASE_VERSION}" > VERSION && \
   git add . && \
-  git commit -m "[TASK] Prepare release ${RELEASE_VERSION}" && \
-  git push --set-upstream origin prepare-release-${RELEASE_VERSION} && \
-  gh pr create --fill-verbose --base ${RELEASE_BRANCH} --title "[TASK] Prepare release for ${RELEASE_VERSION} on ${RELEASE_BRANCH}" && \
-  git checkout main && \
-  git branch -D prepare-release-${RELEASE_VERSION}
-```
-
-Check pull-request and the pipeline run.
-
-**Merge approved pull-request and push version tag**
-
-> Set `RELEASE_PR_NUMBER` with the pull-request number of the preparation pull-request.
-> Set `RELEASE_BRANCH` to branch release should happen, for example: 'main' (same as in previous step).
-> Set `RELEASE_VERSION` to release version working on, for example: `0.1.4` (same as in previous step).
-
-```shell
-RELEASE_BRANCH='main' ; \
-RELEASE_VERSION='5.0.1' ; \
-RELEASE_PR_NUMBER='123' ; \
-  git checkout main && \
-  git fetch --all && \
-  git pull --rebase && \
-  gh pr checkout ${RELEASE_PR_NUMBER} && \
-  gh pr merge -rd ${RELEASE_PR_NUMBER} && \
-  git tag ${RELEASE_VERSION} && \
-  git push --tags
+  git commit -m "[RELEASE] ${RELEASE_VERSION}" && \
+  git push --set-upstream origin release-${RELEASE_VERSION} && \
+  gh pr create --fill --base ${RELEASE_BRANCH} --title "[RELEASE] ${RELEASE_VERSION}" && \
+  sleep 10 && \
+  gh pr checks --watch --interval 2 && \
+  sleep 10 && \
+  gh pr merge -rd --admin && \
+  git remote prune origin && \
+  git tag ${RELEASE_VERSION} \
+  git push origin ${RELEASE_VERSION} \
+  echo ">> Post-release - set dev version: ${DEV_VRESION}-dev" && \
+  git checkout -b set-version-${DEV_VERSION} && \
+  sed -i "s/^COMPOSER_ROOT_VERSION.*/COMPOSER_ROOT_VERSION=\"${DEV_VERSION}-dev\"/" Build/Scripts/runTests.sh && \
+  tailor set-version ${DEV_VERSION} && \
+  composer config "extra"."typo3/cms"."version" "${DEV_VERSION}-dev" && \
+  echo "${DEV_VERSION}-dev" > VERSION && \
+  git add . && \
+  git commit -m "[TASK] Set dev version ${DEV_VERSION}" && \
+  gh pr create --fill --base ${RELEASE_BRANCH} --title "[RELEASE] ${RELEASE_VERSION}" && \
+  sleep 10 && \
+  gh pr checks --watch --interval 2 && \
+  sleep 10 && \
+  gh pr merge -rd --admin && \
+  git remote prune origin
 ```
 
 This triggers the `on push tags` workflow (`publish.yml`) which creates the upload package,

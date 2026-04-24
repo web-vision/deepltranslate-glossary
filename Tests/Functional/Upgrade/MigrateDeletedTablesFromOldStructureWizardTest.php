@@ -5,27 +5,14 @@ declare(strict_types=1);
 namespace WebVision\Deepltranslate\Glossary\Tests\Functional\Upgrade;
 
 use PHPUnit\Framework\Attributes\Test;
-use SBUERK\TYPO3\Testing\TestCase\FunctionalTestCase;
+use WebVision\Deepltranslate\Glossary\Tests\Functional\AbstractDeepLTestCase;
 use WebVision\Deepltranslate\Glossary\Upgrade\MigrateTablesFromOldStructureWizard;
 
-final class MigrateDeletedTablesFromOldStructureWizardTest extends FunctionalTestCase
+final class MigrateDeletedTablesFromOldStructureWizardTest extends AbstractDeepLTestCase
 {
-    protected array $testExtensionsToLoad = [
-        'web-vision/deeplcom-deepl-php',
-        'web-vision/deepl-base',
-        'web-vision/deepltranslate-core',
-        'web-vision/deepltranslate-glossary',
-        __DIR__ . '/Fixtures/Extensions/test_migration_deleted',
-    ];
-
-    protected array $coreExtensionsToLoad = [
-        'typo3/cms-install',
-        'typo3/cms-scheduler',
-        'typo3/cms-setup',
-    ];
-
     protected function setUp(): void
     {
+        $this->testExtensionsToLoad[] = 'web-vision/test-migration-deleted';
         parent::setUp();
     }
 

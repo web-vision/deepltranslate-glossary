@@ -43,3 +43,4 @@
     Editor/Index
     Housekeeping/Index
     KnownIssues/Index
+    Changelog/Changelog-6

@@ -6,6 +6,7 @@ namespace WebVision\Deepltranslate\Glossary\Hooks;
 
 use Doctrine\DBAL\Driver\Exception;
 use Doctrine\DBAL\Exception as DBALException;
+use Symfony\Component\DependencyInjection\Attribute\Autoconfigure;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\Core\Environment;
 use TYPO3\CMS\Core\DataHandling\DataHandler;
@@ -18,6 +19,7 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
 use WebVision\Deepltranslate\Glossary\Domain\Repository\GlossaryEntryRepository;
 use WebVision\Deepltranslate\Glossary\Domain\Repository\GlossaryRepository;
 
+#[Autoconfigure(public: true)]
 final class UpdatedGlossaryEntryTermHook
 {
     private LanguageService $languageService;

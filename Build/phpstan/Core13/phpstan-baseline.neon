@@ -1,31 +1,19 @@
 parameters:
 	ignoreErrors:
 		-
-			message: "#^Parameter \\#3 \\$severity of class TYPO3\\\\CMS\\\\Core\\\\Messaging\\\\FlashMessage constructor expects TYPO3\\\\CMS\\\\Core\\\\Type\\\\ContextualFeedbackSeverity, int given\\.$#"
-			count: 1
-			path: ../../../Classes/Controller/GlossarySyncController.php
-
-		-
-			message: "#^Method TYPO3\\\\CMS\\\\Core\\\\Database\\\\Connection\\:\\:lastInsertId\\(\\) invoked with 1 parameter, 0 required\\.$#"
-			count: 1
-			path: ../../../Classes/Domain/Repository/GlossaryRepository.php
-
-		-
-			message: "#^Call to an undefined method Psr\\\\Http\\\\Message\\\\RequestInterface\\:\\:getQueryParams\\(\\)\\.$#"
+			message: '#^Call to an undefined method Psr\\Http\\Message\\RequestInterface\:\:getQueryParams\(\)\.$#'
+			identifier: method.notFound
 			count: 1
 			path: ../../../Classes/EventListener/GlossaryModuleShouldNotRenderDeepLTranslationDropdown.php
 
 		-
-			message: "#^Parameter \\#2 \\$length of function fread expects int\\<1, max\\>, int\\<0, max\\> given\\.$#"
+			message: '#^Call to function method_exists\(\) with TYPO3\\CMS\\Backend\\Template\\Components\\ModifyButtonBarEvent and ''getRequest'' will always evaluate to false\.$#'
+			identifier: function.impossibleType
+			count: 1
+			path: ../../../Classes/EventListener/GlossarySyncButtonProvider.php
+
+		-
+			message: '#^Parameter \#2 \$length of function fread expects int\<1, max\>, int\<0, max\> given\.$#'
+			identifier: argument.type
 			count: 1
 			path: ../../../Tests/Functional/AbstractDeepLTestCase.php
-
-		-
-			message: "#^Variable \\$_EXTKEY might not be defined\\.$#"
-			count: 1
-			path: ../../../Tests/Functional/Upgrade/Fixtures/Extensions/test_migration/ext_emconf.php
-
-		-
-			message: "#^Variable \\$_EXTKEY might not be defined\\.$#"
-			count: 1
-			path: ../../../Tests/Functional/Upgrade/Fixtures/Extensions/test_migration_deleted/ext_emconf.php

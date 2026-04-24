@@ -4,20 +4,21 @@ declare(strict_types=1);
 
 namespace WebVision\Deepltranslate\Glossary\Upgrade;
 
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use TYPO3\CMS\Core\Cache\Frontend\FrontendInterface;
 use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Install\Attribute\UpgradeWizard;
 use TYPO3\CMS\Install\Updates\DatabaseUpdatedPrerequisite;
-use TYPO3\CMS\Install\Updates\ReferenceIndexUpdatedPrerequisite;
 use TYPO3\CMS\Install\Updates\UpgradeWizardInterface;
 
 #[UpgradeWizard(identifier: 'deepltranslateGlossary_migrateGlossaryTables')]
-final class MigrateTablesFromOldStructureWizard implements UpgradeWizardInterface
+final readonly class MigrateTablesFromOldStructureWizard implements UpgradeWizardInterface
 {
     public function __construct(
-        private readonly ConnectionPool $connectionPool,
-        private readonly FrontendInterface $cache
+        private ConnectionPool $connectionPool,
+        #[Autowire(service: 'cache.runtime')]
+        private FrontendInterface $cache,
     ) {
     }
 
@@ -109,7 +110,6 @@ final class MigrateTablesFromOldStructureWizard implements UpgradeWizardInterfac
     {
         return [
             DatabaseUpdatedPrerequisite::class,
-            ReferenceIndexUpdatedPrerequisite::class,
         ];
     }
 

@@ -258,7 +258,7 @@ final class GlossaryRepository
             $db = GeneralUtility::makeInstance(ConnectionPool::class)
                 ->getConnectionForTable('tx_deepltranslate_glossary');
             $db->insert('tx_deepltranslate_glossary', $insert);
-            $lastInsertId = $db->lastInsertId('tx_deepltranslate_glossary');
+            $lastInsertId = $db->lastInsertId();
             $insert['uid'] = $lastInsertId;
             unset($insert['pid']);
             return Glossary::fromDatabase($insert);

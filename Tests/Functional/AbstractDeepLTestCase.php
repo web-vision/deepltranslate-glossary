@@ -4,63 +4,22 @@ declare(strict_types=1);
 
 namespace WebVision\Deepltranslate\Glossary\Tests\Functional;
 
-use Closure;
-use DeepL\Translator;
-use DeepL\TranslatorOptions;
-use Exception;
-use phpmock\phpunit\PHPMock;
-use Psr\Log\NullLogger;
 use Ramsey\Uuid\Uuid;
-use RuntimeException;
 use SBUERK\TYPO3\Testing\TestCase\FunctionalTestCase;
-use Symfony\Component\DependencyInjection\Container;
-use TYPO3\CMS\Core\Information\Typo3Version;
 use TYPO3\CMS\Core\Utility\StringUtility;
-use WebVision\Deepltranslate\Core\Client;
-use WebVision\Deepltranslate\Core\ClientInterface;
-use WebVision\Deepltranslate\Core\ConfigurationInterface;
 
+/**
+ * This Test case class defines basic setup for working with the DeepL mock server automatically loaded inside the
+ * projects runTests.sh.
+ *
+ * It takes care of different mock instances and works with separate server connections depending on the test identifier
+ * to avoid issues due to not teared down data inside the DeepL mock server.
+ */
 abstract class AbstractDeepLTestCase extends FunctionalTestCase
 {
-    use PHPMock;
-
     /**
-     * @var string
-     */
-    protected $authKey = 'mock_server';
-
-    /**
-     * @var string|false
-     */
-    protected $serverUrl = false;
-
-    /**
-     * @var string|false
-     */
-    protected $proxyUrl = false;
-
-    protected bool $isMockServer = false;
-
-    protected bool $isMockProxyServer = false;
-
-    protected ?string $sessionNoResponse = null;
-
-    protected ?string $session429Count = null;
-    protected ?string $sessionInitCharacterLimit = null;
-
-    protected ?string $sessionInitDocumentLimit = null;
-
-    protected ?string $sessionInitTeamDocumentLimit = null;
-
-    protected ?string $sessionDocFailure = null;
-
-    protected ?int $sessionDocQueueTime = null;
-
-    protected ?int $sessionDocTranslateTime = null;
-
-    protected ?bool $sessionExpectProxy = null;
-
-    /**
+     * Defines the possible translations by the DeepL mock server to use in tests and assertions.
+     *
      * @var array<non-empty-string, non-empty-string>
      */
     protected const EXAMPLE_TEXT = [
@@ -99,37 +58,79 @@ abstract class AbstractDeepLTestCase extends FunctionalTestCase
         'zh' => '质子束',
     ];
 
+    protected const EXAMPLE_DOCUMENT_INPUT = AbstractDeepLTestCase::EXAMPLE_TEXT['en'];
+
+    protected const EXAMPLE_DOCUMENT_OUTPUT = AbstractDeepLTestCase::EXAMPLE_TEXT['de'];
+
+    /**
+     * @var string
+     */
+    protected $authKey = 'mock_server';
+
+    /**
+     * @var string|false
+     */
+    protected $serverUrl = false;
+
+    /**
+     * @var string|false
+     */
+    protected $proxyUrl = false;
+
+    protected bool $isMockServer = false;
+
+    protected bool $isMockProxyServer = false;
+
+    protected ?string $sessionNoResponse = null;
+
+    protected ?string $session429Count = null;
+    protected ?string $sessionInitCharacterLimit = null;
+
+    protected ?string $sessionInitDocumentLimit = null;
+
+    protected ?string $sessionInitTeamDocumentLimit = null;
+
+    protected ?string $sessionDocFailure = null;
+
+    protected ?int $sessionDocQueueTime = null;
+
+    protected ?int $sessionDocTranslateTime = null;
+
+    protected ?bool $sessionExpectProxy = null;
+
     /**
      * @var non-empty-string[]
      */
     protected array $coreExtensionsToLoad = [
         'typo3/cms-setup',
         'typo3/cms-scheduler',
+        'typo3/cms-install',
     ];
 
     /**
      * @var non-empty-string[]
      */
     protected array $testExtensionsToLoad = [
-        'web-vision/deeplcom-deepl-php',
         'web-vision/deepl-base',
+        'web-vision/deeplcom-deepl-php',
         'web-vision/deepltranslate-core',
-        __DIR__ . '/Fixtures/Extensions/test_services_override',
+        'web-vision/deepltranslate-glossary',
     ];
-
-    protected const EXAMPLE_DOCUMENT_INPUT = AbstractDeepLTestCase::EXAMPLE_TEXT['en'];
-
-    protected const EXAMPLE_DOCUMENT_OUTPUT = AbstractDeepLTestCase::EXAMPLE_TEXT['de'];
 
     protected string $EXAMPLE_LARGE_DOCUMENT_INPUT = '';
 
     protected string $EXAMPLE_LARGE_DOCUMENT_OUTPUT = '';
 
+    protected array $configurationToUseInTestInstance = [
+        'EXTENSIONS' => [
+            'deepltranslate_core' => [
+                'apiKey' => 'mock_server',
+            ],
+        ],
+    ];
+
     protected function setUp(): void
     {
-        if ((new Typo3Version())->getMajorVersion() >= 13) {
-            $this->coreExtensionsToLoad[] = 'typo3/cms-install';
-        }
         $this->EXAMPLE_LARGE_DOCUMENT_INPUT = str_repeat(AbstractDeepLTestCase::EXAMPLE_TEXT['en'] . PHP_EOL, 1000);
         $this->EXAMPLE_LARGE_DOCUMENT_OUTPUT = str_repeat(AbstractDeepLTestCase::EXAMPLE_TEXT['de'] . PHP_EOL, 1000);
         $this->serverUrl = getenv('DEEPL_SERVER_URL');
@@ -140,22 +141,24 @@ abstract class AbstractDeepLTestCase extends FunctionalTestCase
         if ($this->isMockServer) {
             $this->authKey = 'mock_server';
             if ($this->serverUrl === false) {
-                throw new RuntimeException(
+                throw new \RuntimeException(
                     'DEEPL_SERVER_URL environment variable must be set if using a mock server',
                     1733938285,
                 );
             }
         } else {
             if (getenv('DEEPL_AUTH_KEY') === false) {
-                throw new RuntimeException(
+                throw new \RuntimeException(
                     'DEEPL_AUTH_KEY environment variable must be set unless using a mock server',
                     1733938290,
                 );
             }
-            $this->authKey = getenv('DEEPL_AUTH_KEY');
+            $this->authKey = getenv('DEEPL_AUTH_KEY') ?: '';
         }
+        $this->configurationToUseInTestInstance['EXTENSIONS']['deepltranslate_core']['apiKey'] = self::getInstanceIdentifier();
+        $GLOBALS['DEEPL_TESTING']['SERVER_URL'] = $this->serverUrl;
+        $GLOBALS['DEEPL_TESTING']['HEADERS'] = $this->sessionHeaders();
         parent::setUp();
-        $this->instantiateMockServerClient();
     }
 
     private function makeSessionName(): string
@@ -200,43 +203,6 @@ abstract class AbstractDeepLTestCase extends FunctionalTestCase
         return $headers;
     }
 
-    /**
-     * @param array<string, mixed> $options
-     */
-    protected function instantiateMockServerClient(array $options = []): void
-    {
-        $mergedOptions = array_replace(
-            [TranslatorOptions::HEADERS => $this->sessionHeaders()],
-            $options
-        );
-        if ($this->serverUrl !== false) {
-            $mergedOptions[TranslatorOptions::SERVER_URL] = $this->serverUrl;
-        }
-        $mockConfiguration = $this
-            ->getMockBuilder(ConfigurationInterface::class)
-            ->getMock();
-        $mockConfiguration
-            ->method('getApiKey')
-            ->willReturn(self::getInstanceIdentifier());
-
-        $client = new Client($mockConfiguration);
-        $client->setLogger(new NullLogger());
-
-        // use closure to set private option for translation
-        $translator = new Translator(self::getInstanceIdentifier(), $mergedOptions);
-        Closure::bind(
-            function (Translator $translator) {
-                $this->translator = $translator;
-            },
-            $client,
-            Client::class
-        )->call($client, $translator);
-
-        /** @var Container $container */
-        $container = $this->getContainer();
-        $container->set(ClientInterface::class, $client);
-    }
-
     public static function readFile(string $filepath): string
     {
         $size = filesize($filepath);
@@ -279,44 +245,28 @@ abstract class AbstractDeepLTestCase extends FunctionalTestCase
         return [$tempDir, $exampleDocument, $exampleLargeDocument, $outputDocumentPath];
     }
 
-    public function assertExceptionContains(string $needle, callable $function): Exception
+    public function assertExceptionContains(string $needle, callable $function): \Exception
     {
         try {
             $function();
-        } catch (Exception $exception) {
-            static::assertStringContainsString($needle, $exception->getMessage());
+        } catch (\Exception $exception) {
+            $this->assertStringContainsString($needle, $exception->getMessage());
             return $exception;
         }
-        static::fail("Expected exception containing '$needle' but nothing was thrown");
+        $this->fail("Expected exception containing '$needle' but nothing was thrown");
     }
 
     /**
      * @param class-string $class
      */
-    public function assertExceptionClass(string $class, callable $function): Exception
+    public function assertExceptionClass(string $class, callable $function): \Exception
     {
         try {
             $function();
-        } catch (Exception $exception) {
-            static::assertEquals($class, get_class($exception));
+        } catch (\Exception $exception) {
+            $this->assertEquals($class, get_class($exception));
             return $exception;
         }
-        static::fail("Expected exception of class '$class' but nothing was thrown");
-    }
-
-    /**
-     * This is necessary due to https://github.com/php-mock/php-mock-phpunit#restrictions
-     * In short, as these methods can be called by other tests before UserAgentTest and other
-     * tests that use their mocks are executed, we need to call `defineFunctionMock` before
-     * calling the unmocked function, or the mock will not work.
-     * Otherwise the tests will fail with:
-     *     Expectation failed for method name is "delegate" when invoked 1 time(s).
-     *     Method was expected to be called 1 times, actually called 0 times.
-     */
-    public static function setUpBeforeClass(): void
-    {
-        self::defineFunctionMock(__NAMESPACE__, 'curl_exec');
-        self::defineFunctionMock(__NAMESPACE__, 'curl_getinfo');
-        self::defineFunctionMock(__NAMESPACE__, 'curl_setopt_array');
+        $this->fail("Expected exception of class '$class' but nothing was thrown");
     }
 }

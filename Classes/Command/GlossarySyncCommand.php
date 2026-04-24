@@ -11,6 +11,9 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
+use Symfony\Contracts\Service\Attribute\Required;
+use WebVision\Deepltranslate\Glossary\Domain\Repository\GlossaryRepository;
+use WebVision\Deepltranslate\Glossary\Service\DeeplGlossaryService;
 
 #[AsCommand(
     name: 'deepl:glossary:sync',
@@ -18,9 +21,20 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 )]
 final class GlossarySyncCommand extends Command
 {
-    use GlossaryCommandTrait;
+    private DeeplGlossaryService $deeplGlossaryService;
+    private GlossaryRepository $glossaryRepository;
 
-    private SymfonyStyle $io;
+    #[Required]
+    public function injectDeeplGlossaryService(DeeplGlossaryService $deeplGlossaryService): void
+    {
+        $this->deeplGlossaryService = $deeplGlossaryService;
+    }
+
+    #[Required]
+    public function injectGlossaryRepository(GlossaryRepository $glossaryRepository): void
+    {
+        $this->glossaryRepository = $glossaryRepository;
+    }
 
     protected function configure(): void
     {
@@ -36,8 +50,8 @@ final class GlossarySyncCommand extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $this->io = new SymfonyStyle($input, $output);
-        $this->io->title('Glossary Sync');
+        $io = new SymfonyStyle($input, $output);
+        $io->title('Glossary Sync');
 
         try {
             $pageId = $input->getOption('pageId');
@@ -47,14 +61,14 @@ final class GlossarySyncCommand extends Command
                 $glossaries = $this->glossaryRepository->findAllGlossaries();
             }
 
-            $this->io->progressStart(count($glossaries));
+            $io->progressStart(count($glossaries));
             foreach ($glossaries as $glossary) {
                 $this->deeplGlossaryService->syncGlossaries($glossary['uid']);
-                $this->io->progressAdvance();
+                $io->progressAdvance();
             }
-            $this->io->progressFinish();
+            $io->progressFinish();
         } catch (Exception $exception) {
-            $this->io->error(sprintf('%s (%s)', $exception->getMessage(), $exception->getCode()));
+            $io->error(sprintf('%s (%s)', $exception->getMessage(), $exception->getCode()));
             return Command::FAILURE;
         }
 

@@ -15,7 +15,7 @@ jobs:
       contents: write
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Verify tag
         run: |
@@ -53,12 +53,18 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: 8.0
+          php-version: 8.2
           extensions: intl, mbstring, json, zip, curl
           tools: composer:v2
 
       - name: Install tailor
         run: composer global require typo3/tailor --prefer-dist --no-progress --no-suggest
+
+      - name: Set composer.json version and extra.typo3/cms.version
+        run: |
+          composer config "version" "${{ env.version }}" \
+          && composer config "extra"."typo3/cms"."version" "${{ env.version }}" \
+          && composer validate --strict --no-check-lock --no-check-version
 
       # Note that step will fail when `env.version` does not match the `ext_emconf.php` version.
       - name: Create local TER package upload artifact
@@ -68,8 +74,7 @@ jobs:
       # Note that when release already exists for tag, only files will be uploaded and lets this acting as a
       # fallback to ensure that a real GitHub release is created for the tag along with extension artifacts.
       - name: Create release and upload artifacts in the same step
-        # @todo Revert to release version when https://github.com/softprops/action-gh-release/issues/628 is fixed.
-        uses: softprops/action-gh-release@da05d552573ad5aba039eaac05058a918a7bf631
+        uses: softprops/action-gh-release@v2
         if: ${{startsWith(github.ref, 'refs/tags/') }}
         with:
           name: "[RELEASE] ${{ env.version }}"
@@ -78,6 +83,7 @@ jobs:
           files: |
             tailor-version-artefact/${{ env.DETECTED_EXTENSION_KEY }}_${{ env.version }}.zip
             LICENSE
+            VERSION
           fail_on_unmatched_files: true
 
       - name: Publish to TER
