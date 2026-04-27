@@ -1,16 +1,14 @@
-.. include:: /Includes.rst.txt
-
-..  _changelog-v2-byType:
+..  _changelog-v6-byType:
 
 ===================
-2.x Changes by type
+6.x Changes by type
 ===================
 
 This lists all changes to the Academic Base extension of minor versions
 grouped by their type.
 
 ..  contents:: Table of contents
-..  _changelog-v2-bc:
+..  _changelog-v6-bc:
 Breaking Changes
 ================
 
@@ -19,9 +17,9 @@ Breaking Changes
     :titlesonly:
     :glob:
 
-    Changelog/2.*/Breaking-*
+    Changelog/6.*/Breaking-*
 
-..  _changelog-v2-feat:
+..  _changelog-v6-feat:
 Features
 ========
 
@@ -30,9 +28,9 @@ Features
     :titlesonly:
     :glob:
 
-    Changelog/2.*/Feature-*
+    Changelog/6.*/Feature-*
 
-..  _changelog-v2-dep:
+..  _changelog-v6-dep:
 Deprecations
 ============
 
@@ -41,9 +39,9 @@ Deprecations
     :titlesonly:
     :glob:
 
-    Changelog/2.*/Deprecation-*
+    Changelog/6.*/Deprecation-*
 
-..  _changelog-v2-imp:
+..  _changelog-v6-imp:
 Important notes
 ===============
 
@@ -52,4 +50,4 @@ Important notes
     :titlesonly:
     :glob:
 
-    /Changelog/2.*/Important-*
+    /Changelog/6.*/Important-*
