@@ -425,7 +425,7 @@ if [[ -z "${CONTAINER_BIN}" ]]; then
 fi
 
 IMAGE_PHP="ghcr.io/typo3/core-testing-$(echo "php${PHP_VERSION}" | sed -e 's/\.//'):latest"
-IMAGE_DOCS="ghcr.io/typo3-documentation/render-guides:latest"
+IMAGE_RSTRENDERING="ghcr.io/typo3-documentation/render-guides:latest"
 IMAGE_MARIADB="docker.io/mariadb:${DBMS_VERSION}"
 IMAGE_MYSQL="docker.io/mysql:${DBMS_VERSION}"
 IMAGE_POSTGRES="docker.io/postgres:${DBMS_VERSION}-alpine"
@@ -575,7 +575,7 @@ case ${TEST_SUITE} in
         SUITE_EXIT_CODE=$?
         ;;
     renderDocumentation)
-        ${CONTAINER_BIN} run ${CONTAINER_COMMON_PARAMS} --name rendering-documentation-${SUFFIX} --pull always -w /project -v ${ROOT_DIR}:/project -it ${IMAGE_DOCS} --config=Documentation --fail-on-error --no-progress --config=Documentation Documentation "$@"
+        ${CONTAINER_BIN} run ${CONTAINER_COMMON_PARAMS} --name rendering-documentation-${SUFFIX} --pull always -w /project -v ${ROOT_DIR}:/project -it ${IMAGE_RSTRENDERING} --config=Documentation --fail-on-error --no-progress --config=Documentation Documentation
         SUITE_EXIT_CODE=$?
         ;;
     phpstan)
