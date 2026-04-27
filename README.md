@@ -86,7 +86,7 @@ Prerequisites:
 > Requires `GitHub cli tool` with personal token and
 > maintainer permission on the extension repository.
 
-```shell
+```bash
 echo '>> Create release based on configuration' ; \
   RELEASE_BRANCH='main' ; \
   RELEASE_VERSION='6.0.0' ; \
@@ -114,8 +114,8 @@ echo '>> Create release based on configuration' ; \
   sleep 10 && \
   gh pr merge -rd --admin && \
   git remote prune origin && \
-  git tag ${RELEASE_VERSION} \
-  git push origin ${RELEASE_VERSION} \
+  git tag ${RELEASE_VERSION} && \
+  git push origin ${RELEASE_VERSION} && \
   echo ">> Post-release - set dev version: ${DEV_VRESION}-dev" && \
   git checkout -b set-version-${DEV_VERSION} && \
   sed -i "s/^COMPOSER_ROOT_VERSION.*/COMPOSER_ROOT_VERSION=\"${DEV_VERSION}-dev\"/" Build/Scripts/runTests.sh && \
@@ -124,7 +124,8 @@ echo '>> Create release based on configuration' ; \
   echo "${DEV_VERSION}-dev" > VERSION && \
   git add . && \
   git commit -m "[TASK] Set dev version ${DEV_VERSION}" && \
-  gh pr create --fill --base ${RELEASE_BRANCH} --title "[RELEASE] ${RELEASE_VERSION}" && \
+  git push --set-upstream origin set-dev-version-${DEV_VERSION} && \
+  gh pr create --fill --base ${RELEASE_BRANCH} --title "[TASK] Set dev version \"${DEV_VERSION}-dev\"" && \
   sleep 10 && \
   gh pr checks --watch --interval 2 && \
   sleep 10 && \
