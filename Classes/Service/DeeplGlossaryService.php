@@ -9,12 +9,14 @@ use DeepL\GlossaryEntries;
 use DeepL\GlossaryInfo;
 use DeepL\GlossaryLanguagePair;
 use Doctrine\DBAL\Driver\Exception;
+use Psr\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autoconfigure;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use TYPO3\CMS\Core\Cache\Frontend\FrontendInterface;
 use TYPO3\CMS\Core\Exception\SiteNotFoundException;
 use WebVision\Deepltranslate\Glossary\Client\GlossaryAPIV2ClientInterface;
 use WebVision\Deepltranslate\Glossary\Domain\Repository\GlossaryRepository;
+use WebVision\Deepltranslate\Glossary\Event\GlossarySyncDone;
 use WebVision\Deepltranslate\Glossary\Exception\FailedToCreateGlossaryException;
 use WebVision\Deepltranslate\Glossary\Exception\GlossaryEntriesNotExistException;
 
@@ -26,6 +28,7 @@ final readonly class DeeplGlossaryService
         private FrontendInterface $cache,
         private GlossaryAPIV2ClientInterface $client,
         private GlossaryRepository $glossaryRepository,
+        private EventDispatcherInterface $eventDispatcher,
     ) {
     }
 
@@ -165,5 +168,7 @@ final readonly class DeeplGlossaryService
                 $glossaryInformation->uid
             );
         }
+
+        $this->eventDispatcher->dispatch(new GlossarySyncDone($uid));
     }
 }
