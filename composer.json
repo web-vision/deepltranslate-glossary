@@ -98,7 +98,8 @@
 		"typo3/cms": {
 			"app-dir": ".Build",
 			"extension-key": "deepltranslate_glossary",
-			"web-dir": ".Build/Web"
+			"web-dir": ".Build/Web",
+			"version": "5.1.3"
 		}
 	}
 }
