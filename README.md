@@ -82,7 +82,7 @@ Prerequisites:
 echo '>> Create release' ; \
   RELEASE_BRANCH='main' ; \
   RELEASE_VERSION='5.1.3' ; \
-  NEXT_DEV_VERSION='5.1.3' ; \
+  NEXT_DEV_VERSION='5.1.4' ; \
   git checkout main && \
   git fetch --all && \
   git pull --rebase && \
@@ -91,8 +91,7 @@ echo '>> Create release' ; \
   git checkout -b release-${RELEASE_VERSION} && \
   sed -i "s/^COMPOSER_ROOT_VERSION.*/COMPOSER_ROOT_VERSION=\"${RELEASE_VERSION}\"/" Build/Scripts/runTests.sh && \
   tailor set-version ${RELEASE_VERSION} && \
-  echo "${RELEASE_VERSION}
-" > VERSION && \
+  echo "${RELEASE_VERSION}" > VERSION && \
   git add . && \
   git commit -m "[RELEASE] ${RELEASE_VERSION}" && \
   git push --set-upstream origin release-${RELEASE_VERSION} && \
@@ -113,6 +112,7 @@ echo '>> Create release' ; \
   sed -i "s/^  NEXT_DEV_VERSION=.*/  NEXT_DEV_VERSION='${NEXT_DEV_VERSION}' ; \\\/" README.md && \
   git add . && \
   git commit -m "[TASK] Set \"${NEXT_DEV_VERSION}-dev\"" && \
+  git push --set-upstream origin set-dev-version-${NEXT_DEV_VERSION} && \
   gh pr create --fill --base ${RELEASE_BRANCH} --title "[TASK] Set \"${NEXT_DEV_VERSION}-dev\"" && \
   gh pr view --web && \
   sleep 30 && \
