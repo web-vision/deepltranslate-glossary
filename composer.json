@@ -50,7 +50,7 @@
 		"typo3/cms-backend": "~13.4.28@dev || ~14.3.0@dev",
 		"typo3/cms-core": "~13.4.28@dev || ~14.3.0@dev",
 		"typo3/cms-install": "~13.4.28@dev || ~14.3.0@dev",
-		"web-vision/deepltranslate-core": "~6.0.0@dev"
+		"web-vision/deepltranslate-core": "~6.0.3@dev"
 	},
 	"require-dev": {
 		"friendsofphp/php-cs-fixer": "^3.95.0",
@@ -78,7 +78,7 @@
 		"typo3/cms-workspaces": "~13.4.28@dev || ~14.3.0@dev",
 		"typo3/testing-framework": "^9.5.0",
 		"vaimo/composer-patches": "^6.0.1",
-		"web-vision/deepl-base": "~2.0.0@dev"
+		"web-vision/deepl-base": "~2.0.1@dev"
 	},
 	"suggest": {
 		"typo3/cms-scheduler": "Add the scheduler for automatic synchronizing glossaries"
