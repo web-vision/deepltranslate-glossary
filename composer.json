@@ -99,7 +99,7 @@
 			"app-dir": ".Build",
 			"extension-key": "deepltranslate_glossary",
 			"web-dir": ".Build/Web",
-			"version": "5.1.3"
+			"version": "5.1.4-dev"
 		}
 	}
 }
