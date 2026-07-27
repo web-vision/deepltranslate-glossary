@@ -70,6 +70,30 @@
                 <source>DeepL marked glossary as ready to use</source>
                 <target>DeepL markierte Glossar als benutzbar</target>
             </trans-unit>
+            <trans-unit id="glossary.dictionaries">
+                <source>Dictionaries</source>
+                <target>Wörterbücher</target>
+            </trans-unit>
+            <trans-unit id="glossarydictionary">
+                <source>Glossary dictionary</source>
+                <target>Glossar-Wörterbuch</target>
+            </trans-unit>
+            <trans-unit id="glossarydictionary.source_lang">
+                <source>Source language</source>
+                <target>Quellsprache</target>
+            </trans-unit>
+            <trans-unit id="glossarydictionary.target_lang">
+                <source>Target language</source>
+                <target>Zielsprache</target>
+            </trans-unit>
+            <trans-unit id="glossarydictionary.entry_count">
+                <source>Entries</source>
+                <target>Einträge</target>
+            </trans-unit>
+            <trans-unit id="glossarydictionary.in_sync">
+                <source>In sync with TYPO3</source>
+                <target>Synchron mit TYPO3</target>
+            </trans-unit>
 
             <trans-unit id="glossary.sync.message">
                 <source>Synchronization with DeepL is done. Your glossaries are ready to use.</source>
