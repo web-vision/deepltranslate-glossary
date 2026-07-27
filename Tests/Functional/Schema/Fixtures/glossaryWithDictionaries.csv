@@ -1,0 +1,7 @@
+"tx_deepltranslate_glossary",,,,,,
+,"uid","pid","glossary_id","glossary_name","glossary_lastsync","glossary_ready"
+,1,2,"3f2b0000-0000-0000-0000-000000000001","Acme Glossary",1700000000,1
+"tx_deepltranslate_glossarydictionary",,,,,,
+,"uid","pid","glossary","source_lang","target_lang","entry_count","in_sync"
+,1,2,1,"de","en",2,1
+,2,2,1,"en","fr",1,0
