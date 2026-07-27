@@ -218,10 +218,10 @@ Options:
             - 16    maintained until 2028-11-09
 
     -t <13|14>
-        Only with -s composerInstall|composerInstallMin|composerInstallMax
+        Only with -s composerUpdate
         Specifies the TYPO3 CORE Version to be used
             - 13: (default) use TYPO3 v13
-            - 14: use TYPO3 v14 (~14.2.0@dev)
+            - 14: use TYPO3 v14 (~14.3.0@dev)
 
     -p <8.2|8.3|8.4|8.5>
         Specifies the PHP minor version to be used
