@@ -44,10 +44,32 @@ Instances with synchronized glossaries, and any custom code querying
 Migration
 =========
 
-An upgrade wizard collapses the existing records of a folder into one glossary
-record with its dictionaries, removes the glossaries created with the API v2
-from the DeepL account and clears the local glossary id, so that the next
-synchronization creates the glossary through the API v3.
+Update the database schema first, the wizard needs the new table
+:sql:`tx_deepltranslate_glossarydictionary`. Then run the upgrade wizard
+:guilabel:`Migrate glossaries to the DeepL glossary API v3`, either in
+:guilabel:`Admin Tools > Upgrade > Upgrade Wizard` or on the command line:
+
+..  code-block:: bash
+
+    vendor/bin/typo3 extension:setup
+    vendor/bin/typo3 upgrade:run deepltranslateGlossary_migrateToMultilingualGlossary
+
+The wizard collapses the existing records of a folder into a single glossary
+record and removes the glossaries created with the API v2 from the DeepL
+account, because a glossary of the API v2 covers one language pair and cannot
+become a dictionary of a multilingual glossary.
+
+The record is detached from its former glossary, so the next synchronization
+publishes the folder through the API v3 and creates its dictionaries. Run the
+synchronization of every glossary folder after the wizard, either through the
+backend or with :bash:`deepl:glossary:sync`.
+
+The wizard migrates the records even when no API key is configured or DeepL
+cannot be reached. The glossaries then stay on the DeepL account. The wizard
+logs the id of each of them, remove them one by one with
+:bash:`deepl:glossary:cleanup --glossaryId <id>`. Do not use
+:bash:`deepl:glossary:cleanup --all` when other instances share the API key, it
+removes their glossaries as well.
 
 The columns :sql:`source_lang` and :sql:`target_lang` are kept on
 :sql:`tx_deepltranslate_glossary` until the wizard has run and are removed
