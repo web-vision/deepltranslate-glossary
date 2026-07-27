@@ -18,6 +18,13 @@ use WebVision\Deepltranslate\Glossary\Domain\Repository\GlossaryRepository;
 use WebVision\Deepltranslate\Glossary\Exception\FailedToCreateGlossaryException;
 use WebVision\Deepltranslate\Glossary\Exception\GlossaryEntriesNotExistException;
 
+/**
+ * Glossary handling based on the DeepL glossary API v2.
+ *
+ * @deprecated since 6.1, will be removed in 7.0. The extension synchronises through
+ *             {@see MultilingualGlossaryService} and the glossary API v3. This class is kept
+ *             for consumers still relying on it and is no longer used internally.
+ */
 #[Autoconfigure(public: true)]
 final readonly class DeeplGlossaryService
 {

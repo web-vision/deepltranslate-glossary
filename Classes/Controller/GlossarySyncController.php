@@ -18,7 +18,7 @@ use TYPO3\CMS\Core\Messaging\FlashMessageService;
 use TYPO3\CMS\Core\Type\ContextualFeedbackSeverity;
 use WebVision\Deepltranslate\Core\Exception\InvalidArgumentException;
 use WebVision\Deepltranslate\Glossary\Exception\FailedToCreateGlossaryException;
-use WebVision\Deepltranslate\Glossary\Service\DeeplGlossaryService;
+use WebVision\Deepltranslate\Glossary\Service\MultilingualGlossaryService;
 
 /**
  * Synchronization Controller for local deepltranslate glossary
@@ -32,7 +32,7 @@ final class GlossarySyncController
     private LanguageService $languageService;
 
     public function __construct(
-        private readonly DeeplGlossaryService $deeplGlossaryService,
+        private readonly MultilingualGlossaryService $multilingualGlossaryService,
         private readonly FlashMessageService $flashMessageService,
         LanguageServiceFactory $languageServiceFactory
     ) {
@@ -74,7 +74,7 @@ final class GlossarySyncController
         }
 
         try {
-            $this->deeplGlossaryService->syncGlossaries((int)$processingParameters['uid']);
+            $this->multilingualGlossaryService->syncGlossary((int)$processingParameters['uid']);
             $this->flashMessageService->getMessageQueueByIdentifier()->enqueue(new FlashMessage(
                 $this->languageService->sL('LLL:EXT:deepltranslate_glossary/Resources/Private/Language/locallang.xlf:glossary.sync.message'),
                 $this->languageService->sL('LLL:EXT:deepltranslate_glossary/Resources/Private/Language/locallang.xlf:glossary.sync.title'),
