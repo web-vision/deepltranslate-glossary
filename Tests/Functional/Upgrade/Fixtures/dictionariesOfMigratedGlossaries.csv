@@ -1,0 +1,4 @@
+"tx_deepltranslate_glossarydictionary",,,,,,
+,"uid","pid","glossary","source_lang","target_lang","entry_count","in_sync"
+,1,2,1,"en","de",2,1
+,2,2,2,"en","fr",1,1

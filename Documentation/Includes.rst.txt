@@ -2,6 +2,7 @@
     documentation project. It defines the text roles used across the manual.
 
 ..  role:: aspect (emphasis)
+..  role:: bash(code)
 ..  role:: html(code)
 ..  role:: js(code)
 ..  role:: php(code)

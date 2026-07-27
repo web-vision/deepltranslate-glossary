@@ -1,0 +1,7 @@
+pages
+,"uid","pid","doktype","title","module","sys_language_uid","l10n_parent","slug"
+,1,0,1,"Deepl-Functional-Test","",0,0,"/"
+,2,1,254,"Glossary","glossary",0,0,""
+tx_deepltranslate_glossary
+,"uid","pid","glossary_id","glossary_name","glossary_lastsync","glossary_ready","source_lang","target_lang"
+,1,2,"","Glossary: en => de",1700000000,1,"en","de"
