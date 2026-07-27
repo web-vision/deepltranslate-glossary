@@ -68,6 +68,24 @@
             <trans-unit id="glossary.glossary_ready">
                 <source>DeepL marked glossary as ready to use</source>
             </trans-unit>
+            <trans-unit id="glossary.dictionaries">
+                <source>Dictionaries</source>
+            </trans-unit>
+            <trans-unit id="glossarydictionary">
+                <source>Glossary dictionary</source>
+            </trans-unit>
+            <trans-unit id="glossarydictionary.source_lang">
+                <source>Source language</source>
+            </trans-unit>
+            <trans-unit id="glossarydictionary.target_lang">
+                <source>Target language</source>
+            </trans-unit>
+            <trans-unit id="glossarydictionary.entry_count">
+                <source>Entries</source>
+            </trans-unit>
+            <trans-unit id="glossarydictionary.in_sync">
+                <source>In sync with TYPO3</source>
+            </trans-unit>
             <trans-unit id="glossary.tab.sync">
                 <source>DeepL Sync</source>
             </trans-unit>
