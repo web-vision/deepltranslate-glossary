@@ -1,0 +1,17 @@
+..  This file is included at the very top of every ReST source file of this
+    documentation project. It defines the text roles used across the manual.
+
+..  role:: aspect (emphasis)
+..  role:: html(code)
+..  role:: js(code)
+..  role:: php(code)
+..  role:: rst(code)
+..  role:: sep(strong)
+..  role:: sql(code)
+..  role:: token(code)
+
+..  role:: typoscript(code)
+..  role:: ts(typoscript)
+    :class: typoscript
+
+..  role:: yaml(code)

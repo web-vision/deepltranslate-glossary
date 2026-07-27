@@ -1,3 +1,5 @@
+.. include:: /Includes.rst.txt
+
 ..  _important-glossaryoutofsynconeverytermchange-1791313353:
 
 ================================================
@@ -41,3 +43,5 @@ Migration
 =========
 
 None. Synchronize a glossary folder after changing its terms, as before.
+
+.. index:: Backend, ext:deepltranslate_glossary

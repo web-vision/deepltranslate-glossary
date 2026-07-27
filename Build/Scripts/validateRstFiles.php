@@ -148,19 +148,10 @@ class validateRstFiles
                 'title' => 'no title',
                 'message' => 'Each document must have a title with multiple === above and below',
             ],
-            [
-                'type' => 'titleinvalid',
-                'regex' => '#(\={2,}\n)(Deprecation|Feature|Breaking|Important)(\:\s+\#)([0-9]{4,8})(=?.*\n\={2,})#m',
-                'title' => 'invalid title format',
-                'message' => 'A changelog entry title must have the following format: '
-                    . '\'(Breaking|Feature|Deprecation|Important) #<issue nr>: <title>\'',
-            ],
-            [
-                'type' => 'titleformat',
-                'regex' => '#^See :issue:`[0-9]{4,6}`#m',
-                'title' => 'no reference',
-                'message' => 'insert \'See :issue:`<issuenumber>`\' after headline',
-            ],
+            // The TYPO3 core conventions of an issue number inside the headline and a
+            // `See :issue:` reference below it are intentionally not checked. This extension
+            // documents a change by its topic instead of by a Forge issue number, see the
+            // entries below `Documentation/Changelog`.
         ];
 
         foreach ($checkFor as $values) {

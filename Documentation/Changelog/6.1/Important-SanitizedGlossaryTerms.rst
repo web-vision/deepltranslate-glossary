@@ -1,3 +1,5 @@
+.. include:: /Includes.rst.txt
+
 ..  _important-sanitizedglossaryterms-1785196803:
 
 =====================================
@@ -35,3 +37,5 @@ Migration
 
 No migration required. Synchronize the affected glossary folders to send the
 cleaned terms to DeepL.
+
+.. index:: PHP-API, ext:deepltranslate_glossary

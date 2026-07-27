@@ -1,3 +1,5 @@
+.. include:: /Includes.rst.txt
+
 ..  _important-glossarycleanupnotinsync-1791313084:
 
 =====================================================================
@@ -36,3 +38,5 @@ Migration
 
 None. A detached glossary folder gets a new DeepL glossary with its next
 synchronization, see :ref:`sync-cli`.
+
+.. index:: CLI, ext:deepltranslate_glossary
