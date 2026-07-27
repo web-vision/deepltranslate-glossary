@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace WebVision\Deepltranslate\Glossary\Domain\Repository;
 
 use DeepL\GlossaryInfo;
+use DeepL\MultilingualGlossaryInfo;
 use Doctrine\DBAL\Driver\Exception;
 use Doctrine\DBAL\Exception as DBALException;
 use TYPO3\CMS\Backend\Configuration\TranslationConfigurationProvider;
@@ -124,6 +125,251 @@ final class GlossaryRepository
         }
 
         return $glossaries;
+    }
+
+    /**
+     * Collects the term pairs of a glossary folder grouped by language pair, without touching
+     * any record. Used by the glossary API v3 synchronisation, which needs the dictionaries of
+     * a folder before it knows whether a glossary has to be created at all.
+     *
+     * @return array<int, array{sourceLanguage: string, targetLanguage: string, entries: array<string, string>}>
+     *
+     * @throws DBALException
+     * @throws Exception
+     * @throws SiteNotFoundException
+     */
+    public function getDictionaryDataForSync(int $pageId): array
+    {
+        $localizationArray = $this->collectTermsByLanguage($pageId);
+        if ($localizationArray === []) {
+            return [];
+        }
+        $sourceLangIsoCode = GeneralUtility::makeInstance(SiteFinder::class)
+            ->getSiteByPageId($pageId)
+            ->getDefaultLanguage()
+            ->getLocale()
+            ->getLanguageCode();
+
+        $dictionaries = [];
+        foreach ($this->getPossibleLanguagePairs() as $sourceLang => $availableTargets) {
+            foreach ($availableTargets as $targetLang) {
+                if ($targetLang === $sourceLangIsoCode) {
+                    continue;
+                }
+                $entries = $this->buildEntriesForPair($localizationArray, $sourceLang, $targetLang);
+                if ($entries === []) {
+                    continue;
+                }
+                $dictionaries[] = [
+                    'sourceLanguage' => $sourceLang,
+                    'targetLanguage' => $targetLang,
+                    'entries' => $entries,
+                ];
+            }
+        }
+
+        return $dictionaries;
+    }
+
+    /**
+     * Returns the single glossary record of a folder, creating it when the folder has none yet.
+     *
+     * @return array{uid: int, glossary_id: string, glossary_name: string}
+     *
+     * @throws Exception
+     * @throws \Doctrine\DBAL\Exception
+     */
+    public function findOrCreateGlossaryRecord(int $pageId): array
+    {
+        $connection = GeneralUtility::makeInstance(ConnectionPool::class)
+            ->getConnectionForTable('tx_deepltranslate_glossary');
+        $record = $connection
+            ->select(['uid', 'glossary_id', 'glossary_name'], 'tx_deepltranslate_glossary', ['pid' => $pageId], [], ['uid' => 'ASC'], 1)
+            ->fetchAssociative();
+        if ($record !== false) {
+            /** @var array{uid: int, glossary_id: string, glossary_name: string} $record */
+            return $record;
+        }
+
+        $page = BackendUtility::getRecord('pages', $pageId, 'uid,title');
+        $glossaryName = sprintf('%s [%d]', $page['title'] ?? 'Glossary', $pageId);
+        $connection->insert(
+            'tx_deepltranslate_glossary',
+            [
+                'pid' => $pageId,
+                'glossary_id' => '',
+                'glossary_name' => $glossaryName,
+                'glossary_lastsync' => 0,
+                'glossary_ready' => 0,
+            ]
+        );
+
+        return [
+            'uid' => (int)$connection->lastInsertId(),
+            'glossary_id' => '',
+            'glossary_name' => $glossaryName,
+        ];
+    }
+
+    /**
+     * Mirrors the state DeepL reported back onto the glossary record and its dictionaries.
+     *
+     * @throws \Doctrine\DBAL\Exception
+     */
+    public function updateGlossaryRecord(MultilingualGlossaryInfo $information, int $uid, int $pageId): void
+    {
+        GeneralUtility::makeInstance(ConnectionPool::class)
+            ->getConnectionForTable('tx_deepltranslate_glossary')
+            ->update(
+                'tx_deepltranslate_glossary',
+                [
+                    'glossary_id' => $information->glossaryId,
+                    'glossary_name' => $information->name,
+                    'glossary_lastsync' => $information->creationTime->getTimestamp(),
+                    'glossary_ready' => 1,
+                ],
+                ['uid' => $uid]
+            );
+
+        $this->replaceDictionaryRecords($information, $uid, $pageId);
+    }
+
+    /**
+     * Detaches the folder from its remote glossary, used when nothing is left to synchronise.
+     *
+     * @throws \Doctrine\DBAL\Exception
+     */
+    public function resetGlossaryRecord(int $uid): void
+    {
+        GeneralUtility::makeInstance(ConnectionPool::class)
+            ->getConnectionForTable('tx_deepltranslate_glossary')
+            ->update(
+                'tx_deepltranslate_glossary',
+                [
+                    'glossary_id' => '',
+                    'glossary_lastsync' => 0,
+                    'glossary_ready' => 0,
+                ],
+                ['uid' => $uid]
+            );
+
+        $this->deleteDictionaryRecords($uid);
+    }
+
+    /**
+     * @throws \Doctrine\DBAL\Exception
+     */
+    private function replaceDictionaryRecords(MultilingualGlossaryInfo $information, int $uid, int $pageId): void
+    {
+        $this->deleteDictionaryRecords($uid);
+        $connection = GeneralUtility::makeInstance(ConnectionPool::class)
+            ->getConnectionForTable('tx_deepltranslate_glossarydictionary');
+        foreach ($information->dictionaries as $dictionary) {
+            $connection->insert(
+                'tx_deepltranslate_glossarydictionary',
+                [
+                    'pid' => $pageId,
+                    'glossary' => $uid,
+                    'source_lang' => $dictionary->sourceLang,
+                    'target_lang' => $dictionary->targetLang,
+                    'entry_count' => $dictionary->entryCount,
+                    'in_sync' => 1,
+                ]
+            );
+        }
+    }
+
+    /**
+     * @throws \Doctrine\DBAL\Exception
+     */
+    private function deleteDictionaryRecords(int $uid): void
+    {
+        GeneralUtility::makeInstance(ConnectionPool::class)
+            ->getConnectionForTable('tx_deepltranslate_glossarydictionary')
+            ->delete('tx_deepltranslate_glossarydictionary', ['glossary' => $uid]);
+    }
+
+    /**
+     * @return array<string, array<int, array{uid: int, term: string}>>
+     *
+     * @throws DBALException
+     * @throws Exception
+     * @throws SiteNotFoundException
+     */
+    private function collectTermsByLanguage(int $pageId): array
+    {
+        $entries = $this->getOriginalEntries($pageId);
+        if ($entries === []) {
+            return [];
+        }
+        $site = GeneralUtility::makeInstance(SiteFinder::class)->getSiteByPageId($pageId);
+        $localizationArray = [
+            $site->getDefaultLanguage()->getLocale()->getLanguageCode() => $this->normalizeTerms($entries),
+        ];
+        foreach ($this->getAvailableLocalizations($pageId) as $localizationLanguageId) {
+            $localizationArray[$this->getTargetLanguageIsoCode($site, $localizationLanguageId)]
+                = $this->normalizeTerms($this->getLocalizedEntries($pageId, $localizationLanguageId));
+        }
+
+        return $localizationArray;
+    }
+
+    /**
+     * @param array<string, array<int, array{uid: int, term: string}>> $localizationArray
+     * @return array<string, string>
+     */
+    private function buildEntriesForPair(array $localizationArray, string $sourceLang, string $targetLang): array
+    {
+        if (!isset($localizationArray[$sourceLang], $localizationArray[$targetLang])) {
+            return [];
+        }
+
+        $entries = [];
+        foreach ($localizationArray[$sourceLang] as $entryId => $sourceEntry) {
+            if (!isset($localizationArray[$targetLang][$entryId])) {
+                continue;
+            }
+            // A source term occurring twice would be sent to DeepL twice, the first pair wins.
+            if (isset($entries[$sourceEntry['term']])) {
+                continue;
+            }
+            $entries[$sourceEntry['term']] = $localizationArray[$targetLang][$entryId]['term'];
+        }
+
+        return $entries;
+    }
+
+    /**
+     * The rows come straight from the database, so both key and value types are widened. The
+     * dictionary building relies on the term of a translation being addressable by the uid of
+     * its default language record.
+     *
+     * @param array<int|string, mixed> $rows
+     * @return array<int, array{uid: int, term: string}>
+     */
+    private function normalizeTerms(array $rows): array
+    {
+        $terms = [];
+        foreach ($rows as $key => $row) {
+            if (!is_array($row) || !isset($row['term'])) {
+                continue;
+            }
+            $terms[(int)$key] = [
+                'uid' => (int)($row['uid'] ?? 0),
+                'term' => (string)$row['term'],
+            ];
+        }
+
+        return $terms;
+    }
+
+    /**
+     * @return array<string, array<array-key, string>>
+     */
+    private function getPossibleLanguagePairs(): array
+    {
+        return GeneralUtility::makeInstance(DeeplGlossaryService::class)
+            ->getPossibleGlossaryLanguageConfig();
     }
 
     /**
