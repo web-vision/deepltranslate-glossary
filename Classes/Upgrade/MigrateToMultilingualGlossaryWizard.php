@@ -21,8 +21,6 @@ use WebVision\Deepltranslate\Glossary\Client\GlossaryAPIV3ClientInterface;
 #[UpgradeWizard(identifier: 'deepltranslateGlossary_migrateToMultilingualGlossary')]
 final readonly class MigrateToMultilingualGlossaryWizard implements UpgradeWizardInterface
 {
-    private const TABLE = 'tx_deepltranslate_glossary';
-
     public function __construct(
         private ConnectionPool $connectionPool,
         private GlossaryAPIV3ClientInterface $client,
@@ -44,11 +42,11 @@ final readonly class MigrateToMultilingualGlossaryWizard implements UpgradeWizar
 
     public function updateNecessary(): bool
     {
-        $queryBuilder = $this->connectionPool->getQueryBuilderForTable(self::TABLE);
+        $queryBuilder = $this->connectionPool->getQueryBuilderForTable('tx_deepltranslate_glossary');
 
         return (int)$queryBuilder
             ->count('uid')
-            ->from(self::TABLE)
+            ->from('tx_deepltranslate_glossary')
             ->where(
                 $queryBuilder->expr()->neq(
                     'source_lang',
@@ -88,11 +86,11 @@ final readonly class MigrateToMultilingualGlossaryWizard implements UpgradeWizar
      */
     private function getFolderIdsToMigrate(): array
     {
-        $queryBuilder = $this->connectionPool->getQueryBuilderForTable(self::TABLE);
+        $queryBuilder = $this->connectionPool->getQueryBuilderForTable('tx_deepltranslate_glossary');
         $rows = $queryBuilder
             ->select('pid')
             ->distinct()
-            ->from(self::TABLE)
+            ->from('tx_deepltranslate_glossary')
             ->where(
                 $queryBuilder->expr()->neq(
                     'source_lang',
@@ -110,11 +108,11 @@ final readonly class MigrateToMultilingualGlossaryWizard implements UpgradeWizar
      */
     private function getGlossaryRecordsOfFolder(int $pageId): array
     {
-        $queryBuilder = $this->connectionPool->getQueryBuilderForTable(self::TABLE);
+        $queryBuilder = $this->connectionPool->getQueryBuilderForTable('tx_deepltranslate_glossary');
 
         return $queryBuilder
             ->select('uid', 'glossary_id', 'glossary_name')
-            ->from(self::TABLE)
+            ->from('tx_deepltranslate_glossary')
             ->where(
                 $queryBuilder->expr()->eq(
                     'pid',
@@ -160,7 +158,7 @@ final readonly class MigrateToMultilingualGlossaryWizard implements UpgradeWizar
      */
     private function collapseRecords(array $records): void
     {
-        $connection = $this->connectionPool->getConnectionForTable(self::TABLE);
+        $connection = $this->connectionPool->getConnectionForTable('tx_deepltranslate_glossary');
         // The dictionaries describe the removed glossaries, the next synchronisation stores new ones.
         foreach ($records as $record) {
             $this->connectionPool
@@ -172,11 +170,11 @@ final readonly class MigrateToMultilingualGlossaryWizard implements UpgradeWizar
             return;
         }
         foreach ($records as $record) {
-            $connection->delete(self::TABLE, ['uid' => (int)$record['uid']]);
+            $connection->delete('tx_deepltranslate_glossary', ['uid' => (int)$record['uid']]);
         }
 
         $connection->update(
-            self::TABLE,
+            'tx_deepltranslate_glossary',
             [
                 'glossary_id' => '',
                 'glossary_lastsync' => 0,

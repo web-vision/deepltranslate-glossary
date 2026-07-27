@@ -3,9 +3,12 @@
 Glossaries
 ==========
 
-You can define glossaries for your translations. Each glossary has a name, a source
-language and a target language. The name is made up of the page title and the target
-and source languages.
+You can define glossaries for your translations. A glossary folder holds exactly one
+glossary, which is registered once at DeepL and kept up to date afterwards. Its name is
+made up of the page title and the page id.
+
+The glossary contains one dictionary per language pair, listing how many terms that pair
+covers. So a single glossary serves every language combination its folder provides.
 
 ..  figure:: /Images/Editor/glossaries-list-view.png
     :alt: List view of glossary items
