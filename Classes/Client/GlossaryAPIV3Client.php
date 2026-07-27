@@ -7,6 +7,7 @@ namespace WebVision\Deepltranslate\Glossary\Client;
 use DeepL\DeepLException;
 use DeepL\GlossaryLanguagePair;
 use DeepL\MultilingualGlossaryDictionaryEntries;
+use DeepL\MultilingualGlossaryDictionaryInfo;
 use DeepL\MultilingualGlossaryInfo;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\Attribute\AsAlias;
@@ -39,14 +40,8 @@ final class GlossaryAPIV3Client extends AbstractClient implements GlossaryAPIV3C
         try {
             return $this->client()->getGlossaryLanguages();
         } catch (DeepLException $exception) {
-            $this->logger->error(sprintf(
-                '%s (%d)',
-                $exception->getMessage(),
-                $exception->getCode()
-            ));
+            $this->logAndRethrow($exception);
         }
-
-        return [];
     }
 
     public function getAllGlossaries(): array
@@ -54,14 +49,8 @@ final class GlossaryAPIV3Client extends AbstractClient implements GlossaryAPIV3C
         try {
             return $this->client()->listMultilingualGlossaries();
         } catch (DeepLException $exception) {
-            $this->logger->error(sprintf(
-                '%s (%d)',
-                $exception->getMessage(),
-                $exception->getCode()
-            ));
+            $this->logAndRethrow($exception);
         }
-
-        return [];
     }
 
     public function getGlossary(string $glossaryId): MultilingualGlossaryInfo
@@ -69,19 +58,8 @@ final class GlossaryAPIV3Client extends AbstractClient implements GlossaryAPIV3C
         try {
             return $this->client()->getMultilingualGlossary($glossaryId);
         } catch (DeepLException $exception) {
-            $this->logger->error(sprintf(
-                '%s (%d)',
-                $exception->getMessage(),
-                $exception->getCode()
-            ));
+            $this->logAndRethrow($exception);
         }
-
-        return new MultilingualGlossaryInfo(
-            '',
-            'Not defined',
-            new \DateTime(),
-            []
-        );
     }
 
     /**
@@ -97,21 +75,13 @@ final class GlossaryAPIV3Client extends AbstractClient implements GlossaryAPIV3C
                 $dictionaries,
             );
         } catch (DeepLException $exception) {
-            $this->logger->error(sprintf(
-                '%s (%d)',
-                $exception->getMessage(),
-                $exception->getCode()
-            ));
+            $this->logAndRethrow($exception);
         }
-
-        return new MultilingualGlossaryInfo(
-            '',
-            'Not defined',
-            new \DateTime(),
-            []
-        );
     }
 
+    /**
+     * @param MultilingualGlossaryDictionaryEntries[] $dictionaries
+     */
     public function updateGlossary(
         string $glossaryId,
         array $dictionaries,
@@ -124,18 +94,86 @@ final class GlossaryAPIV3Client extends AbstractClient implements GlossaryAPIV3C
                 $dictionaries,
             );
         } catch (DeepLException $exception) {
-            $this->logger->error(sprintf(
-                '%s (%d)',
-                $exception->getMessage(),
-                $exception->getCode()
-            ));
+            $this->logAndRethrow($exception);
         }
+    }
 
-        return new MultilingualGlossaryInfo(
-            '',
-            'Not defined',
-            new \DateTime(),
-            []
-        );
+    public function replaceDictionary(
+        string $glossaryId,
+        MultilingualGlossaryDictionaryEntries $dictionary,
+    ): MultilingualGlossaryDictionaryInfo {
+        try {
+            return $this->client()->replaceMultilingualGlossaryDictionary(
+                $glossaryId,
+                $dictionary,
+            );
+        } catch (DeepLException $exception) {
+            $this->logAndRethrow($exception);
+        }
+    }
+
+    public function deleteGlossary(string $glossaryId): void
+    {
+        try {
+            $this->client()->deleteMultilingualGlossary($glossaryId);
+        } catch (DeepLException $exception) {
+            $this->logAndRethrow($exception);
+        }
+    }
+
+    public function deleteDictionary(
+        string $glossaryId,
+        string $sourceLanguage,
+        string $targetLanguage,
+    ): void {
+        try {
+            $this->client()->deleteMultilingualGlossaryDictionary(
+                $glossaryId,
+                null,
+                $sourceLanguage,
+                $targetLanguage,
+            );
+        } catch (DeepLException $exception) {
+            $this->logAndRethrow($exception);
+        }
+    }
+
+    /**
+     * @return MultilingualGlossaryDictionaryEntries[]
+     */
+    public function getGlossaryEntries(
+        string $glossaryId,
+        string $sourceLanguage,
+        string $targetLanguage,
+    ): array {
+        try {
+            return $this->client()->getMultilingualGlossaryEntries(
+                $glossaryId,
+                $sourceLanguage,
+                $targetLanguage,
+            );
+        } catch (DeepLException $exception) {
+            $this->logAndRethrow($exception);
+        }
+    }
+
+    /**
+     * Logs the failed API call and rethrows the original exception.
+     *
+     * Returning a placeholder {@see MultilingualGlossaryInfo} instead would make a failed call
+     * indistinguishable from a successful one, so a caller would persist an empty glossary id
+     * together with a fresh synchronisation timestamp.
+     *
+     * @throws DeepLException
+     */
+    private function logAndRethrow(DeepLException $exception): never
+    {
+        $this->logger->error(sprintf(
+            '%s (%d)',
+            $exception->getMessage(),
+            $exception->getCode()
+        ));
+
+        throw $exception;
     }
 }
