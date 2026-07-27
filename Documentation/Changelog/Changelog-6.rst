@@ -1,3 +1,5 @@
+.. include:: /Includes.rst.txt
+
 ..  _changelog-v6:
 
 ============
@@ -20,3 +22,5 @@ Also available
     :titlesonly:
 
     Changelog-6-combined
+
+.. index:: ext:deepltranslate_glossary, NotScanned

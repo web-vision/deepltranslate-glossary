@@ -1,3 +1,5 @@
+.. include:: /Includes.rst.txt
+
 ..  _breaking-1776025649:
 
 =============================================
@@ -24,3 +26,5 @@ Migration
 
 Upgrade PHP version for the web-server and also when using composer and
 php commands, for example the `bin/typo3` command line tool.
+
+.. index:: ext:deepltranslate_glossary, NotScanned

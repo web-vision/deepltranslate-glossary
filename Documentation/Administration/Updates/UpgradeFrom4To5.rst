@@ -1,3 +1,5 @@
+.. include:: /Includes.rst.txt
+
 .. _upgrade4to5:
 
 ==================
@@ -47,3 +49,5 @@ classic-mode
 
 ..  _TER: https://extensions.typo3.org/extension/deepltranslate_glossary
 ..  _GITHUB_RELEASES: https://github.com/web-vision/deepltranslate-glossary/releases/
+
+.. index:: ext:deepltranslate_glossary, NotScanned
