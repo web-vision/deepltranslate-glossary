@@ -459,12 +459,57 @@ final class GlossaryRepository
         if (strlen($lowerTargetLang) > 2) {
             $lowerTargetLang = substr($lowerTargetLang, 0, 2);
         }
-        return $this->getGlossary(
+        return $this->getGlossaryByDictionary(
             $lowerSourceLang,
             $lowerTargetLang,
-            $page->uid,
-            true
+            $page->uid
         ) ?? $defaultGlossary;
+    }
+
+    /**
+     * Resolves the glossary of a folder covering the wanted language pair.
+     *
+     * A glossary of the API v3 is valid for every language pair one of its dictionaries covers,
+     * so the pair is matched on the dictionaries and not on the glossary record.
+     *
+     * @throws Exception
+     * @throws SiteNotFoundException
+     * @throws \Doctrine\DBAL\Exception
+     */
+    private function getGlossaryByDictionary(
+        string $sourceLanguage,
+        string $targetLanguage,
+        int $pageUid
+    ): ?Glossary {
+        $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)
+            ->getQueryBuilderForTable('tx_deepltranslate_glossary');
+        $constraints = [
+            $queryBuilder->expr()->eq('d.source_lang', $queryBuilder->createNamedParameter($sourceLanguage)),
+            $queryBuilder->expr()->eq('d.target_lang', $queryBuilder->createNamedParameter($targetLanguage)),
+        ];
+        // Folders of the current site take precedence. A folder not marked as glossary module
+        // is still honoured, otherwise instances synchronising through the command line only
+        // would silently lose their glossary.
+        $glossaryPages = $this->getGlossariesInRootByCurrentPage($pageUid);
+        if ($glossaryPages !== []) {
+            $constraints[] = $queryBuilder->expr()->in('g.pid', $glossaryPages);
+        }
+
+        $result = $queryBuilder
+            ->select('g.uid', 'g.glossary_id', 'g.glossary_name', 'g.glossary_lastsync', 'g.glossary_ready')
+            ->from('tx_deepltranslate_glossary', 'g')
+            ->innerJoin(
+                'g',
+                'tx_deepltranslate_glossarydictionary',
+                'd',
+                $queryBuilder->expr()->eq('d.glossary', $queryBuilder->quoteIdentifier('g.uid'))
+            )
+            ->where(...$constraints)
+            ->setMaxResults(1)
+            ->executeQuery()
+            ->fetchAssociative();
+
+        return $result ? Glossary::fromDatabase($result) : null;
     }
 
     /**
@@ -517,6 +562,14 @@ final class GlossaryRepository
     {
         $db = GeneralUtility::makeInstance(ConnectionPool::class)
             ->getConnectionForTable('tx_deepltranslate_glossary');
+
+        // The dictionaries describe the state of a glossary which is about to be dropped, so
+        // they would otherwise survive as records of a glossary that no longer exists.
+        $affected = $db->select(['uid'], 'tx_deepltranslate_glossary', ['glossary_id' => $glossaryId])
+            ->fetchAllAssociative();
+        foreach ($affected as $glossary) {
+            $this->deleteDictionaryRecords((int)$glossary['uid']);
+        }
 
         $count = $db->update(
             'tx_deepltranslate_glossary',

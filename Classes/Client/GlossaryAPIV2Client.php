@@ -15,6 +15,8 @@ use WebVision\Deepltranslate\Core\Client\DeepLClientFactoryInterface;
 
 /**
  * Client implementation for Glossary API v2, see {@see GlossaryAPIV2ClientInterface}.
+ *
+ * @deprecated since 6.1, will be removed in 7.0, use {@see GlossaryAPIV3Client}.
  * @internal No public API.
  */
 #[AsAlias(id: GlossaryAPIV2ClientInterface::class, public: true)]

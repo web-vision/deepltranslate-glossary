@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace WebVision\Deepltranslate\Glossary\Command;
 
 use DateTime;
-use DeepL\GlossaryInfo;
+use DeepL\MultilingualGlossaryInfo;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
@@ -13,7 +13,7 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Contracts\Service\Attribute\Required;
-use WebVision\Deepltranslate\Glossary\Service\DeeplGlossaryService;
+use WebVision\Deepltranslate\Glossary\Client\GlossaryAPIV3ClientInterface;
 
 #[AsCommand(
     name: 'deepl:glossary:list',
@@ -21,12 +21,12 @@ use WebVision\Deepltranslate\Glossary\Service\DeeplGlossaryService;
 )]
 final class GlossaryListCommand extends Command
 {
-    private DeeplGlossaryService $deeplGlossaryService;
+    private GlossaryAPIV3ClientInterface $client;
 
     #[Required]
-    public function injectDeeplGlossaryService(DeeplGlossaryService $deeplGlossaryService): void
+    public function injectGlossaryClient(GlossaryAPIV3ClientInterface $client): void
     {
-        $this->deeplGlossaryService = $deeplGlossaryService;
+        $this->client = $client;
     }
 
     protected function configure(): void
@@ -44,84 +44,100 @@ final class GlossaryListCommand extends Command
         $io = new SymfonyStyle($input, $output);
         $io->title('Glossary List');
 
-        $glossary_id = $input->getArgument('glossary_id');
+        $glossaryId = $input->getArgument('glossary_id');
+        if ($glossaryId !== null) {
+            $this->listSingleGlossary($io, (string)$glossaryId);
 
-        if ($glossary_id !== null) {
-            $this->listAllGlossaryEntriesById($io, $glossary_id);
-        } else {
-            $this->listAllGlossaryEntries($io);
+            return Command::SUCCESS;
         }
+
+        $this->listAllGlossaries($io);
 
         return Command::SUCCESS;
     }
 
-    private function listAllGlossaryEntries(SymfonyStyle $io): void
+    private function listAllGlossaries(SymfonyStyle $io): void
     {
-        $glossaries = $this->deeplGlossaryService->listGlossaries();
+        $glossaries = $this->client->getAllGlossaries();
 
-        $io->info('Read more here: https://www.deepl.com/docs-api/managing-glossaries/listing-glossaries/');
+        $io->info('Read more here: https://developers.deepl.com/docs/customize/managing-glossaries');
         if ($glossaries === []) {
             $io->info('No Glossaries found.');
             return;
         }
 
-        $headers = [
-            'Glossary ID',
-            'Name',
-            'Ready',
-            'Source Language',
-            'Target Language',
-            'Creation Time',
-            'Entry count',
-        ];
-
-        $rows = array_map(function (GlossaryInfo $glossary) {
-            return [
-                'glossaryId' => $glossary->glossaryId,
-                'name' => $glossary->name,
-                'ready' => $glossary->ready,
-                'sourceLang' => $glossary->sourceLang,
-                'targetLang' => $glossary->targetLang,
-                'creationTime' => $glossary->creationTime->format(DateTime::ATOM),
-                'entryCount' => $glossary->entryCount,
+        $rows = [];
+        foreach ($glossaries as $glossary) {
+            $rows[] = [
+                $glossary->glossaryId,
+                $glossary->name,
+                $this->describeDictionaries($glossary),
+                $glossary->creationTime->format(DateTime::ATOM),
             ];
-        }, $glossaries);
+        }
 
-        $io->table($headers, $rows);
+        $io->table(
+            [
+                'Glossary ID',
+                'Name',
+                'Dictionaries',
+                'Creation Time',
+            ],
+            $rows
+        );
     }
 
-    private function listAllGlossaryEntriesById(SymfonyStyle $io, string $id): void
+    private function listSingleGlossary(SymfonyStyle $io, string $glossaryId): void
     {
-        $glossaryInformation = $this->deeplGlossaryService->glossaryInformation($id);
-        if ($glossaryInformation === null) {
-            $io->warning(sprintf('Glossary "%s" not found.', $id));
-            return;
-        }
-        if ($glossaryInformation->entryCount === 0) {
-            $io->warning(sprintf('Glossary "%s" has no entries.', $id));
-            return;
-        }
-        $entries = $this->deeplGlossaryService->glossaryEntries($id);
-        if ($entries === null) {
-            $io->error(sprintf('No entries found in glossary with ID "%s", but count has "%d" entries.', $id, $glossaryInformation->entryCount));
+        $glossary = $this->client->getGlossary($glossaryId);
+        if ($glossary->dictionaries === []) {
+            $io->warning(sprintf('Glossary "%s" has no dictionaries.', $glossaryId));
             return;
         }
 
         $io->writeln([
-            sprintf('Glossary entries from: %s', $glossaryInformation->glossaryId),
-            sprintf('Entries count: %s', $glossaryInformation->entryCount),
-            sprintf('Is ready: %s', $glossaryInformation->ready ? 'yes' : 'no'),
-            sprintf('Creation Time: %s', $glossaryInformation->creationTime->format(DateTime::ATOM)),
+            sprintf('Glossary: %s', $glossary->glossaryId),
+            sprintf('Name: %s', $glossary->name),
+            sprintf('Creation Time: %s', $glossary->creationTime->format(DateTime::ATOM)),
         ]);
-        $io->newLine();
 
-        $rows = array_map(null, array_keys($entries->getEntries()), $entries->getEntries());
+        foreach ($glossary->dictionaries as $dictionary) {
+            $io->newLine();
+            $io->section(sprintf('%s => %s', $dictionary->sourceLang, $dictionary->targetLang));
+            $this->renderEntries($io, $glossaryId, $dictionary->sourceLang, $dictionary->targetLang);
+        }
+    }
+
+    private function renderEntries(SymfonyStyle $io, string $glossaryId, string $sourceLang, string $targetLang): void
+    {
+        $rows = [];
+        foreach ($this->client->getGlossaryEntries($glossaryId, $sourceLang, $targetLang) as $dictionary) {
+            foreach ($dictionary->entries as $source => $target) {
+                $rows[] = [$source, $target];
+            }
+        }
+
         $io->table(
             [
-                'source_lang: ' . $glossaryInformation->sourceLang,
-                'target_lang:' . $glossaryInformation->targetLang,
+                'source_lang: ' . $sourceLang,
+                'target_lang: ' . $targetLang,
             ],
             $rows
         );
+    }
+
+    private function describeDictionaries(MultilingualGlossaryInfo $glossary): string
+    {
+        $pairs = [];
+        foreach ($glossary->dictionaries as $dictionary) {
+            $pairs[] = sprintf(
+                '%s => %s (%d)',
+                $dictionary->sourceLang,
+                $dictionary->targetLang,
+                $dictionary->entryCount
+            );
+        }
+
+        return implode(', ', $pairs);
     }
 }
