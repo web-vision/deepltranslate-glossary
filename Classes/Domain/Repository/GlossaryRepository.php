@@ -516,12 +516,107 @@ final class GlossaryRepository
         if (strlen($lowerTargetLang) > 2) {
             $lowerTargetLang = substr($lowerTargetLang, 0, 2);
         }
-        return $this->getGlossary(
+        return $this->getGlossaryByDictionary(
             $lowerSourceLang,
             $lowerTargetLang,
-            $page->uid,
-            true
+            $page->uid
         ) ?? $defaultGlossary;
+    }
+
+    /**
+     * Resolves the glossary of a folder covering the wanted language pair.
+     *
+     * A glossary of the API v3 is valid for every language pair one of its dictionaries covers,
+     * so the pair is matched on the dictionaries and not on the glossary record.
+     *
+     * @throws Exception
+     * @throws SiteNotFoundException
+     * @throws \Doctrine\DBAL\Exception
+     */
+    private function getGlossaryByDictionary(
+        string $sourceLanguage,
+        string $targetLanguage,
+        int $pageUid
+    ): ?Glossary {
+        // Glossary module folders of the current site take precedence.
+        $glossaryPages = $this->getGlossariesInRootByCurrentPage($pageUid);
+        if ($glossaryPages !== []) {
+            return $this->findFirstGlossaryInPages($sourceLanguage, $targetLanguage, $glossaryPages);
+        }
+
+        // Without one, a folder of the current site not marked as glossary module is still
+        // honoured, otherwise instances synchronising through the command line only would
+        // silently lose their glossary. A folder of another site never is.
+        return $this->findFirstGlossaryOfSite($sourceLanguage, $targetLanguage, $pageUid);
+    }
+
+    /**
+     * @param int[] $pageIds
+     * @throws \Doctrine\DBAL\Exception
+     */
+    private function findFirstGlossaryInPages(string $sourceLanguage, string $targetLanguage, array $pageIds): ?Glossary
+    {
+        $queryBuilder = $this->createGlossaryQueryBuilder($sourceLanguage, $targetLanguage);
+        $row = $queryBuilder
+            ->andWhere(
+                $queryBuilder->expr()->in(
+                    'g.pid',
+                    $queryBuilder->createNamedParameter($pageIds, Connection::PARAM_INT_ARRAY)
+                )
+            )
+            ->setMaxResults(1)
+            ->executeQuery()
+            ->fetchAssociative();
+
+        return $row === false ? null : Glossary::fromDatabase($row);
+    }
+
+    /**
+     * The glossary with the lowest uid stored in any page of the site of the given page.
+     *
+     * @throws \Doctrine\DBAL\Exception
+     */
+    private function findFirstGlossaryOfSite(string $sourceLanguage, string $targetLanguage, int $pageUid): ?Glossary
+    {
+        $rootPageId = $this->findRootPageIdOrNull($pageUid);
+        if ($rootPageId === null) {
+            return null;
+        }
+
+        $result = $this->createGlossaryQueryBuilder($sourceLanguage, $targetLanguage)->executeQuery();
+        foreach ($result->iterateAssociative() as $row) {
+            if ($this->findRootPageIdOrNull((int)$row['pid']) === $rootPageId) {
+                $result->free();
+                return Glossary::fromDatabase($row);
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * A glossary of the API v3 is valid for every language pair one of its dictionaries covers,
+     * so the pair is matched on the dictionaries and not on the glossary record.
+     */
+    private function createGlossaryQueryBuilder(string $sourceLanguage, string $targetLanguage): QueryBuilder
+    {
+        $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)
+            ->getQueryBuilderForTable('tx_deepltranslate_glossary');
+
+        return $queryBuilder
+            ->select('g.uid', 'g.pid', 'g.glossary_id', 'g.glossary_name', 'g.glossary_lastsync', 'g.glossary_ready')
+            ->from('tx_deepltranslate_glossary', 'g')
+            ->innerJoin(
+                'g',
+                'tx_deepltranslate_glossarydictionary',
+                'd',
+                $queryBuilder->expr()->eq('d.glossary', $queryBuilder->quoteIdentifier('g.uid'))
+            )
+            ->where(
+                $queryBuilder->expr()->eq('d.source_lang', $queryBuilder->createNamedParameter($sourceLanguage)),
+                $queryBuilder->expr()->eq('d.target_lang', $queryBuilder->createNamedParameter($targetLanguage))
+            )
+            ->orderBy('g.uid');
     }
 
     /**
@@ -574,6 +669,14 @@ final class GlossaryRepository
     {
         $db = GeneralUtility::makeInstance(ConnectionPool::class)
             ->getConnectionForTable('tx_deepltranslate_glossary');
+
+        // The dictionaries describe the state of a glossary which is about to be dropped, so
+        // they would otherwise survive as records of a glossary that no longer exists.
+        $affected = $db->select(['uid'], 'tx_deepltranslate_glossary', ['glossary_id' => $glossaryId])
+            ->fetchAllAssociative();
+        foreach ($affected as $glossary) {
+            $this->deleteDictionaryRecords((int)$glossary['uid']);
+        }
 
         $count = $db->update(
             'tx_deepltranslate_glossary',
@@ -715,88 +818,32 @@ final class GlossaryRepository
     private function getGlossary(
         string $sourceLanguage,
         string $targetLanguage,
-        int $pageUid,
-        bool $recursive = false
+        int $pageUid
     ): ?Glossary {
-        if ($recursive === false) {
-            return $this->findFirstGlossaryInPages($sourceLanguage, $targetLanguage, [$pageUid]);
-        }
-
-        // Glossary module folders of the current site take precedence.
-        $glossaryPages = $this->getGlossariesInRootByCurrentPage($pageUid);
-        if ($glossaryPages !== []) {
-            return $this->findFirstGlossaryInPages($sourceLanguage, $targetLanguage, $glossaryPages);
-        }
-
-        // Without one, a folder of the current site not marked as glossary module is honoured,
-        // a folder of another site never.
-        return $this->findFirstGlossaryOfSite($sourceLanguage, $targetLanguage, $pageUid);
-    }
-
-    /**
-     * @param int[] $pageIds
-     * @throws \Doctrine\DBAL\Exception
-     */
-    private function findFirstGlossaryInPages(string $sourceLanguage, string $targetLanguage, array $pageIds): ?Glossary
-    {
-        $queryBuilder = $this->createGlossaryQueryBuilder($sourceLanguage, $targetLanguage);
-        $row = $queryBuilder
-            ->andWhere(
-                $queryBuilder->expr()->in(
-                    'pid',
-                    $queryBuilder->createNamedParameter($pageIds, Connection::PARAM_INT_ARRAY)
-                )
-            )
-            ->setMaxResults(1)
-            ->executeQuery()
-            ->fetchAssociative();
-
-        return $row === false ? null : Glossary::fromDatabase($row);
-    }
-
-    /**
-     * The glossary with the lowest uid stored in any page of the site of the given page.
-     *
-     * @throws \Doctrine\DBAL\Exception
-     */
-    private function findFirstGlossaryOfSite(string $sourceLanguage, string $targetLanguage, int $pageUid): ?Glossary
-    {
-        $rootPageId = $this->findRootPageIdOrNull($pageUid);
-        if ($rootPageId === null) {
-            return null;
-        }
-
-        $result = $this->createGlossaryQueryBuilder($sourceLanguage, $targetLanguage)->executeQuery();
-        foreach ($result->iterateAssociative() as $row) {
-            if ($this->findRootPageIdOrNull((int)$row['pid']) === $rootPageId) {
-                $result->free();
-                return Glossary::fromDatabase($row);
-            }
-        }
-
-        return null;
-    }
-
-    private function createGlossaryQueryBuilder(string $sourceLanguage, string $targetLanguage): QueryBuilder
-    {
-        $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)
+        $db = GeneralUtility::makeInstance(ConnectionPool::class)
             ->getQueryBuilderForTable('tx_deepltranslate_glossary');
 
-        return $queryBuilder
+        $where = $db->expr()->and(
+            $db->expr()->eq('source_lang', $db->createNamedParameter($sourceLanguage)),
+            $db->expr()->eq('target_lang', $db->createNamedParameter($targetLanguage)),
+            $db->expr()->eq('pid', $db->createNamedParameter($pageUid, Connection::PARAM_INT))
+        );
+
+        $statement = $db
             ->select(
                 'uid',
-                'pid',
                 'glossary_id',
                 'glossary_name',
                 'glossary_lastsync',
                 'glossary_ready',
             )
             ->from('tx_deepltranslate_glossary')
-            ->where(
-                $queryBuilder->expr()->eq('source_lang', $queryBuilder->createNamedParameter($sourceLanguage)),
-                $queryBuilder->expr()->eq('target_lang', $queryBuilder->createNamedParameter($targetLanguage))
-            )
-            ->orderBy('uid');
+            ->where($where)
+            ->setMaxResults(1);
+
+        $result = $statement->executeQuery()->fetchAssociative();
+
+        return $result ? Glossary::fromDatabase($result) : null;
     }
 
     /**

@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace WebVision\Deepltranslate\Glossary\Command;
 
-use DeepL\GlossaryInfo;
+use DeepL\DeepLException;
+use DeepL\GlossaryNotFoundException;
+use DeepL\MultilingualGlossaryInfo;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
@@ -13,8 +15,8 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Question\ConfirmationQuestion;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Contracts\Service\Attribute\Required;
+use WebVision\Deepltranslate\Glossary\Client\GlossaryAPIV3ClientInterface;
 use WebVision\Deepltranslate\Glossary\Domain\Repository\GlossaryRepository;
-use WebVision\Deepltranslate\Glossary\Service\DeeplGlossaryService;
 
 /**
  * @todo: Rename Command
@@ -26,13 +28,13 @@ use WebVision\Deepltranslate\Glossary\Service\DeeplGlossaryService;
 )]
 final class GlossaryCleanupCommand extends Command
 {
-    private DeeplGlossaryService $deeplGlossaryService;
+    private GlossaryAPIV3ClientInterface $client;
     private GlossaryRepository $glossaryRepository;
 
     #[Required]
-    public function injectDeeplGlossaryService(DeeplGlossaryService $deeplGlossaryService): void
+    public function injectGlossaryClient(GlossaryAPIV3ClientInterface $client): void
     {
-        $this->deeplGlossaryService = $deeplGlossaryService;
+        $this->client = $client;
     }
 
     #[Required]
@@ -82,12 +84,12 @@ final class GlossaryCleanupCommand extends Command
 
         // Remove single glossary by deepl-id
         $glossaryId = $input->getOption('glossaryId');
-        if ($glossaryId !== null) {
-            $this->removeGlossary($glossaryId);
+        if ($glossaryId !== null && !$this->removeGlossaries($io, [$glossaryId])) {
+            return Command::FAILURE;
         }
         // Remove all glossaries
         if (!empty($input->getOption('all'))) {
-            $glossaries = $this->deeplGlossaryService->listGlossaries();
+            $glossaries = $this->client->getAllGlossaries();
             if (empty($glossaries)) {
                 $io->info('No glossaries found with sync to API');
                 return Command::FAILURE;
@@ -105,7 +107,10 @@ final class GlossaryCleanupCommand extends Command
                 return Command::SUCCESS;
             }
 
-            $this->removeGlossaries($io, $glossaries);
+            $glossaryIds = array_map(static fn (MultilingualGlossaryInfo $glossary): string => $glossary->glossaryId, $glossaries);
+            if (!$this->removeGlossaries($io, $glossaryIds)) {
+                return Command::FAILURE;
+            }
         }
         // Remove glossaries without api sync id
         if (!empty($input->getOption('notinsync'))) {
@@ -117,35 +122,56 @@ final class GlossaryCleanupCommand extends Command
         return Command::SUCCESS;
     }
 
+    /**
+     * @throws DeepLException
+     */
     private function removeGlossary(string $id): bool
     {
-        $this->deeplGlossaryService->deleteGlossary($id);
+        try {
+            $this->client->deleteGlossary($id);
+        } catch (GlossaryNotFoundException) {
+            // Already gone at DeepL, the local synchronisation state still has to be cleared.
+        }
+
         return $this->glossaryRepository->removeGlossarySync($id);
     }
 
     /**
-     * @param GlossaryInfo[] $glossaries
+     * A glossary DeepL refuses to delete does not stop the others from being deleted.
+     *
+     * @param string[] $glossaryIds
      */
-    private function removeGlossaries(SymfonyStyle $io, array $glossaries): void
+    private function removeGlossaries(SymfonyStyle $io, array $glossaryIds): bool
     {
         $rows = [];
-        $io->progressStart(count($glossaries));
-
-        foreach ($glossaries as $glossary) {
-            $dbUpdated = $this->removeGlossary($glossary->glossaryId);
-            $rows[] = [$glossary->glossaryId, $dbUpdated ? 'yes' : 'no'];
+        $failures = [];
+        $io->progressStart(count($glossaryIds));
+        foreach ($glossaryIds as $glossaryId) {
+            try {
+                $dbUpdated = $this->removeGlossary($glossaryId);
+                $rows[] = [$glossaryId, 'yes', $dbUpdated ? 'yes' : 'no'];
+            } catch (DeepLException $exception) {
+                // DeepL still holds the glossary, so its folder keeps pointing at it.
+                $rows[] = [$glossaryId, 'no', 'no'];
+                $failures[] = sprintf('%s: %s (%d)', $glossaryId, $exception->getMessage(), $exception->getCode());
+            }
             $io->progressAdvance();
         }
-
         $io->progressFinish();
 
         $io->table(
             [
                 'Glossary ID',
+                'Deleted at DeepL',
                 'Database sync removed',
             ],
             $rows
         );
+        if ($failures !== []) {
+            $io->error($failures);
+        }
+
+        return $failures === [];
     }
 
     private function removeGlossariesWithNoSync(SymfonyStyle $io): void
@@ -155,7 +181,7 @@ final class GlossaryCleanupCommand extends Command
             $io->info('No glossaries with sync mismatch.');
             return;
         }
-        $remoteGlossaries = $this->deeplGlossaryService->listGlossaries();
+        $remoteGlossaries = $this->client->getAllGlossaries();
         if ($remoteGlossaries === []) {
             // The client returns no glossary as well when DeepL could not be asked. Detaching every
             // record then would orphan glossaries DeepL still holds.

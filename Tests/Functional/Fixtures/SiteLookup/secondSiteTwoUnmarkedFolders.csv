@@ -3,6 +3,10 @@ pages
 ,12,10,254,"Terms","",0,0,"",0
 ,13,10,254,"More Terms","",0,0,"",0
 tx_deepltranslate_glossary
-,"uid","pid","glossary_id","glossary_name","glossary_lastsync","glossary_ready","source_lang","target_lang"
-,2,13,"3f2b0000-0000-0000-0000-000000000002","More Terms: EN => DE",1700000000,1,"en","de"
-,3,12,"3f2b0000-0000-0000-0000-000000000003","Terms: EN => DE",1700000000,1,"en","de"
+,"uid","pid","glossary_id","glossary_name","glossary_lastsync","glossary_ready"
+,2,13,"3f2b0000-0000-0000-0000-000000000002","More Terms: EN => DE",1700000000,1
+,3,12,"3f2b0000-0000-0000-0000-000000000003","Terms: EN => DE",1700000000,1
+tx_deepltranslate_glossarydictionary
+,"uid","pid","glossary","source_lang","target_lang","entry_count","in_sync"
+,2,13,2,"en","de",1,1
+,3,12,3,"en","de",1,1

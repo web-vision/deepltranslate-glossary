@@ -7,9 +7,8 @@ namespace WebVision\Deepltranslate\Glossary\Tests\Functional\Regression;
 use PHPUnit\Framework\Attributes\Test;
 use SBUERK\TYPO3\Testing\SiteHandling\SiteBasedTestTrait;
 use TYPO3\CMS\Core\DataHandling\DataHandler;
-use TYPO3\CMS\Core\Localization\LanguageServiceFactory;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
-use WebVision\Deepltranslate\Glossary\Service\DeeplGlossaryService;
+use WebVision\Deepltranslate\Glossary\Service\MultilingualGlossaryService;
 use WebVision\Deepltranslate\Glossary\Tests\Functional\AbstractDeepLTestCase;
 
 final class GlossaryRegressionTest extends AbstractDeepLTestCase
@@ -73,10 +72,8 @@ final class GlossaryRegressionTest extends AbstractDeepLTestCase
         $this->importCSVDataSet(__DIR__ . '/Fixtures/glossary.csv');
 
         $this->setUpBackendUser(1);
-        $GLOBALS['LANG'] = GeneralUtility::makeInstance(LanguageServiceFactory::class)
-            ->createFromUserPreferences($GLOBALS['BE_USER']);
-        GeneralUtility::makeInstance(DeeplGlossaryService::class)
-            ->syncGlossaries(2);
+        $this->get(MultilingualGlossaryService::class)
+            ->syncGlossary(2);
     }
 
     #[Test]

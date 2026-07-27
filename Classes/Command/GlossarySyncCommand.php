@@ -12,11 +12,8 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Contracts\Service\Attribute\Required;
-use TYPO3\CMS\Core\Localization\LanguageServiceFactory;
-use WebVision\Deepltranslate\Glossary\Domain\Dto\GlossaryLanguageCollision;
 use WebVision\Deepltranslate\Glossary\Domain\Repository\GlossaryRepository;
-use WebVision\Deepltranslate\Glossary\Service\DeeplGlossaryService;
-use WebVision\Deepltranslate\Glossary\Service\GlossaryLanguageCollisionMessageBuilder;
+use WebVision\Deepltranslate\Glossary\Service\MultilingualGlossaryService;
 
 #[AsCommand(
     name: 'deepl:glossary:sync',
@@ -24,33 +21,19 @@ use WebVision\Deepltranslate\Glossary\Service\GlossaryLanguageCollisionMessageBu
 )]
 final class GlossarySyncCommand extends Command
 {
-    private DeeplGlossaryService $deeplGlossaryService;
+    private MultilingualGlossaryService $multilingualGlossaryService;
     private GlossaryRepository $glossaryRepository;
-    private GlossaryLanguageCollisionMessageBuilder $collisionMessageBuilder;
-    private LanguageServiceFactory $languageServiceFactory;
 
     #[Required]
-    public function injectDeeplGlossaryService(DeeplGlossaryService $deeplGlossaryService): void
+    public function injectMultilingualGlossaryService(MultilingualGlossaryService $multilingualGlossaryService): void
     {
-        $this->deeplGlossaryService = $deeplGlossaryService;
+        $this->multilingualGlossaryService = $multilingualGlossaryService;
     }
 
     #[Required]
     public function injectGlossaryRepository(GlossaryRepository $glossaryRepository): void
     {
         $this->glossaryRepository = $glossaryRepository;
-    }
-
-    #[Required]
-    public function injectCollisionMessageBuilder(GlossaryLanguageCollisionMessageBuilder $collisionMessageBuilder): void
-    {
-        $this->collisionMessageBuilder = $collisionMessageBuilder;
-    }
-
-    #[Required]
-    public function injectLanguageServiceFactory(LanguageServiceFactory $languageServiceFactory): void
-    {
-        $this->languageServiceFactory = $languageServiceFactory;
     }
 
     protected function configure(): void
@@ -79,35 +62,16 @@ final class GlossarySyncCommand extends Command
             }
 
             $io->progressStart(count($glossaries));
-            $collisionsByPageId = [];
             foreach ($glossaries as $glossary) {
-                $collisionsByPageId[(int)$glossary['uid']] = $this->deeplGlossaryService->syncGlossaries($glossary['uid']);
+                $this->multilingualGlossaryService->syncGlossary((int)$glossary['uid']);
                 $io->progressAdvance();
             }
             $io->progressFinish();
-            $this->reportCollisions($io, $collisionsByPageId);
         } catch (Exception $exception) {
             $io->error(sprintf('%s (%s)', $exception->getMessage(), $exception->getCode()));
             return Command::FAILURE;
         }
 
         return Command::SUCCESS;
-    }
-
-    /**
-     * @param array<int, list<GlossaryLanguageCollision>> $collisionsByPageId
-     */
-    private function reportCollisions(SymfonyStyle $io, array $collisionsByPageId): void
-    {
-        $languageService = $this->languageServiceFactory->create('default');
-        foreach ($collisionsByPageId as $pageId => $collisions) {
-            foreach ($collisions as $collision) {
-                $io->warning(sprintf(
-                    '%s: %s',
-                    $this->collisionMessageBuilder->buildTitle($collision, $pageId, $languageService),
-                    $this->collisionMessageBuilder->buildMessage($collision, $languageService)
-                ));
-            }
-        }
     }
 }
