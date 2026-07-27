@@ -1,3 +1,5 @@
+.. include:: /Includes.rst.txt
+
 ..  _feature-completedglossaryapiv3client-1785196801:
 
 ===============================================
@@ -46,3 +48,5 @@ Migration
 No migration required. Custom code calling the internal client has to catch
 :php:`\DeepL\DeepLException` where it previously checked the returned glossary
 for an empty glossary id.
+
+.. index:: PHP-API, ext:deepltranslate_glossary

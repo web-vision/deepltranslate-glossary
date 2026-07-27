@@ -1,3 +1,5 @@
+.. include:: /Includes.rst.txt
+
 ..  _breaking-oneglossaryrecordperfolder-1785196802:
 
 ==========================================
@@ -50,3 +52,5 @@ synchronization creates the glossary through the API v3.
 The columns :sql:`source_lang` and :sql:`target_lang` are kept on
 :sql:`tx_deepltranslate_glossary` until the wizard has run and are removed
 with the next major version.
+
+.. index:: Database, TCA, ext:deepltranslate_glossary, NotScanned
