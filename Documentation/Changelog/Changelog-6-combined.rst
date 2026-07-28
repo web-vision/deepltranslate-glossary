@@ -1,3 +1,5 @@
+.. include:: /Includes.rst.txt
+
 ..  _changelog-v6-byType:
 
 ===================
@@ -51,3 +53,5 @@ Important notes
     :glob:
 
     /Changelog/6.*/Important-*
+
+.. index:: ext:deepltranslate_glossary, NotScanned

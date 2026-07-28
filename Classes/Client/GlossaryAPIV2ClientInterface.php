@@ -12,8 +12,8 @@ use WebVision\Deepltranslate\Core\Exception\ApiKeyNotSetException;
 
 /**
  * Describes required implementation for Glossary API v2 compatible client implementations.
- * @depreacted in favour of upcoming GlossaryV3Interace and APIv3 handling.
- * @internal and not public API yet. Kept for refactoring towards APIv3.
+ * @deprecated since 6.1, will be removed in 7.0, use {@see GlossaryAPIV3ClientInterface}.
+ * @internal and not public API yet. Kept until the glossary API v2 is switched off.
  */
 interface GlossaryAPIV2ClientInterface extends DeepltranslateCoreClientInterface
 {

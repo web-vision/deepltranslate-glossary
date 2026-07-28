@@ -1,3 +1,5 @@
+.. include:: /Includes.rst.txt
+
 ..  _breaking-1776026290:
 
 ===================================================================
@@ -27,3 +29,5 @@ Upgrade `EXT:deepltranslate_core` version along with `EXT:deepltranslate_glossar
     composer require -W \
       'web-vision/deepltranslate-core':'~6.0.0@dev' \
       'web-vision/deepltranslate-glossary':'~6.0.0@dev'
+
+.. index:: ext:deepltranslate_glossary, NotScanned

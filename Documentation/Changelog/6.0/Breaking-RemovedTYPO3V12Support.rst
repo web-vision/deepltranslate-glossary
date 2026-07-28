@@ -1,3 +1,5 @@
+.. include:: /Includes.rst.txt
+
 ..  _breaking-1776025250:
 
 ===================================
@@ -35,3 +37,5 @@ Migration
 
 Upgrade TYPO3 to supported version for `6.x` beforehand or in the same step
 with upgrading/installing `EXT:deepltranslate_glossary`.
+
+.. index:: ext:deepltranslate_glossary, NotScanned

@@ -13,7 +13,7 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Contracts\Service\Attribute\Required;
 use WebVision\Deepltranslate\Glossary\Domain\Repository\GlossaryRepository;
-use WebVision\Deepltranslate\Glossary\Service\DeeplGlossaryService;
+use WebVision\Deepltranslate\Glossary\Service\MultilingualGlossaryService;
 
 #[AsCommand(
     name: 'deepl:glossary:sync',
@@ -21,13 +21,13 @@ use WebVision\Deepltranslate\Glossary\Service\DeeplGlossaryService;
 )]
 final class GlossarySyncCommand extends Command
 {
-    private DeeplGlossaryService $deeplGlossaryService;
+    private MultilingualGlossaryService $multilingualGlossaryService;
     private GlossaryRepository $glossaryRepository;
 
     #[Required]
-    public function injectDeeplGlossaryService(DeeplGlossaryService $deeplGlossaryService): void
+    public function injectMultilingualGlossaryService(MultilingualGlossaryService $multilingualGlossaryService): void
     {
-        $this->deeplGlossaryService = $deeplGlossaryService;
+        $this->multilingualGlossaryService = $multilingualGlossaryService;
     }
 
     #[Required]
@@ -63,7 +63,7 @@ final class GlossarySyncCommand extends Command
 
             $io->progressStart(count($glossaries));
             foreach ($glossaries as $glossary) {
-                $this->deeplGlossaryService->syncGlossaries($glossary['uid']);
+                $this->multilingualGlossaryService->syncGlossary((int)$glossary['uid']);
                 $io->progressAdvance();
             }
             $io->progressFinish();

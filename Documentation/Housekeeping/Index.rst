@@ -33,7 +33,8 @@ Due to sync failures, it is useful to delete all DeepL glossaries.
 
 This command retrieves information about all glossaries or one glossary registered
 in the DeepL API and deletes them from the API. In addition, each glossary ID is
-checked against the database and if found, the database record is updated.
+checked against the database and if found, the database record is updated and the
+dictionaries describing the deleted glossary are removed with it.
 
 The command then checks the local database to see if any glossaries still have
 sync information, and cleans them up too.

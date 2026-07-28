@@ -1,3 +1,5 @@
+.. include:: /Includes.rst.txt
+
 ..  _feature-addedtypo3v14support-1777264756:
 
 ================================
@@ -15,3 +17,4 @@ Impact
 :guilabel:`web-vision/deepltranslate-glossary` can now be installed and used in
 :guilabel:`TYPO3 v14.3` instances.
 
+.. index:: ext:deepltranslate_glossary

@@ -33,7 +33,7 @@ return [
         '1' => [
             'showitem' => '
             --div--;LLL:EXT:deepltranslate_glossary/Resources/Private/Language/locallang.xlf:glossary.tab.sync,
-            glossary_id,--palette--;;deepl',
+            glossary_id,--palette--;;deepl,dictionaries',
         ],
     ],
     'columns' => [
@@ -68,6 +68,15 @@ return [
                 'type' => 'check',
                 'readOnly' => true,
                 'searchable' => true,
+            ],
+        ],
+        'dictionaries' => [
+            'label' => 'LLL:EXT:deepltranslate_glossary/Resources/Private/Language/locallang.xlf:glossary.dictionaries',
+            'config' => [
+                'type' => 'inline',
+                'readOnly' => true,
+                'foreign_table' => 'tx_deepltranslate_glossarydictionary',
+                'foreign_field' => 'glossary',
             ],
         ],
     ],
