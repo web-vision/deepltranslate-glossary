@@ -514,14 +514,21 @@ case ${TEST_SUITE} in
     composer)
         cleanCacheFiles
         COMMAND=(composer "$@")
-        ${CONTAINER_BIN} run ${CONTAINER_SIMPLE_PARAMS} --name composer-command-${SUFFIX} -e COMPOSER_CACHE_DIR=.Build/.cache/composer -e COMPOSER_ROOT_VERSION=${COMPOSER_ROOT_VERSION} ${IMAGE_PHP} "${COMMAND[@]}"
+        ${CONTAINER_BIN} run ${CONTAINER_SIMPLE_PARAMS} --name composer-command-${SUFFIX} -e COMPOSER_CACHE_DIR=.Build/.cache/composer -e COMPOSER_POLICY_ADVISORIES_BLOCK=false -e COMPOSER_ROOT_VERSION=${COMPOSER_ROOT_VERSION} ${IMAGE_PHP} "${COMMAND[@]}"
         SUITE_EXIT_CODE=$?
         ;;
     composerUpdate)
         cleanCacheFiles
         # backup current composer.json
         cp -Rf composer.json composer.json.orig
-        ${CONTAINER_BIN} run ${CONTAINER_SIMPLE_PARAMS} --name composer-update-${CORE_VERSION}-${SUFFIX} -e COMPOSER_CACHE_DIR=.Build/.cache/composer -e COMPOSER_ROOT_VERSION=${COMPOSER_ROOT_VERSION} ${IMAGE_PHP} composer require --dev "typo3/minimal":"^${CORE_VERSION}"
+        # Composer 2.10 blocks advisory-affected versions from the resolver pool
+        # by default. TYPO3 v12.4 is ELTS-only, so every public 12.4.x release is
+        # permanently advisory-affected and would drop out entirely -- leaving
+        # only 13.4.31+, which need PHP 8.2, and a misleading "your php version
+        # does not satisfy that requirement" error on the v12 jobs. Testing v12
+        # support requires installing those releases. Kept in the harness on
+        # purpose: composer.json would disable the check for consumers too.
+        ${CONTAINER_BIN} run ${CONTAINER_SIMPLE_PARAMS} --name composer-update-${CORE_VERSION}-${SUFFIX} -e COMPOSER_CACHE_DIR=.Build/.cache/composer -e COMPOSER_POLICY_ADVISORIES_BLOCK=false -e COMPOSER_ROOT_VERSION=${COMPOSER_ROOT_VERSION} ${IMAGE_PHP} composer require --dev "typo3/minimal":"^${CORE_VERSION}"
         SUITE_EXIT_CODE=$?
         # restore composer json
         cp -Rf composer.json.orig composer.json
