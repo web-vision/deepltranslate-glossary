@@ -12,9 +12,9 @@ $EM_CONF[$_EXTKEY] = [
     'constraints' => [
         'depends' => [
             'php' => '8.2.0-8.5.99',
-            'typo3' => '13.4.28-14.3.99',
-            'backend' => '13.4.28-14.3.99',
-            'install' => '13.4.28-14.3.99',
+            'typo3' => '13.4.34-14.3.99',
+            'backend' => '13.4.34-14.3.99',
+            'install' => '13.4.34-14.3.99',
             'deepltranslate_core' => '6.0.3-6.0.99',
         ],
         'conflicts' => [
