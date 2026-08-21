@@ -112,7 +112,7 @@
 			"app-dir": ".Build",
 			"extension-key": "deepltranslate_glossary",
 			"web-dir": ".Build/Web",
-			"version": "6.0.2",
+			"version": "6.0.3-dev",
 			"Package": {
 				"providesPackages": []
 			}
