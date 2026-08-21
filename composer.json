@@ -77,7 +77,6 @@
 		"typo3/cms-tstemplate": "~13.4.28@dev || ~14.3.0@dev",
 		"typo3/cms-workspaces": "~13.4.28@dev || ~14.3.0@dev",
 		"typo3/testing-framework": "^9.5.0",
-		"vaimo/composer-patches": "^6.0.1",
 		"web-vision/deepl-base": "~2.0.1@dev"
 	},
 	"suggest": {
@@ -99,7 +98,7 @@
 			"typo3/class-alias-loader": true,
 			"typo3/cms-composer-installers": true,
 			"sbuerk/fixture-packages": true,
-			"vaimo/composer-patches": true,
+			"vaimo/composer-patches": false,
 			"sbuerk/typo3-gerrit-change-downloader": true
 		},
 		"bin-dir": ".Build/bin",
@@ -127,8 +126,7 @@
 		},
 		"branch-alias": {
 			"dev-main": "6.0.x-dev"
-		},
-		"patches-search": "patches/"
+		}
 	},
 	"prefer-stable": true,
 	"minimum-stability": "dev"
