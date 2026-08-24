@@ -1,0 +1,26 @@
+# .github/workflows/sbom.yml — thin per-repository caller.
+#
+# Deliberately has NO `schedule:` trigger. GitHub auto-disables scheduled workflows in repositories
+# with no activity for 60 days — already true for 58 of our 99 repos — and notifies only whoever
+# last edited the cron line. Periodic coverage is the central orchestrator's job; this workflow
+# exists to capture release-time state, which is exactly what a schedule cannot do reliably.
+name: SBOM
+
+on:
+  push:
+    branches: [main, master]
+    tags: ['*']
+  schedule:
+    # weekly, Monday 04:00 UTC
+    - cron: '0 4 * * 1'
+  workflow_dispatch:
+
+jobs:
+  sbom:
+    uses: web-vision/.github/.github/workflows/sbom-reusable.yml@v1.0.3
+    with:
+      dry_run: false
+    secrets:
+      DTRACK_API_KEY: ${{ secrets.DTRACK_API_KEY }}
+      DTRACK_API_URL: ${{ secrets.DTRACK_API_URL }}
+
