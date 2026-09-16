@@ -476,11 +476,19 @@ final class GlossaryRepository
             return [];
         }
 
-        $rootPage = $this->findRootPageId($pageId);
+        try {
+            $rootPage = $this->findRootPageId($pageId);
+        } catch (SiteNotFoundException) {
+            return [];
+        }
 
         $ids = [];
         foreach ($rows as $row) {
-            $glossaryRootPageID = $this->findRootPageId($row['uid']);
+            try {
+                $glossaryRootPageID = $this->findRootPageId($row['uid']);
+            } catch (SiteNotFoundException) {
+                continue;
+            }
             if ($glossaryRootPageID !== $rootPage) {
                 continue;
             }
@@ -490,6 +498,9 @@ final class GlossaryRepository
         return $ids;
     }
 
+    /**
+     * @throws SiteNotFoundException
+     */
     private function findRootPageId(int $pageId): int
     {
         $site = GeneralUtility::makeInstance(SiteFinder::class)->getSiteByPageId($pageId);
