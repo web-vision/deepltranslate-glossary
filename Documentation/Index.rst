@@ -41,5 +41,6 @@
 
     Introduction/Index
     Editor/Index
+    SiteConfiguration/Index
     Housekeeping/Index
     KnownIssues/Index
