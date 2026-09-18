@@ -22,7 +22,11 @@ Each glossary shows you the current sync status to the DeepL API in the page set
 ..  figure:: /Images/Editor/glossary-sync-tab-not-synced.png
     :alt: Page settings tab *DeepL Translate* with not synced glossary
 
-Adding terms is done through the list module.
+Adding terms is done through the list module. A term may be up to 1024 characters
+long. DeepL counts this limit in bytes, not characters, so a term containing
+umlauts, CJK characters or emoji reaches the limit earlier than 1024 characters.
+Saving a term that exceeds 1024 UTF-8 bytes is rejected with an error message,
+the term is not stored.
 
 ..  figure:: /Images/Editor/glossary-add-term.png
     :alt: Add entry via add record

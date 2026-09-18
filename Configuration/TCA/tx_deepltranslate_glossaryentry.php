@@ -85,6 +85,7 @@ return [
             'config' => [
                 'type' => 'input',
                 'required' => true,
+                'max' => 1024,
                 'eval' => 'trim',
                 'searchable' => true,
             ],
