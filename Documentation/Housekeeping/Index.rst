@@ -59,4 +59,8 @@ CLI command).
 
 Accepts pageId as option. If not given, syncs all available glossaries.
 
+Site languages sharing a glossary language code the site configuration does
+not decide unambiguously are reported as warnings, see
+:ref:`site-configuration-glossary-terms-warnings`.
+
 ..  _typo3_console: https://extensions.typo3.org/extension/typo3_console
