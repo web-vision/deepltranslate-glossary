@@ -9,4 +9,5 @@ Administration
     :titlesonly:
 
     Installation/Index
+    SiteConfiguration/Index
     Updates/Index
