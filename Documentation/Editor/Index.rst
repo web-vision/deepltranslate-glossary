@@ -39,6 +39,13 @@ will be displayed, which will only accept languages in which glossary entries ca
 ..  figure:: /Images/Editor/glossary-page-translation-select.png
     :alt: Possible translations based on source language EN
 
+..  note::
+
+    DeepL glossaries only know base language codes. Site languages sharing a
+    code, like English (UK) and English (US), feed one common glossary, and
+    only one of them provides its terms. The site configuration decides which
+    one, see :ref:`site-configuration`.
+
 After that you can make translations with the *Translate to* button.
 As the glossary entries are made for not using DeepL standard wording, the
 ability of translating entries by DeepL is disabled.
