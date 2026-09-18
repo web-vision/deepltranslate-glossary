@@ -13,6 +13,7 @@ services:
     resource: '../Classes/*'
     exclude:
       - '../Classes/Domain/Model/*'
+      - '../Classes/Domain/Dto/*'
 
   WebVision\Deepltranslate\Glossary\Service\DeeplGlossaryService:
     public: true

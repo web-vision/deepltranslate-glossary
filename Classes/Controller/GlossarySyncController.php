@@ -17,8 +17,10 @@ use TYPO3\CMS\Core\Messaging\FlashMessage;
 use TYPO3\CMS\Core\Messaging\FlashMessageService;
 use TYPO3\CMS\Core\Type\ContextualFeedbackSeverity;
 use WebVision\Deepltranslate\Core\Exception\InvalidArgumentException;
+use WebVision\Deepltranslate\Glossary\Domain\Dto\GlossaryLanguageCollision;
 use WebVision\Deepltranslate\Glossary\Exception\FailedToCreateGlossaryException;
 use WebVision\Deepltranslate\Glossary\Service\DeeplGlossaryService;
+use WebVision\Deepltranslate\Glossary\Service\GlossaryLanguageCollisionMessageBuilder;
 
 /**
  * Synchronization Controller for local deepltranslate glossary
@@ -34,6 +36,7 @@ final class GlossarySyncController
     public function __construct(
         private readonly DeeplGlossaryService $deeplGlossaryService,
         private readonly FlashMessageService $flashMessageService,
+        private readonly GlossaryLanguageCollisionMessageBuilder $collisionMessageBuilder,
         LanguageServiceFactory $languageServiceFactory
     ) {
         $this->languageService = $languageServiceFactory
@@ -74,7 +77,8 @@ final class GlossarySyncController
         }
 
         try {
-            $this->deeplGlossaryService->syncGlossaries((int)$processingParameters['uid']);
+            $collisions = $this->deeplGlossaryService->syncGlossaries((int)$processingParameters['uid']);
+            $this->enqueueCollisionWarnings($collisions, (int)$processingParameters['uid']);
             $this->flashMessageService->getMessageQueueByIdentifier()->enqueue(new FlashMessage(
                 $this->languageService->sL('LLL:EXT:deepltranslate_glossary/Resources/Private/Language/locallang.xlf:glossary.sync.message'),
                 $this->languageService->sL('LLL:EXT:deepltranslate_glossary/Resources/Private/Language/locallang.xlf:glossary.sync.title'),
@@ -91,6 +95,21 @@ final class GlossarySyncController
         }
 
         return new RedirectResponse($processingParameters['returnUrl']);
+    }
+
+    /**
+     * @param list<GlossaryLanguageCollision> $collisions
+     */
+    private function enqueueCollisionWarnings(array $collisions, int $pageId): void
+    {
+        foreach ($collisions as $collision) {
+            $this->flashMessageService->getMessageQueueByIdentifier()->enqueue(new FlashMessage(
+                $this->collisionMessageBuilder->buildMessage($collision, $this->languageService),
+                $this->collisionMessageBuilder->buildTitle($collision, $pageId, $this->languageService),
+                ContextualFeedbackSeverity::WARNING,
+                true
+            ));
+        }
     }
 
     private function getBackendUser(): ?BackendUserAuthentication
