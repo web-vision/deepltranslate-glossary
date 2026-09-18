@@ -88,6 +88,30 @@
             <trans-unit id="glossary.sync.message.invalid">
                 <source>Glossary synchronization with DeepL error. Your glossaries has no entries or is invalid.</source>
             </trans-unit>
+            <trans-unit id="glossary.sync.collision.title">
+                <source>Glossary folder %1$d: language code "%2$s" is shared by several site languages</source>
+            </trans-unit>
+            <trans-unit id="glossary.sync.collision.noPreferredLanguage">
+                <source>Several site languages provide terms for the glossary language code "%1$s" and none of them is marked as preferred. The terms of %2$s are used, the terms of %3$s are ignored. Mark one site language as preferred for glossary terms in the site configuration.</source>
+            </trans-unit>
+            <trans-unit id="glossary.sync.collision.multiplePreferredLanguages">
+                <source>Several site languages sharing the glossary language code "%1$s" are marked as preferred for glossary terms. The terms of %2$s are used, the terms of %3$s are ignored. Mark only one site language as preferred in the site configuration.</source>
+            </trans-unit>
+            <trans-unit id="glossary.sync.collision.defaultLanguageOwnsCode">
+                <source>The default language %2$s always provides the terms of its glossary language code "%1$s". The preferred setting of %3$s is ignored.</source>
+            </trans-unit>
+            <trans-unit id="siteLanguage.deeplGlossaryTerms">
+                <source>Glossary terms</source>
+            </trans-unit>
+            <trans-unit id="siteLanguage.deeplGlossaryTerms.description">
+                <source>DeepL glossaries only know base language codes like "en" or "pt". When several site languages share such a code, for example English (UK) and English (US), only one of them provides the glossary terms. The default language always provides the terms of its code. Otherwise the preferred site language is used, or the one with the lowest language id having terms.</source>
+            </trans-unit>
+            <trans-unit id="siteLanguage.deeplGlossaryTerms.automatic">
+                <source>Automatic</source>
+            </trans-unit>
+            <trans-unit id="siteLanguage.deeplGlossaryTerms.preferred">
+                <source>Preferred for the glossary of its language code</source>
+            </trans-unit>
             <trans-unit id="glossary.not-sync.title">
                 <source>DeepL glossary is out of sync</source>
             </trans-unit>
