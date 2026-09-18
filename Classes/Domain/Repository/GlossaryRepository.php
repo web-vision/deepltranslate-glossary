@@ -13,16 +13,23 @@ use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Domain\Repository\PageRepository;
 use TYPO3\CMS\Core\Exception\SiteNotFoundException;
-use TYPO3\CMS\Core\Site\Entity\Site;
 use TYPO3\CMS\Core\Site\SiteFinder;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use WebVision\Deepltranslate\Core\Domain\Dto\CurrentPage;
 use WebVision\Deepltranslate\Glossary\Domain\Dto\Glossary;
+use WebVision\Deepltranslate\Glossary\Domain\Dto\GlossaryLanguageSelection;
+use WebVision\Deepltranslate\Glossary\Domain\Dto\GlossarySyncInformation;
 use WebVision\Deepltranslate\Glossary\Service\DeeplGlossaryService;
+use WebVision\Deepltranslate\Glossary\Service\GlossaryLanguageResolver;
 
 // @todo Consider to rename/move this as service class.
 final class GlossaryRepository
 {
+    public function __construct(
+        private readonly GlossaryLanguageResolver $glossaryLanguageResolver,
+    ) {
+    }
+
     /**
      * @return Glossary[]
      *
@@ -33,40 +40,82 @@ final class GlossaryRepository
      */
     public function getGlossaryInformationForSync(int $pageId): array
     {
-        $glossaries = [];
-        $localizationArray = [];
+        return $this->getGlossarySyncInformation($pageId)->glossaries;
+    }
 
+    /**
+     * Glossaries of a glossary folder to send to DeepL, plus the collisions of site languages
+     * sharing a glossary language code the site configuration does not resolve.
+     *
+     * @throws DBALException
+     * @throws Exception
+     * @throws SiteNotFoundException
+     * @throws \Doctrine\DBAL\Exception
+     */
+    public function getGlossarySyncInformation(int $pageId): GlossarySyncInformation
+    {
         $page = BackendUtility::getRecord(
             'pages',
             $pageId
         );
 
         if ($page === null) {
-            return [];
+            return new GlossarySyncInformation([], []);
         }
         /** @var array{uid: int, title: string} $page */
         $entries = $this->getOriginalEntries($pageId);
         if ($entries === []) {
-            return [];
+            return new GlossarySyncInformation([], []);
         }
-        $localizationLanguageIds = $this->getAvailableLocalizations($pageId);
         $site = GeneralUtility::makeInstance(SiteFinder::class)
             ->getSiteByPageId($pageId);
-        $sourceLangIsoCode = $site->getDefaultLanguage()->getLocale()->getLanguageCode();
-
-        /** @var array<string, array<int, array{uid: int, term: string}>> $localizationArray */
-        $localizationArray[$sourceLangIsoCode] = $entries;
-
-        // fetch all language information available for building all glossaries
-        foreach ($localizationLanguageIds as $localizationLanguageId) {
-            $localizedEntries = $this->getLocalizedEntries($pageId, $localizationLanguageId);
-            $targetLanguageIsoCode = $this->getTargetLanguageIsoCode($site, $localizationLanguageId);
-            $localizationArray[$targetLanguageIsoCode] = $localizedEntries;
+        $entriesByLanguageId = [0 => $entries];
+        foreach ($this->getAvailableLocalizations($pageId) as $localizationLanguageId) {
+            $entriesByLanguageId[$localizationLanguageId] = $this->getLocalizedEntries($pageId, $localizationLanguageId);
         }
+        $languageSelection = $this->glossaryLanguageResolver->resolve($site, array_map('count', $entriesByLanguageId));
 
+        return new GlossarySyncInformation(
+            $this->buildGlossaries(
+                $page,
+                $this->mapEntriesToLanguageCodes($entriesByLanguageId, $languageSelection),
+                $site->getDefaultLanguage()->getLocale()->getLanguageCode()
+            ),
+            $languageSelection->collisions
+        );
+    }
+
+    /**
+     * @param array<int, array<mixed>> $entriesByLanguageId
+     * @return array<string, array<mixed>>
+     */
+    private function mapEntriesToLanguageCodes(
+        array $entriesByLanguageId,
+        GlossaryLanguageSelection $languageSelection
+    ): array {
+        $localizationArray = [];
+        foreach ($languageSelection->languageIdsByCode as $languageCode => $languageId) {
+            if (isset($entriesByLanguageId[$languageId])) {
+                $localizationArray[$languageCode] = $entriesByLanguageId[$languageId];
+            }
+        }
+        return $localizationArray;
+    }
+
+    /**
+     * @param array{uid: int, title: string} $page
+     * @param array<string, array<mixed>> $localizationArray
+     * @return list<Glossary>
+     *
+     * @throws Exception
+     * @throws SiteNotFoundException
+     * @throws \Doctrine\DBAL\Exception
+     */
+    private function buildGlossaries(array $page, array $localizationArray, string $sourceLangIsoCode): array
+    {
+        $glossaries = [];
         $availableLanguagePairs = GeneralUtility::makeInstance(DeeplGlossaryService::class)
             ->getPossibleGlossaryLanguageConfig();
-
         foreach ($availableLanguagePairs as $sourceLang => $availableTargets) {
             // no entry to possible source in the current page
             if (!isset($localizationArray[$sourceLang])) {
@@ -393,11 +442,6 @@ final class GlossaryRepository
         }
 
         return $availableTranslations;
-    }
-
-    protected function getTargetLanguageIsoCode(Site $site, int $languageId): string
-    {
-        return $site->getLanguageById($languageId)->getLocale()->getLanguageCode();
     }
 
     /**
