@@ -99,26 +99,12 @@ final class GlossaryAPIV2Client extends AbstractClient implements GlossaryAPIV2C
         string $targetLang,
         array $entries
     ): GlossaryInfo {
-        $prepareEntriesForGlossary = [];
-        foreach ($entries as $entry) {
-            /*
-             * as the version without trimming in TCA is already published,
-             * we trim a second time here
-             * to avoid errors in DeepL client
-             */
-            $source = trim($entry['source']);
-            $target = trim($entry['target']);
-            if (empty($source) || empty($target)) {
-                continue;
-            }
-            $prepareEntriesForGlossary[$source] = $target;
-        }
         try {
             return $this->client()->createGlossary(
                 $glossaryName,
                 $sourceLang,
                 $targetLang,
-                GlossaryEntries::fromEntries($prepareEntriesForGlossary)
+                GlossaryEntries::fromEntries($this->sanitizeEntries($entries))
             );
         } catch (DeepLException $e) {
             return new GlossaryInfo(
@@ -131,6 +117,42 @@ final class GlossaryAPIV2Client extends AbstractClient implements GlossaryAPIV2C
                 0
             );
         }
+    }
+
+    /**
+     * Trims both sides of a term pair and drops pairs which are unusable afterwards.
+     *
+     * DeepL rejects a term without non-whitespace characters, and a term whose source or
+     * target text exceeds 1024 UTF-8 bytes, see
+     * https://developers.deepl.com/api-reference/multilingual-glossaries. Either failure
+     * answers the whole createGlossary request with an error, so a single unusable pair
+     * would abort the synchronization of an entire glossary folder. Dropping such pairs
+     * here keeps the remaining, valid pairs in sync.
+     *
+     * @param array<int, array{source: string, target: string}> $entries
+     * @return array<string, string>
+     */
+    private function sanitizeEntries(array $entries): array
+    {
+        $sanitizedEntries = [];
+        foreach ($entries as $entry) {
+            $source = trim($entry['source']);
+            $target = trim($entry['target']);
+            if ($source === '' || $target === '') {
+                continue;
+            }
+            if (strlen($source) > 1024 || strlen($target) > 1024) {
+                $this->logger->warning(sprintf(
+                    'Glossary term pair "%s" => "%s" exceeds the DeepL limit of 1024 UTF-8 bytes and was skipped.',
+                    $source,
+                    $target
+                ));
+                continue;
+            }
+            $sanitizedEntries[$source] = $target;
+        }
+
+        return $sanitizedEntries;
     }
 
     /**

@@ -1,6 +1,6 @@
 CREATE TABLE tx_deepltranslate_glossaryentry
 (
-    term varchar(255) default ''
+    term varchar(1024) default ''
 );
 
 
