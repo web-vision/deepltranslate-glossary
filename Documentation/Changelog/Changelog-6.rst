@@ -9,6 +9,7 @@ Every change to the :guilabel:`web-vision/deepltranslate-glossary` extension is 
 .. toctree::
    :titlesonly:
 
+   6.1/Index
    6.0/Index
 
 Also available
