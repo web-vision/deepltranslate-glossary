@@ -104,6 +104,12 @@
             <trans-unit id="entry.target">
                 <source>Target</source>
             </trans-unit>
+            <trans-unit id="glossaryentry.term.tooLong.title">
+                <source>Glossary term not saved</source>
+            </trans-unit>
+            <trans-unit id="glossaryentry.term.tooLong.message">
+                <source>The term was not saved because it is %1$d UTF-8 bytes long. DeepL accepts at most %2$d UTF-8 bytes per term, which can be fewer than %2$d characters for text containing umlauts or other non-ASCII characters.</source>
+            </trans-unit>
 
             <!-- Translation Access | be_groups -->
             <trans-unit id="be_groups.deepltranslate_access.items.allowedGlossarySync.title">
