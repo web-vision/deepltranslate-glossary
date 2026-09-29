@@ -541,6 +541,7 @@ case ${TEST_SUITE} in
         cleanCacheFiles
         # backup current composer.json
         cp -Rf composer.json composer.json.orig
+        rm -rf .Build/vendor .Build/bin
         # Composer 2.10 blocks advisory-affected versions from the resolver pool
         # by default. TYPO3 v12.4 is ELTS-only, so every public 12.4.x release is
         # permanently advisory-affected and would drop out entirely -- leaving
