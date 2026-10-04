@@ -14,7 +14,9 @@ glossary, a page of type :guilabel:`Folder` with the glossary module
 assigned, and belongs to a site. The backend synchronization button and the
 command :bash:`vendor/bin/typo3 deepl:glossary:sync` apply the same check.
 The glossary of a hidden folder is neither synchronized nor used for
-translations.
+translations. A translation of a
+glossary folder is not synchronized on its own, as the terms of every
+language belong to the folder in the default language.
 
 Before, the backend check let every folder pass, with or without the glossary
 module, and every page with the glossary module, whatever its type. The

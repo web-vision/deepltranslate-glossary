@@ -5,7 +5,8 @@ Glossaries
 
 You can define glossaries for your translations. A glossary folder holds exactly one
 glossary, which is registered once at DeepL and kept up to date afterwards. Its name is
-made up of the page title and the page id.
+made up of the page title and the page id, and it is chosen at the first synchronisation,
+so renaming the folder later does not rename the glossary.
 
 The glossary contains one dictionary per language pair, listing how many terms that pair
 covers. So a single glossary serves every language combination its folder provides.
@@ -19,9 +20,16 @@ a synchronise button appears for easy synchronisation of the glossary terms list
 A glossary folder serves the pages of its own site only. Every site that should be
 translated with a glossary needs a glossary folder of its own.
 
-Possible glossary combinations in multiple language translation modes are built
-on the fly, so your glossary can be used from any target to source, **except** the
-default system language.
+Language pairs
+--------------
+
+The glossary covers every pair of the site languages the folder is translated into,
+as long as DeepL supports glossaries for that pair. A term and its translations form a
+pair through the term in the default language, so translate a term with the TYPO3
+translation of the record. A term created directly in another language, without a term
+in the default language, is not paired reliably, see :ref:`Known Issues <knownIssues>`.
+
+The default language of the site is used as source language only.
 
 Each glossary shows you the current sync status to the DeepL API in the page settings.
 
@@ -62,12 +70,16 @@ ability of translating entries by DeepL is disabled.
 ..  figure:: /Images/Editor/glossary-entry-list.png
     :alt: Backend list view of glossary entries, original language english, translated to German
 
+Synchronisation
+---------------
+
 You can retrieve the current sync information of this glossary to the API in the
 page settings, tab **DeepL Translate**.
 
 ..  note::
 
-    Current **NO** Automatic sync is performed on save. Save and trigger sync manually.
+    No synchronisation is performed on save. Save the terms, then synchronise the
+    folder with the button or the :ref:`synchronisation command <sync-cli>`.
 
     Every change of the terms of a folder marks its glossary as out of sync:
     adding, editing, hiding, deleting, translating, moving or copying a term.
@@ -80,3 +92,23 @@ After sync the tab *DeepL Translate* should look like this:
 
 ..  figure:: /Images/Editor/glossary-sync-tab-synced.png
     :alt: Tab "DeepL Translate" with set ID, time of last sync and ready status
+
+Changing a term marks the dictionaries of the glossary as out of sync, shown by the
+field :guilabel:`In sync with TYPO3` of each dictionary. Translations keep using the
+glossary in its last synchronised state until the folder is synchronised again.
+
+The synchronisation reports its outcome as a message:
+
+*   The glossary is ready to use, with one dictionary per language pair.
+*   The folder holds no terms any more. Its glossary is removed from DeepL, and
+    translations no longer use a glossary of this folder.
+*   The terms of the folder form no language pair DeepL supports, for example when
+    the folder or its terms are not translated. The glossary is kept as it is.
+*   The folder still holds glossaries of the DeepL glossary API v2. An administrator
+    has to run the upgrade wizard first, see :ref:`upgrade60to61`.
+*   DeepL could not be reached or refused the request. Check the API key and the
+    system log.
+
+Only a visible folder in the default language is synchronised. Synchronising requires
+the permission :guilabel:`Allowed Glossary Sync`, edit access to the folder and the
+right to edit glossary terms.
