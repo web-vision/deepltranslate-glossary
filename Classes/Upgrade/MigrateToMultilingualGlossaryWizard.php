@@ -13,11 +13,17 @@ use TYPO3\CMS\Install\Attribute\UpgradeWizard;
 use TYPO3\CMS\Install\Updates\DatabaseUpdatedPrerequisite;
 use TYPO3\CMS\Install\Updates\UpgradeWizardInterface;
 use WebVision\Deepltranslate\Glossary\Client\GlossaryAPIV3ClientInterface;
+use WebVision\Deepltranslate\Glossary\Domain\Repository\GlossaryRepository;
 use WebVision\Deepltranslate\Glossary\Service\GlossaryNameService;
+use WebVision\Deepltranslate\Glossary\Service\MultilingualGlossaryService;
 
 /**
  * Collapses the glossary records of the DeepL glossary API v2, which stored one glossary per
  * language pair, into the single glossary record per folder the API v3 works with.
+ *
+ * A folder still holding such records is not synchronised until this wizard ran. Remove that check
+ * together with this wizard, see {@see MultilingualGlossaryService::syncGlossary()} and
+ * {@see GlossaryRepository::hasGlossaryRecordOfApiV2()}.
  */
 #[UpgradeWizard(identifier: 'deepltranslateGlossary_migrateToMultilingualGlossary')]
 final readonly class MigrateToMultilingualGlossaryWizard implements UpgradeWizardInterface

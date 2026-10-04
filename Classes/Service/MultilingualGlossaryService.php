@@ -13,14 +13,14 @@ use Doctrine\DBAL\Exception as DBALException;
 use Symfony\Component\DependencyInjection\Attribute\Autoconfigure;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use TYPO3\CMS\Core\Cache\Frontend\FrontendInterface;
-use TYPO3\CMS\Core\Exception\SiteNotFoundException;
 use TYPO3\CMS\Core\Locking\Exception\LockAcquireWouldBlockException;
 use TYPO3\CMS\Core\Locking\LockFactory;
 use TYPO3\CMS\Core\Locking\LockingStrategyInterface;
-use TYPO3\CMS\Core\Site\SiteFinder;
+use TYPO3\CMS\Core\Registry;
 use WebVision\Deepltranslate\Glossary\Client\GlossaryAPIV3ClientInterface;
 use WebVision\Deepltranslate\Glossary\Domain\Repository\GlossaryRepository;
 use WebVision\Deepltranslate\Glossary\Exception\GlossaryFolderNotSyncableException;
+use WebVision\Deepltranslate\Glossary\Upgrade\MigrateToMultilingualGlossaryWizard;
 
 /**
  * This service defines helper methods for handling with multilingual Glossaries
@@ -33,7 +33,7 @@ final class MultilingualGlossaryService
         private readonly FrontendInterface $cache,
         private readonly GlossaryAPIV3ClientInterface $client,
         private readonly GlossaryRepository $glossaryRepository,
-        private readonly SiteFinder $siteFinder,
+        private readonly Registry $registry,
         private readonly LockFactory $lockFactory,
     ) {
     }
@@ -52,6 +52,7 @@ final class MultilingualGlossaryService
     public function syncGlossary(int $pageId): bool
     {
         $this->assertSyncableFolder($pageId);
+        $this->assertMigratedFolder($pageId);
         $lock = $this->acquireFolderLock($pageId);
         try {
             return $this->synchroniseFolder($pageId);
@@ -142,9 +143,7 @@ final class MultilingualGlossaryService
                 1791123486
             );
         }
-        try {
-            $this->siteFinder->getSiteByPageId($pageId);
-        } catch (SiteNotFoundException) {
+        if (!$this->glossaryRepository->belongsToSite($pageId)) {
             throw new GlossaryFolderNotSyncableException(
                 sprintf('Glossary folder %d belongs to no site, so its languages are unknown.', $pageId),
                 1791123489
@@ -278,6 +277,32 @@ final class MultilingualGlossaryService
         } catch (GlossaryNotFoundException) {
             // Removed in the meantime, for example by a concurrent synchronisation.
         }
+    }
+
+    /**
+     * The upgrade wizard removes every glossary stored for a folder of the API v2, a glossary
+     * published by this synchronisation in the meantime included, so such a folder waits for it.
+     *
+     * @todo Remove together with {@see MigrateToMultilingualGlossaryWizard}.
+     *
+     * @throws GlossaryFolderNotSyncableException
+     */
+    private function assertMigratedFolder(int $pageId): void
+    {
+        if ($this->registry->get('installUpdate', MigrateToMultilingualGlossaryWizard::class, false)
+            || !$this->glossaryRepository->hasGlossaryRecordOfApiV2($pageId)
+        ) {
+            return;
+        }
+
+        throw new GlossaryFolderNotSyncableException(
+            sprintf(
+                'Glossary folder %d still holds glossaries of the DeepL glossary API v2. Run the upgrade wizard "%s" first.',
+                $pageId,
+                'Migrate glossaries to the DeepL glossary API v3'
+            ),
+            1791130218
+        );
     }
 
     /**
