@@ -1,6 +1,6 @@
 tx_deepltranslate_glossary
 ,"uid","pid","glossary_id","glossary_ready"
-,1,2,"3f2b0000-0000-0000-0000-000000000001",0
+,1,2,"3f2b0000-0000-0000-0000-000000000001",1
 tx_deepltranslate_glossarydictionary
 ,"uid","pid","glossary","in_sync"
 ,1,2,1,0

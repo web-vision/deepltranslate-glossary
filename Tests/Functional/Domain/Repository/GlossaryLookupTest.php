@@ -150,6 +150,43 @@ final class GlossaryLookupTest extends AbstractDeepLTestCase
     }
 
     #[Test]
+    public function glossaryWithDictionariesOutOfSyncIsStillUsed(): void
+    {
+        $this->get(ConnectionPool::class)
+            ->getConnectionForTable('tx_deepltranslate_glossarydictionary')
+            ->update('tx_deepltranslate_glossarydictionary', ['in_sync' => 0], ['glossary' => 1]);
+        $subject = $this->get(GlossaryRepository::class);
+
+        $glossary = $subject->getGlossaryBySourceAndTarget(
+            'en',
+            'de',
+            new CurrentPage(2, 'Glossary')
+        );
+
+        self::assertSame('3f2b0000-0000-0000-0000-000000000001', $glossary->glossaryId);
+        self::assertTrue($glossary->ready);
+    }
+
+    #[Test]
+    public function glossaryNotReadyDoesNotHideAReadyOne(): void
+    {
+        $this->importCSVDataSet(__DIR__ . '/Fixtures/secondReadyGlossaryFolder.csv');
+        $this->get(ConnectionPool::class)
+            ->getConnectionForTable('tx_deepltranslate_glossary')
+            ->update('tx_deepltranslate_glossary', ['glossary_ready' => 0], ['uid' => 1]);
+        $subject = $this->get(GlossaryRepository::class);
+
+        $glossary = $subject->getGlossaryBySourceAndTarget(
+            'en',
+            'de',
+            new CurrentPage(2, 'Glossary')
+        );
+
+        self::assertSame('3f2b0000-0000-0000-0000-000000000003', $glossary->glossaryId);
+        self::assertTrue($glossary->ready);
+    }
+
+    #[Test]
     public function glossaryOfHiddenFolderIsNotUsed(): void
     {
         $this->get(ConnectionPool::class)
