@@ -13,8 +13,14 @@ use Doctrine\DBAL\Exception as DBALException;
 use Symfony\Component\DependencyInjection\Attribute\Autoconfigure;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use TYPO3\CMS\Core\Cache\Frontend\FrontendInterface;
+use TYPO3\CMS\Core\Exception\SiteNotFoundException;
+use TYPO3\CMS\Core\Locking\Exception\LockAcquireWouldBlockException;
+use TYPO3\CMS\Core\Locking\LockFactory;
+use TYPO3\CMS\Core\Locking\LockingStrategyInterface;
+use TYPO3\CMS\Core\Site\SiteFinder;
 use WebVision\Deepltranslate\Glossary\Client\GlossaryAPIV3ClientInterface;
 use WebVision\Deepltranslate\Glossary\Domain\Repository\GlossaryRepository;
+use WebVision\Deepltranslate\Glossary\Exception\GlossaryFolderNotSyncableException;
 
 /**
  * This service defines helper methods for handling with multilingual Glossaries
@@ -27,6 +33,8 @@ final class MultilingualGlossaryService
         private readonly FrontendInterface $cache,
         private readonly GlossaryAPIV3ClientInterface $client,
         private readonly GlossaryRepository $glossaryRepository,
+        private readonly SiteFinder $siteFinder,
+        private readonly LockFactory $lockFactory,
     ) {
     }
 
@@ -37,8 +45,24 @@ final class MultilingualGlossaryService
      * stable and pages referencing it keep working across synchronisations.
      *
      * @throws DeepLException
+     * @throws GlossaryFolderNotSyncableException
      */
     public function syncGlossary(int $pageId): void
+    {
+        $this->assertSyncableFolder($pageId);
+        $lock = $this->acquireFolderLock($pageId);
+        try {
+            $this->synchroniseFolder($pageId);
+        } finally {
+            $lock->release();
+        }
+    }
+
+    /**
+     * @throws DeepLException
+     * @throws GlossaryFolderNotSyncableException
+     */
+    private function synchroniseFolder(int $pageId): void
     {
         $dictionaries = $this->buildDictionaries($this->glossaryRepository->getDictionaryDataForSync($pageId, $this->getPossibleLanguagePairs()));
         if ($dictionaries === []) {
@@ -52,6 +76,29 @@ final class MultilingualGlossaryService
         $record = $this->glossaryRepository->findOrCreateGlossaryRecord($pageId);
         $information = $this->pushDictionaries($record, $dictionaries);
         $this->storeSyncedGlossary($information, $record, $pageId);
+    }
+
+    /**
+     * Two synchronisations of the same folder at once, like the scheduler and an editor, would
+     * both create a glossary at DeepL and leave one of them orphaned.
+     *
+     * @throws GlossaryFolderNotSyncableException
+     */
+    private function acquireFolderLock(int $pageId): LockingStrategyInterface
+    {
+        $mode = LockingStrategyInterface::LOCK_CAPABILITY_EXCLUSIVE | LockingStrategyInterface::LOCK_CAPABILITY_NOBLOCK;
+        $lock = $this->lockFactory->createLocker('deepltranslate_glossary_sync_' . $pageId, $mode);
+        try {
+            if ($lock->acquire($mode)) {
+                return $lock;
+            }
+        } catch (LockAcquireWouldBlockException) {
+        }
+
+        throw new GlossaryFolderNotSyncableException(
+            sprintf('Glossary folder %d is being synchronised already.', $pageId),
+            1791134376
+        );
     }
 
     /**
@@ -80,6 +127,27 @@ final class MultilingualGlossaryService
             $this->client->deleteGlossary($glossaryId);
         } catch (DeepLException) {
             // The failure to store the glossary is the one to report, the client logged this one.
+        }
+    }
+
+    /**
+     * @throws GlossaryFolderNotSyncableException
+     */
+    private function assertSyncableFolder(int $pageId): void
+    {
+        if (!$this->glossaryRepository->isGlossaryFolder($pageId)) {
+            throw new GlossaryFolderNotSyncableException(
+                sprintf('Page %d is no visible folder set up as glossary.', $pageId),
+                1791123486
+            );
+        }
+        try {
+            $this->siteFinder->getSiteByPageId($pageId);
+        } catch (SiteNotFoundException) {
+            throw new GlossaryFolderNotSyncableException(
+                sprintf('Glossary folder %d belongs to no site, so its languages are unknown.', $pageId),
+                1791123489
+            );
         }
     }
 

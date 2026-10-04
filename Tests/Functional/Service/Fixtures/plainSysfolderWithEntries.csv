@@ -1,0 +1,8 @@
+pages
+,"uid","pid","doktype","title","module","sys_language_uid","l10n_parent","slug"
+,5,1,254,"Storage","",0,0,""
+,6,1,254,"Speicher","",1,5,""
+tx_deepltranslate_glossaryentry
+,"uid","pid","term","sys_language_uid","l10n_parent"
+,50,5,"storage term",0,0
+,51,5,"Speicherbegriff",1,50

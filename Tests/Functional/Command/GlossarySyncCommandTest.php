@@ -89,6 +89,30 @@ final class GlossarySyncCommandTest extends AbstractDeepLTestCase
         self::assertSame(1, $this->countDictionaryRecords());
     }
 
+    #[Test]
+    public function syncingAPageNotSetUpAsGlossaryFails(): void
+    {
+        $this->importCSVDataSet(__DIR__ . '/../Service/Fixtures/plainSysfolderWithEntries.csv');
+        $commandTester = new CommandTester($this->get(GlossarySyncCommand::class));
+
+        $exitCode = $commandTester->execute(['--pageId' => '5']);
+
+        self::assertSame(Command::FAILURE, $exitCode);
+        self::assertSame([], $this->fetchGlossaryRecords(5));
+    }
+
+    #[Test]
+    public function failingFolderDoesNotStopTheOtherFolders(): void
+    {
+        $this->importCSVDataSet(__DIR__ . '/Fixtures/failingAndSecondGlossaryFolder.csv');
+        $commandTester = new CommandTester($this->get(GlossarySyncCommand::class));
+
+        $exitCode = $commandTester->execute([]);
+
+        self::assertSame(Command::FAILURE, $exitCode);
+        self::assertNotSame('', $this->fetchGlossaryRecords(30)[0]['glossary_id'] ?? '');
+    }
+
     private function countDictionaryRecords(): int
     {
         $queryBuilder = $this->get(ConnectionPool::class)
@@ -104,7 +128,7 @@ final class GlossarySyncCommandTest extends AbstractDeepLTestCase
     /**
      * @return array<int, array<string, mixed>>
      */
-    private function fetchGlossaryRecords(): array
+    private function fetchGlossaryRecords(int $pageId = 2): array
     {
         $queryBuilder = $this->get(ConnectionPool::class)
             ->getQueryBuilderForTable('tx_deepltranslate_glossary');
@@ -115,7 +139,7 @@ final class GlossarySyncCommandTest extends AbstractDeepLTestCase
             ->where(
                 $queryBuilder->expr()->eq(
                     'pid',
-                    $queryBuilder->createNamedParameter(2, Connection::PARAM_INT)
+                    $queryBuilder->createNamedParameter($pageId, Connection::PARAM_INT)
                 )
             )
             ->executeQuery()

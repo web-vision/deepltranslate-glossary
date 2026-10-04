@@ -1,0 +1,11 @@
+pages
+,"uid","pid","doktype","title","module","sys_language_uid","l10n_parent","slug"
+,20,0,254,"Global","",0,0,""
+,21,20,254,"Shared Glossary","glossary",0,0,""
+,30,1,254,"Second Glossary","glossary",0,0,""
+,31,1,254,"Zweites Glossar","glossary",1,30,""
+tx_deepltranslate_glossaryentry
+,"uid","pid","term","sys_language_uid","l10n_parent"
+,60,21,"shared term",0,0
+,70,30,"second term",0,0
+,71,30,"zweiter Begriff",1,70

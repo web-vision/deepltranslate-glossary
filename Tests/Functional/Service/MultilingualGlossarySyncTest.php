@@ -16,11 +16,15 @@ use TYPO3\CMS\Core\Context\Context;
 use TYPO3\CMS\Core\Context\DateTimeAspect;
 use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
+use TYPO3\CMS\Core\Locking\LockFactory;
+use TYPO3\CMS\Core\Locking\LockingStrategyInterface;
 use TYPO3\CMS\Core\Log\LogManager;
 use TYPO3\CMS\Core\Log\LogRecord;
+use TYPO3\CMS\Core\Site\SiteFinder;
 use WebVision\Deepltranslate\Core\Client\DeepLClientFactoryInterface;
 use WebVision\Deepltranslate\Glossary\Client\GlossaryAPIV3ClientInterface;
 use WebVision\Deepltranslate\Glossary\Domain\Repository\GlossaryRepository;
+use WebVision\Deepltranslate\Glossary\Exception\GlossaryFolderNotSyncableException;
 use WebVision\Deepltranslate\Glossary\Service\MultilingualGlossaryService;
 use WebVision\Deepltranslate\Glossary\Tests\Functional\AbstractDeepLTestCase;
 use WebVision\Deepltranslate\Glossary\Tests\Functional\Service\Fixtures\CollectingLogWriter;
@@ -168,6 +172,8 @@ final class MultilingualGlossarySyncTest extends AbstractDeepLTestCase
             $this->get(CacheManager::class)->getCache('deepltranslate_glossary'),
             new ConcurrentlyDeletingGlossaryClient(new NullLogger(), $this->get(DeepLClientFactoryInterface::class)),
             $this->get(GlossaryRepository::class),
+            $this->get(SiteFinder::class),
+            $this->get(LockFactory::class),
         );
 
         $subject->syncGlossary(2);
@@ -194,6 +200,29 @@ final class MultilingualGlossarySyncTest extends AbstractDeepLTestCase
         self::assertNotSame('', $glossaries[0]['glossary_id']);
         self::assertNotSame($firstGlossaryId, $glossaries[0]['glossary_id']);
         self::assertSame(1, (int)$glossaries[0]['glossary_ready']);
+    }
+
+    #[Test]
+    public function folderBeingSynchronisedIsNotSynchronisedAgainMeanwhile(): void
+    {
+        // Held by a concurrent synchronisation, for example the scheduler while an editor clicks.
+        $lock = $this->get(LockFactory::class)->createLocker(
+            'deepltranslate_glossary_sync_2',
+            LockingStrategyInterface::LOCK_CAPABILITY_EXCLUSIVE | LockingStrategyInterface::LOCK_CAPABILITY_NOBLOCK
+        );
+        $lock->acquire(LockingStrategyInterface::LOCK_CAPABILITY_EXCLUSIVE | LockingStrategyInterface::LOCK_CAPABILITY_NOBLOCK);
+        $subject = $this->get(MultilingualGlossaryService::class);
+
+        try {
+            $subject->syncGlossary(2);
+            self::fail('A folder being synchronised must not be synchronised a second time at once.');
+        } catch (GlossaryFolderNotSyncableException $exception) {
+            self::assertSame(1791134376, $exception->getCode());
+        } finally {
+            $lock->release();
+        }
+
+        self::assertSame([], $this->fetchGlossaryRecords());
     }
 
     #[Test]
@@ -302,6 +331,81 @@ final class MultilingualGlossarySyncTest extends AbstractDeepLTestCase
         $subject->syncGlossary(2);
 
         self::assertSame([], $this->fetchGlossaryRecords());
+    }
+
+    #[Test]
+    public function hiddenGlossaryFolderIsRejected(): void
+    {
+        $this->get(ConnectionPool::class)
+            ->getConnectionForTable('pages')
+            ->update('pages', ['hidden' => 1], ['uid' => 2]);
+        $subject = $this->get(MultilingualGlossaryService::class);
+
+        try {
+            $subject->syncGlossary(2);
+            self::fail('Synchronising a hidden glossary folder has to be rejected.');
+        } catch (GlossaryFolderNotSyncableException $exception) {
+            self::assertSame(1791123486, $exception->getCode());
+        }
+        self::assertSame([], $this->fetchGlossaryRecords());
+    }
+
+    #[Test]
+    public function translationOfAGlossaryFolderIsRejected(): void
+    {
+        $subject = $this->get(MultilingualGlossaryService::class);
+
+        // The terms of every language live on the folder in the default language, page 2.
+        try {
+            $subject->syncGlossary(3);
+            self::fail('Synchronising the translation of a glossary folder has to be rejected.');
+        } catch (GlossaryFolderNotSyncableException $exception) {
+            self::assertSame(1791123486, $exception->getCode());
+        }
+        self::assertSame(0, $this->countGlossaryRecordsOnPage(3));
+    }
+
+    #[Test]
+    public function folderNotConfiguredAsGlossaryIsRejected(): void
+    {
+        $this->importCSVDataSet(__DIR__ . '/Fixtures/plainSysfolderWithEntries.csv');
+        $subject = $this->get(MultilingualGlossaryService::class);
+
+        try {
+            $subject->syncGlossary(5);
+            self::fail('Synchronising a folder not set up as glossary has to be rejected.');
+        } catch (GlossaryFolderNotSyncableException $exception) {
+            self::assertSame(1791123486, $exception->getCode());
+        }
+        self::assertSame(0, $this->countGlossaryRecordsOnPage(5));
+    }
+
+    #[Test]
+    public function glossaryFolderOutsideAnySiteIsRejected(): void
+    {
+        $this->importCSVDataSet(__DIR__ . '/Fixtures/glossaryFolderOutsideAnySite.csv');
+        $subject = $this->get(MultilingualGlossaryService::class);
+
+        try {
+            $subject->syncGlossary(21);
+            self::fail('Synchronising a glossary folder outside any site has to be rejected.');
+        } catch (GlossaryFolderNotSyncableException $exception) {
+            self::assertSame(1791123489, $exception->getCode());
+        }
+        self::assertSame(0, $this->countGlossaryRecordsOnPage(21));
+    }
+
+    #[Test]
+    public function translationInLanguageRemovedFromTheSiteIsSkipped(): void
+    {
+        $this->importCSVDataSet(__DIR__ . '/Fixtures/translationInRemovedLanguage.csv');
+        $subject = $this->get(MultilingualGlossaryService::class);
+
+        $subject->syncGlossary(2);
+
+        $dictionaries = $this->fetchDictionaryRecords();
+        self::assertCount(1, $dictionaries);
+        self::assertSame('de', $dictionaries[0]['target_lang']);
     }
 
     /**
@@ -438,6 +542,24 @@ final class MultilingualGlossarySyncTest extends AbstractDeepLTestCase
             ['Glossary term pair of record 3 (en => de) exceeds the DeepL limit of 1024 UTF-8 bytes and is skipped.'],
             $messages
         );
+    }
+
+    private function countGlossaryRecordsOnPage(int $pageId): int
+    {
+        $queryBuilder = $this->get(ConnectionPool::class)
+            ->getQueryBuilderForTable('tx_deepltranslate_glossary');
+
+        return (int)$queryBuilder
+            ->count('uid')
+            ->from('tx_deepltranslate_glossary')
+            ->where(
+                $queryBuilder->expr()->eq(
+                    'pid',
+                    $queryBuilder->createNamedParameter($pageId, Connection::PARAM_INT)
+                )
+            )
+            ->executeQuery()
+            ->fetchOne();
     }
 
     /**
