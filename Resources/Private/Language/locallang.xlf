@@ -103,8 +103,8 @@
             <trans-unit id="glossary.sync.title.invalid">
                 <source>DeepL glossary sync invalid</source>
             </trans-unit>
-            <trans-unit id="glossary.sync.message.invalid">
-                <source>Glossary synchronization with DeepL error. Your glossaries has no entries or is invalid.</source>
+            <trans-unit id="glossary.sync.message.failed">
+                <source>The glossary could not be synchronized with DeepL. Check the DeepL API key and the system log for details.</source>
             </trans-unit>
             <trans-unit id="glossary.sync.message.denied">
                 <source>You are not allowed to synchronize the glossary of this folder with DeepL.</source>

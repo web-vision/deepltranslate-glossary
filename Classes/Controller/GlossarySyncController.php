@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace WebVision\Deepltranslate\Glossary\Controller;
 
+use DeepL\DeepLException;
 use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Backend\Attribute\AsController;
 use TYPO3\CMS\Backend\Routing\UriBuilder;
@@ -18,9 +19,9 @@ use TYPO3\CMS\Core\Messaging\FlashMessage;
 use TYPO3\CMS\Core\Messaging\FlashMessageService;
 use TYPO3\CMS\Core\Type\ContextualFeedbackSeverity;
 use TYPO3\CMS\Core\Utility\MathUtility;
+use WebVision\Deepltranslate\Core\Exception\ApiKeyNotSetException;
 use WebVision\Deepltranslate\Core\Exception\InvalidArgumentException;
 use WebVision\Deepltranslate\Glossary\Access\GlossarySyncPermission;
-use WebVision\Deepltranslate\Glossary\Exception\FailedToCreateGlossaryException;
 use WebVision\Deepltranslate\Glossary\Service\MultilingualGlossaryService;
 
 /**
@@ -100,9 +101,9 @@ final class GlossarySyncController
                 ContextualFeedbackSeverity::OK,
                 true
             ));
-        } catch (FailedToCreateGlossaryException) {
+        } catch (DeepLException|ApiKeyNotSetException) {
             $this->flashMessageService->getMessageQueueByIdentifier()->enqueue(new FlashMessage(
-                $this->languageService->sL('LLL:EXT:deepltranslate_glossary/Resources/Private/Language/locallang.xlf:glossary.sync.message.invalid'),
+                $this->languageService->sL('LLL:EXT:deepltranslate_glossary/Resources/Private/Language/locallang.xlf:glossary.sync.message.failed'),
                 $this->languageService->sL('LLL:EXT:deepltranslate_glossary/Resources/Private/Language/locallang.xlf:glossary.sync.title.invalid'),
                 ContextualFeedbackSeverity::ERROR,
                 true
