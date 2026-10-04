@@ -1,0 +1,9 @@
+pages
+,"uid","pid","doktype","title","module","sys_language_uid","l10n_parent","slug"
+,12,10,254,"Terms","",0,0,""
+tx_deepltranslate_glossary
+,"uid","pid","glossary_id","glossary_name","glossary_lastsync","glossary_ready"
+,2,12,"3f2b0000-0000-0000-0000-000000000002","Terms [12]",1700000000,1
+tx_deepltranslate_glossarydictionary
+,"uid","pid","glossary","source_lang","target_lang","entry_count","in_sync"
+,3,12,2,"en","de",1,1

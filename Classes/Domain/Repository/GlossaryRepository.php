@@ -15,6 +15,7 @@ use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Context\Context;
 use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
+use TYPO3\CMS\Core\Database\Query\QueryBuilder;
 use TYPO3\CMS\Core\Domain\Repository\PageRepository;
 use TYPO3\CMS\Core\Exception\SiteNotFoundException;
 use TYPO3\CMS\Core\Site\Entity\Site;
@@ -369,12 +370,25 @@ final class GlossaryRepository
             ->from('pages')
             ->where(
                 $queryBuilder->expr()->eq('uid', $queryBuilder->createNamedParameter($pageId, Connection::PARAM_INT)),
-                $queryBuilder->expr()->eq('doktype', $queryBuilder->createNamedParameter(PageRepository::DOKTYPE_SYSFOLDER, Connection::PARAM_INT)),
-                $queryBuilder->expr()->eq('module', $queryBuilder->createNamedParameter('glossary', Connection::PARAM_STR)),
-                $queryBuilder->expr()->eq('sys_language_uid', $queryBuilder->createNamedParameter(0, Connection::PARAM_INT))
+                ...$this->getGlossaryFolderConstraints($queryBuilder)
             )
             ->executeQuery()
             ->fetchOne() > 0;
+    }
+
+    /**
+     * The constraints of a glossary folder, shared by every query deciding which folders are
+     * synchronised or used for translations, so the two cannot disagree.
+     *
+     * @return string[]
+     */
+    private function getGlossaryFolderConstraints(QueryBuilder $queryBuilder): array
+    {
+        return [
+            $queryBuilder->expr()->eq('doktype', $queryBuilder->createNamedParameter(PageRepository::DOKTYPE_SYSFOLDER, Connection::PARAM_INT)),
+            $queryBuilder->expr()->eq('module', $queryBuilder->createNamedParameter('glossary', Connection::PARAM_STR)),
+            $queryBuilder->expr()->eq('sys_language_uid', $queryBuilder->createNamedParameter(0, Connection::PARAM_INT)),
+        ];
     }
 
     /**
@@ -485,22 +499,15 @@ final class GlossaryRepository
      */
     public function findAllGlossaries(): array
     {
-        $db = GeneralUtility::makeInstance(ConnectionPool::class)
-            ->getConnectionForTable('pages');
+        $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)->getQueryBuilderForTable('pages');
 
-        $identifiers = [
-            'module' => 'glossary',
-            'doktype' => 254,
-            'sys_language_uid' => 0,
-        ];
-
-        return $db->select(
-            ['uid'],
-            'pages',
-            $identifiers,
-            [],
-            ['uid' => 'ASC']
-        )->fetchAllAssociative() ?: [];
+        return $queryBuilder
+            ->select('uid')
+            ->from('pages')
+            ->where(...$this->getGlossaryFolderConstraints($queryBuilder))
+            ->orderBy('uid')
+            ->executeQuery()
+            ->fetchAllAssociative();
     }
 
     /**
@@ -546,22 +553,16 @@ final class GlossaryRepository
         string $targetLanguage,
         int $pageUid
     ): ?Glossary {
-        $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)
-            ->getQueryBuilderForTable('tx_deepltranslate_glossary');
-        $constraints = [
-            $queryBuilder->expr()->eq('d.source_lang', $queryBuilder->createNamedParameter($sourceLanguage)),
-            $queryBuilder->expr()->eq('d.target_lang', $queryBuilder->createNamedParameter($targetLanguage)),
-        ];
-        // Folders of the current site take precedence. A folder not marked as glossary module
-        // is still honoured, otherwise instances synchronising through the command line only
-        // would silently lose their glossary.
+        // Only glossary module folders can be synchronised, so only their glossaries are current.
         $glossaryPages = $this->getGlossariesInRootByCurrentPage($pageUid);
-        if ($glossaryPages !== []) {
-            $constraints[] = $queryBuilder->expr()->in('g.pid', $glossaryPages);
+        if ($glossaryPages === []) {
+            return null;
         }
 
-        $result = $queryBuilder
-            ->select('g.uid', 'g.glossary_id', 'g.glossary_name', 'g.glossary_lastsync', 'g.glossary_ready')
+        $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)
+            ->getQueryBuilderForTable('tx_deepltranslate_glossary');
+        $row = $queryBuilder
+            ->select('g.uid', 'g.pid', 'g.glossary_id', 'g.glossary_name', 'g.glossary_lastsync', 'g.glossary_ready')
             ->from('tx_deepltranslate_glossary', 'g')
             ->innerJoin(
                 'g',
@@ -569,12 +570,26 @@ final class GlossaryRepository
                 'd',
                 $queryBuilder->expr()->eq('d.glossary', $queryBuilder->quoteIdentifier('g.uid'))
             )
-            ->where(...$constraints)
+            ->where(
+                $queryBuilder->expr()->eq('d.source_lang', $queryBuilder->createNamedParameter($sourceLanguage)),
+                $queryBuilder->expr()->eq('d.target_lang', $queryBuilder->createNamedParameter($targetLanguage)),
+                $queryBuilder->expr()->in('g.pid', $queryBuilder->createNamedParameter($glossaryPages, Connection::PARAM_INT_ARRAY))
+            )
+            ->orderBy('g.uid')
             ->setMaxResults(1)
             ->executeQuery()
             ->fetchAssociative();
 
-        return $result ? Glossary::fromDatabase($result) : null;
+        return $row === false ? null : Glossary::fromDatabase($row);
+    }
+
+    private function findRootPageIdOrNull(int $pageId): ?int
+    {
+        try {
+            return $this->findRootPageId($pageId);
+        } catch (SiteNotFoundException) {
+            return null;
+        }
     }
 
     /**
@@ -808,7 +823,6 @@ final class GlossaryRepository
 
     /**
      * @return int[]
-     * @throws SiteNotFoundException
      * @throws Exception
      * @throws \Doctrine\DBAL\Exception
      */
@@ -820,33 +834,18 @@ final class GlossaryRepository
         $result = $db
             ->select('uid')
             ->from('pages')
-            ->where(
-                $db->expr()->eq(
-                    'doktype',
-                    $db->createNamedParameter(
-                        PageRepository::DOKTYPE_SYSFOLDER,
-                        Connection::PARAM_INT
-                    )
-                ),
-                $db->expr()->eq('module', $db->createNamedParameter('glossary'))
-            )->executeQuery();
+            ->where(...$this->getGlossaryFolderConstraints($db))
+            ->executeQuery();
 
-        $rows = $result->fetchAllAssociative();
-        if (count($rows) === 0) {
-            return [];
-        }
-
-        $rootPage = $this->findRootPageId($pageId);
-
+        $rootPage = $this->findRootPageIdOrNull($pageId);
         $ids = [];
-        foreach ($rows as $row) {
-            $glossaryRootPageID = $this->findRootPageId($row['uid']);
-            if ($glossaryRootPageID !== $rootPage) {
-                continue;
+        // A glossary folder outside any site belongs to no site, so it is never one of the current site.
+        while ($rootPage !== null && $row = $result->fetchAssociative()) {
+            if ($this->findRootPageIdOrNull((int)$row['uid']) === $rootPage) {
+                $ids[] = (int)$row['uid'];
             }
-
-            $ids[] = $row['uid'];
         }
+
         return $ids;
     }
 

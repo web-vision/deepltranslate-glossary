@@ -1,0 +1,4 @@
+pages
+,"uid","pid","doktype","title","module","sys_language_uid","l10n_parent","slug","is_siteroot"
+,10,0,1,"Second Site","",0,0,"/",1
+,11,10,1,"Content","",0,0,"/content",0
