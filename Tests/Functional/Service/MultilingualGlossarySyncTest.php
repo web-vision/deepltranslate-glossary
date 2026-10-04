@@ -6,6 +6,7 @@ namespace WebVision\Deepltranslate\Glossary\Tests\Functional\Service;
 
 use DeepL\MultilingualGlossaryDictionaryEntries;
 use Doctrine\DBAL\Exception as DBALException;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use Psr\Log\NullLogger;
 use SBUERK\TYPO3\Testing\SiteHandling\SiteBasedTestTrait;
@@ -214,6 +215,26 @@ final class MultilingualGlossarySyncTest extends AbstractDeepLTestCase
     }
 
     #[Test]
+    public function recordWithoutGlossaryIdOfReleasedVersionsIsSynced(): void
+    {
+        // Released versions left the column nullable, so a record may hold NULL instead of ''.
+        $this->get(ConnectionPool::class)
+            ->getConnectionForTable('tx_deepltranslate_glossary')
+            ->insert('tx_deepltranslate_glossary', [
+                'pid' => 2,
+                'glossary_id' => null,
+                'glossary_name' => 'Glossary',
+            ]);
+        $subject = $this->get(MultilingualGlossaryService::class);
+
+        $subject->syncGlossary(2);
+
+        $glossaries = $this->fetchGlossaryRecords();
+        self::assertCount(1, $glossaries);
+        self::assertNotSame('', (string)$glossaries[0]['glossary_id']);
+    }
+
+    #[Test]
     public function folderWithoutUsableEntriesDropsTheGlossary(): void
     {
         $subject = $this->get(MultilingualGlossaryService::class);
@@ -231,6 +252,124 @@ final class MultilingualGlossarySyncTest extends AbstractDeepLTestCase
         self::assertSame('', $glossaries[0]['glossary_id']);
         self::assertSame(0, (int)$glossaries[0]['glossary_ready']);
         self::assertSame([], $this->fetchDictionaryRecords());
+    }
+
+    #[Test]
+    public function folderWithOnlyBlankTranslationsDropsTheGlossary(): void
+    {
+        $subject = $this->get(MultilingualGlossaryService::class);
+        $subject->syncGlossary(2);
+        $this->get(ConnectionPool::class)
+            ->getConnectionForTable('tx_deepltranslate_glossaryentry')
+            ->update('tx_deepltranslate_glossaryentry', ['term' => '   '], ['sys_language_uid' => 1]);
+
+        $subject->syncGlossary(2);
+
+        // Cleaning leaves no term pair, and DeepL refuses a dictionary without entries.
+        $glossaries = $this->fetchGlossaryRecords();
+        self::assertCount(1, $glossaries);
+        self::assertSame('', $glossaries[0]['glossary_id']);
+        self::assertSame([], $this->fetchDictionaryRecords());
+    }
+
+    #[Test]
+    public function folderWithoutEntriesGetsNoGlossaryRecord(): void
+    {
+        $this->get(ConnectionPool::class)
+            ->getConnectionForTable('tx_deepltranslate_glossaryentry')
+            ->delete('tx_deepltranslate_glossaryentry', ['pid' => 2]);
+        $subject = $this->get(MultilingualGlossaryService::class);
+
+        $subject->syncGlossary(2);
+
+        self::assertSame([], $this->fetchGlossaryRecords());
+    }
+
+    /**
+     * @return \Generator<string, array{sourceTerm: string, targetTerm: string, expectedEntries: array<string, string>}>
+     */
+    public static function uncleanTermPairs(): \Generator
+    {
+        yield 'surrounding whitespace is trimmed' => [
+            'sourceTerm' => '  proton beam  ',
+            'targetTerm' => "\tProtonenstrahl\n",
+            'expectedEntries' => [
+                'glossary term' => 'Glossareintrag',
+                'proton beam' => 'Protonenstrahl',
+            ],
+        ];
+        yield 'surrounding Unicode spaces are trimmed' => [
+            'sourceTerm' => "\u{3000}proton beam\u{00A0}",
+            'targetTerm' => "\u{2009}Protonenstrahl\u{202F}",
+            'expectedEntries' => [
+                'glossary term' => 'Glossareintrag',
+                'proton beam' => 'Protonenstrahl',
+            ],
+        ];
+        yield 'pair with whitespace only source is dropped' => [
+            'sourceTerm' => '      ',
+            'targetTerm' => 'Protonenstrahl',
+            'expectedEntries' => [
+                'glossary term' => 'Glossareintrag',
+            ],
+        ];
+        yield 'pair with whitespace only target is dropped' => [
+            'sourceTerm' => 'proton beam',
+            'targetTerm' => '   ',
+            'expectedEntries' => [
+                'glossary term' => 'Glossareintrag',
+            ],
+        ];
+        yield 'control characters inside a term become a single space' => [
+            'sourceTerm' => "proton\tbeam",
+            'targetTerm' => "Protonen\u{0085}\u{2028}strahl",
+            'expectedEntries' => [
+                'glossary term' => 'Glossareintrag',
+                'proton beam' => 'Protonen strahl',
+            ],
+        ];
+        yield 'pair with control characters only is dropped' => [
+            'sourceTerm' => "\u{2029}\x07",
+            'targetTerm' => 'Protonenstrahl',
+            'expectedEntries' => [
+                'glossary term' => 'Glossareintrag',
+            ],
+        ];
+    }
+
+    /**
+     * A single term left unfilled by an editor must not abort the synchronisation of a whole
+     * glossary folder, so unusable pairs are dropped instead of rejected.
+     *
+     * @param array<string, string> $expectedEntries
+     */
+    #[Test]
+    #[DataProvider('uncleanTermPairs')]
+    public function uncleanTermsAreSynchronisedCleaned(string $sourceTerm, string $targetTerm, array $expectedEntries): void
+    {
+        $connection = $this->get(ConnectionPool::class)->getConnectionForTable('tx_deepltranslate_glossaryentry');
+        $connection->update('tx_deepltranslate_glossaryentry', ['term' => $sourceTerm], ['uid' => 3]);
+        $connection->update('tx_deepltranslate_glossaryentry', ['term' => $targetTerm], ['uid' => 4]);
+        $subject = $this->get(MultilingualGlossaryService::class);
+
+        $subject->syncGlossary(2);
+
+        $glossaryId = $this->fetchGlossaryRecords()[0]['glossary_id'];
+        $entries = $this->get(GlossaryAPIV3ClientInterface::class)->getGlossaryEntries($glossaryId, 'en', 'de')[0]->entries;
+        self::assertEquals($expectedEntries, $entries);
+    }
+
+    #[Test]
+    public function termsDifferingInWhitespaceOnlyKeepTheOldestPair(): void
+    {
+        $this->importCSVDataSet(__DIR__ . '/Fixtures/duplicateTerms.csv');
+        $subject = $this->get(MultilingualGlossaryService::class);
+
+        $subject->syncGlossary(2);
+
+        $glossaryId = $this->fetchGlossaryRecords()[0]['glossary_id'];
+        $entries = $this->get(GlossaryAPIV3ClientInterface::class)->getGlossaryEntries($glossaryId, 'en', 'de')[0]->entries;
+        self::assertSame('erster Begriff', $entries['duplicate term'] ?? null);
     }
 
     /**

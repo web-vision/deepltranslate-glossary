@@ -36,23 +36,16 @@ final class MultilingualGlossaryService
      */
     public function syncGlossary(int $pageId): void
     {
-        $dictionaryData = $this->glossaryRepository->getDictionaryDataForSync($pageId);
-        $record = $this->glossaryRepository->findOrCreateGlossaryRecord($pageId);
-
-        if ($dictionaryData === []) {
-            $this->dropGlossary($record);
+        $dictionaries = $this->buildDictionaries($this->glossaryRepository->getDictionaryDataForSync($pageId));
+        if ($dictionaries === []) {
+            $record = $this->glossaryRepository->findGlossaryRecord($pageId);
+            if ($record !== null) {
+                $this->dropGlossary($record);
+            }
             return;
         }
 
-        $dictionaries = [];
-        foreach ($dictionaryData as $dictionary) {
-            $dictionaries[] = $this->createDictionary(
-                $dictionary['sourceLanguage'],
-                $dictionary['targetLanguage'],
-                $dictionary['entries']
-            );
-        }
-
+        $record = $this->glossaryRepository->findOrCreateGlossaryRecord($pageId);
         $information = $this->pushDictionaries($record, $dictionaries);
         $this->storeSyncedGlossary($information, $record, $pageId);
     }
@@ -84,6 +77,29 @@ final class MultilingualGlossaryService
         } catch (DeepLException) {
             // The failure to store the glossary is the one to report, the client logged this one.
         }
+    }
+
+    /**
+     * The terms come cleaned from {@see GlossaryRepository::getDictionaryDataForSync()}, which
+     * also skips a pair left without any term, as DeepL refuses a dictionary without entries.
+     *
+     * @param array<int, array{sourceLanguage: string, targetLanguage: string, entries: array<string, string>}> $dictionaryData
+     * @return MultilingualGlossaryDictionaryEntries[]
+     *
+     * @throws DeepLException
+     */
+    private function buildDictionaries(array $dictionaryData): array
+    {
+        $dictionaries = [];
+        foreach ($dictionaryData as $dictionary) {
+            $dictionaries[] = new MultilingualGlossaryDictionaryEntries(
+                $dictionary['sourceLanguage'],
+                $dictionary['targetLanguage'],
+                $dictionary['entries']
+            );
+        }
+
+        return $dictionaries;
     }
 
     /**
@@ -177,58 +193,5 @@ final class MultilingualGlossaryService
         }
 
         $this->glossaryRepository->resetGlossaryRecord((int)$record['uid']);
-    }
-
-    /**
-     * $entries is an associative array where key is the source language and value is the target language
-     * For example (The source language is English, target language is German):
-     * [
-     *     'hello' => 'Guten Tag',
-     *     'University of Applied Sciences' => 'Fachhochschule',
-     * ]
-     *
-     * Terms are trimmed and unusable pairs are dropped, see {@see self::sanitizeEntries()}.
-     *
-     * @param array<string, string> $entries
-     * @throws DeepLException
-     */
-    public function createDictionary(
-        string $sourceLanguage,
-        string $targetLanguage,
-        array $entries,
-    ): MultilingualGlossaryDictionaryEntries {
-        return new MultilingualGlossaryDictionaryEntries(
-            $sourceLanguage,
-            $targetLanguage,
-            $this->sanitizeEntries($entries)
-        );
-    }
-
-    /**
-     * Trims both sides of a term pair and drops pairs which are unusable afterwards.
-     *
-     * DeepL rejects a term without non-whitespace characters and answers the whole request with
-     * an error. A single term an editor left unfilled would therefore abort the synchronisation
-     * of an entire glossary folder, so such pairs are skipped instead.
-     *
-     * Trimming can let two source terms collapse into the same key, in which case the last pair
-     * wins. Reducing the terms to what DeepL accepts is the wanted behaviour here.
-     *
-     * @param array<string, string> $entries
-     * @return array<string, string>
-     */
-    private function sanitizeEntries(array $entries): array
-    {
-        $sanitizedEntries = [];
-        foreach ($entries as $source => $target) {
-            $trimmedSource = trim((string)$source);
-            $trimmedTarget = trim($target);
-            if ($trimmedSource === '' || $trimmedTarget === '') {
-                continue;
-            }
-            $sanitizedEntries[$trimmedSource] = $trimmedTarget;
-        }
-
-        return $sanitizedEntries;
     }
 }
