@@ -224,10 +224,10 @@ Options:
             - 16    maintained until 2028-11-09
 
     -t <12|13>
-        Only with -s composerInstall|composerInstallMin|composerInstallMax
+        Only with -s composerUpdate|phpstan|phpstanGenerateBaseline
         Specifies the TYPO3 CORE Version to be used
             - 12: (default) use TYPO3 v12
-            - 12: use TYPO3 v13
+            - 13: use TYPO3 v13
 
     -p <8.1|8.2|8.3|8.4|8.5>
         Specifies the PHP minor version to be used
