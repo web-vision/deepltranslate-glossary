@@ -14,6 +14,10 @@ Everything handling the DeepL glossary API v2 is deprecated:
 *   :php:`\WebVision\Deepltranslate\Glossary\Service\DeeplGlossaryService`
 *   :php:`\WebVision\Deepltranslate\Glossary\Client\GlossaryAPIV2Client`
 *   :php:`\WebVision\Deepltranslate\Glossary\Client\GlossaryAPIV2ClientInterface`
+*   :php:`\WebVision\Deepltranslate\Glossary\Domain\Repository\GlossaryRepository::getGlossaryInformationForSync()`
+*   :php:`\WebVision\Deepltranslate\Glossary\Domain\Repository\GlossaryRepository::getGlossaryBySourceAndTargetForSync()`
+*   :php:`\WebVision\Deepltranslate\Glossary\Domain\Repository\GlossaryRepository::updateLocalGlossary()`
+*   :php:`\WebVision\Deepltranslate\Glossary\Exception\FailedToCreateGlossaryException`
 
 The extension synchronizes through
 :php:`\WebVision\Deepltranslate\Glossary\Service\MultilingualGlossaryService` and the glossary
@@ -26,6 +30,17 @@ Impact
 The deprecated classes are not used by the extension any longer, but they are still
 functional. DeepL states that a glossary edited through the API v3 can no longer be
 queried correctly through the API v2, so both should not be mixed on the same glossary.
+
+:php:`DeeplGlossaryService::syncGlossaries()` synchronizes a glossary folder through
+the API v3, exactly like :php:`MultilingualGlossaryService::syncGlossary()`. It no
+longer creates a glossary record and a DeepL glossary per language pair, which the
+translation would not use anymore. It throws the exceptions of the API v3
+synchronization instead of
+:php:`\WebVision\Deepltranslate\Glossary\Exception\FailedToCreateGlossaryException`.
+
+Calling one of the three deprecated repository methods triggers a deprecation
+notice. They still create and update a glossary record per language pair.
+Nothing throws :php:`FailedToCreateGlossaryException` any longer.
 
 Affected installations
 ======================
