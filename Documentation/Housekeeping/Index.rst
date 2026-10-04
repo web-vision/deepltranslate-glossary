@@ -36,8 +36,21 @@ in the DeepL API and deletes them from the API. In addition, each glossary ID is
 checked against the database and if found, the database record is updated and the
 dictionaries describing the deleted glossary are removed with it.
 
-The command then checks the local database to see if any glossaries still have
-sync information, and cleans them up too.
+..  warning::
+
+    `--all` deletes every glossary of the DeepL account. When several instances
+    share the API key, the glossaries of the other instances are deleted as
+    well. Use `--glossaryId` in that case.
+
+..  code-block:: bash
+
+    vendor/bin/typo3 deepl:glossary:cleanup --notinsync
+
+With `--notinsync`, the command only checks the local database. A glossary
+record pointing at a glossary the DeepL account no longer contains loses its
+sync information, so the next synchronization publishes the folder again.
+Nothing is deleted from DeepL, so instances sharing the API key are not
+affected.
 
 At the end you will get a table with all deleted glossary IDs and the information
 if the database has been updated with this glossary.
