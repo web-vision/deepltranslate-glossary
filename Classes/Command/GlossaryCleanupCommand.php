@@ -63,7 +63,7 @@ final class GlossaryCleanupCommand extends Command
                 'notinsync',
                 null,
                 InputOption::VALUE_NONE,
-                'Delete all Glossaries without synchronization information',
+                'Detach glossary records from glossaries DeepL no longer knows, nothing is deleted at DeepL',
             );
     }
 
@@ -176,7 +176,15 @@ final class GlossaryCleanupCommand extends Command
 
     private function removeGlossariesWithNoSync(SymfonyStyle $io): void
     {
-        $findNotConnected = $this->glossaryRepository->getGlossariesDeeplConnected();
+        $remoteGlossaryIds = [];
+        foreach ($this->client->getAllGlossaries() as $remoteGlossary) {
+            $remoteGlossaryIds[$remoteGlossary->glossaryId] = true;
+        }
+        // A record pointing at a glossary DeepL no longer knows is out of sync.
+        $findNotConnected = array_filter(
+            $this->glossaryRepository->getGlossariesDeeplConnected(),
+            static fn (array $glossary): bool => !isset($remoteGlossaryIds[$glossary['glossary_id']])
+        );
         if (count($findNotConnected) === 0) {
             $io->info('No glossaries with sync mismatch.');
         }

@@ -595,10 +595,8 @@ final class GlossaryRepository
     }
 
     /**
-     * @return array<int|string, array{uid: int, glossary_id: string}>
-     * @throws Exception
+     * @return list<array{uid: int, glossary_id: string}>
      * @throws \Doctrine\DBAL\Exception
-     * @throws DBALException
      */
     public function getGlossariesDeeplConnected(): array
     {
@@ -611,12 +609,16 @@ final class GlossaryRepository
                 $db->expr()->neq('glossary_id', $db->createNamedParameter(''))
             );
 
-        $result = $statement->executeQuery()->fetchAssociative();
-        if ($result === false) {
-            return [];
+        $glossaries = [];
+        $result = $statement->executeQuery();
+        while ($row = $result->fetchAssociative()) {
+            $glossaries[] = [
+                'uid' => (int)$row['uid'],
+                'glossary_id' => (string)$row['glossary_id'],
+            ];
         }
 
-        return $result;
+        return $glossaries;
     }
 
     /**
