@@ -103,6 +103,10 @@
                 <source>DeepL Sync ready</source>
                 <target>DeepL Sync abgeschlossen</target>
             </trans-unit>
+            <trans-unit id="glossary.sync.message.failed">
+                <source>The glossary could not be synchronized with DeepL. Check the DeepL API key and the system log for details.</source>
+                <target>Das Glossar konnte nicht mit DeepL synchronisiert werden. Prüfen Sie den DeepL-API-Schlüssel und das Systemprotokoll für Details.</target>
+            </trans-unit>
             <trans-unit id="glossary.not-sync.message">
                 <source>Glossary synchronization with DeepL is pending. Your glossaries are not operational.</source>
                 <target>Die Glossar-Synchronisierung mit DeepL ist steht aus. Ihre Glossare sind nicht einsatzbereit.</target>
