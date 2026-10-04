@@ -27,9 +27,12 @@ use WebVision\Deepltranslate\Glossary\Domain\Dto\GlossaryLanguageSelection;
 use WebVision\Deepltranslate\Glossary\Domain\Dto\GlossarySyncInformation;
 use WebVision\Deepltranslate\Glossary\Service\DeeplGlossaryService;
 use WebVision\Deepltranslate\Glossary\Service\GlossaryLanguageResolver;
+use WebVision\Deepltranslate\Glossary\Service\GlossaryNameService;
 use WebVision\Deepltranslate\Glossary\Service\GlossaryTermSanitizer;
 
 // @todo Consider to rename/move this as service class.
+// @todo Split the collection of the terms of a folder (getDictionaryDataForSync() and its helpers)
+//       into a service of its own, which also takes most constructor arguments with it.
 #[Autoconfigure(public: true)]
 final class GlossaryRepository
 {
@@ -38,6 +41,10 @@ final class GlossaryRepository
         private readonly Context $context,
         private readonly GlossaryTermSanitizer $termSanitizer,
         private readonly LoggerInterface $logger,
+        private readonly ConnectionPool $connectionPool,
+        private readonly SiteFinder $siteFinder,
+        private readonly TranslationConfigurationProvider $translationConfigurationProvider,
+        private readonly GlossaryNameService $glossaryNameService,
     ) {
     }
 
@@ -80,7 +87,7 @@ final class GlossaryRepository
         if ($entries === []) {
             return new GlossarySyncInformation([], []);
         }
-        $site = GeneralUtility::makeInstance(SiteFinder::class)
+        $site = $this->siteFinder
             ->getSiteByPageId($pageId);
         $entriesByLanguageId = [0 => $entries];
         foreach ($this->getAvailableLocalizations($pageId) as $localizationLanguageId) {
@@ -127,6 +134,7 @@ final class GlossaryRepository
     private function buildGlossaries(array $page, array $localizationArray, string $sourceLangIsoCode): array
     {
         $glossaries = [];
+        // Not injected on purpose: the deprecated service injects this repository itself.
         $availableLanguagePairs = GeneralUtility::makeInstance(DeeplGlossaryService::class)
             ->getPossibleGlossaryLanguageConfig();
         foreach ($availableLanguagePairs as $sourceLang => $availableTargets) {
@@ -240,7 +248,7 @@ final class GlossaryRepository
      */
     public function findGlossaryRecord(int $pageId): ?array
     {
-        $record = GeneralUtility::makeInstance(ConnectionPool::class)
+        $record = $this->connectionPool
             ->getConnectionForTable('tx_deepltranslate_glossary')
             ->select(['uid', 'glossary_id', 'glossary_name'], 'tx_deepltranslate_glossary', ['pid' => $pageId], [], ['uid' => 'ASC'], 1)
             ->fetchAssociative();
@@ -271,10 +279,12 @@ final class GlossaryRepository
             return $record;
         }
 
-        $connection = GeneralUtility::makeInstance(ConnectionPool::class)
+        $connection = $this->connectionPool
             ->getConnectionForTable('tx_deepltranslate_glossary');
-        $page = BackendUtility::getRecord('pages', $pageId, 'uid,title');
-        $glossaryName = sprintf('%s [%d]', $page['title'] ?? 'Glossary', $pageId);
+        // The name is chosen once, when the record is created. Later synchronisations keep it, so
+        // renaming the folder or adding a listener of ModifyGlossaryNameEvent afterwards does not
+        // rename an existing glossary.
+        $glossaryName = $this->glossaryNameService->getGlossaryName($pageId);
         $connection->insert(
             'tx_deepltranslate_glossary',
             [
@@ -301,7 +311,7 @@ final class GlossaryRepository
     public function updateGlossaryRecord(MultilingualGlossaryInfo $information, int $uid, int $pageId): void
     {
         // A translation in between must not find the glossary without its dictionaries.
-        GeneralUtility::makeInstance(ConnectionPool::class)
+        $this->connectionPool
             ->getConnectionForTable('tx_deepltranslate_glossary')
             ->transactional(function (Connection $connection) use ($information, $uid, $pageId): void {
                 $connection->update(
@@ -326,7 +336,7 @@ final class GlossaryRepository
      */
     public function resetGlossaryRecord(int $uid): void
     {
-        GeneralUtility::makeInstance(ConnectionPool::class)
+        $this->connectionPool
             ->getConnectionForTable('tx_deepltranslate_glossary')
             ->update(
                 'tx_deepltranslate_glossary',
@@ -347,7 +357,7 @@ final class GlossaryRepository
     private function replaceDictionaryRecords(MultilingualGlossaryInfo $information, int $uid, int $pageId): void
     {
         $this->deleteDictionaryRecords($uid);
-        $connection = GeneralUtility::makeInstance(ConnectionPool::class)
+        $connection = $this->connectionPool
             ->getConnectionForTable('tx_deepltranslate_glossarydictionary');
         foreach ($information->dictionaries as $dictionary) {
             $connection->insert(
@@ -369,7 +379,7 @@ final class GlossaryRepository
      */
     private function deleteDictionaryRecords(int $uid): void
     {
-        GeneralUtility::makeInstance(ConnectionPool::class)
+        $this->connectionPool
             ->getConnectionForTable('tx_deepltranslate_glossarydictionary')
             ->delete('tx_deepltranslate_glossarydictionary', ['glossary' => $uid]);
     }
@@ -387,7 +397,7 @@ final class GlossaryRepository
         if ($entries === []) {
             return [];
         }
-        $site = GeneralUtility::makeInstance(SiteFinder::class)->getSiteByPageId($pageId);
+        $site = $this->siteFinder->getSiteByPageId($pageId);
         $localizationArray = [
             $site->getDefaultLanguage()->getLocale()->getLanguageCode() => $this->normalizeTerms($entries),
         ];
@@ -411,7 +421,7 @@ final class GlossaryRepository
      */
     public function isGlossaryFolder(int $pageId): bool
     {
-        $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)->getQueryBuilderForTable('pages');
+        $queryBuilder = $this->connectionPool->getQueryBuilderForTable('pages');
 
         return $queryBuilder
             ->count('uid')
@@ -516,7 +526,7 @@ final class GlossaryRepository
      */
     public function findByGlossaryId(string $glossaryId): ?Glossary
     {
-        $db = GeneralUtility::makeInstance(ConnectionPool::class)
+        $db = $this->connectionPool
             ->getConnectionForTable('tx_deepltranslate_glossary');
 
         $result = $db
@@ -543,7 +553,7 @@ final class GlossaryRepository
             'glossary_lastsync' => $information->creationTime->getTimestamp(),
         ];
 
-        $db = GeneralUtility::makeInstance(ConnectionPool::class)
+        $db = $this->connectionPool
             ->getConnectionForTable('tx_deepltranslate_glossary');
 
         $db->update(
@@ -561,7 +571,7 @@ final class GlossaryRepository
      */
     public function findAllGlossaries(): array
     {
-        $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)->getQueryBuilderForTable('pages');
+        $queryBuilder = $this->connectionPool->getQueryBuilderForTable('pages');
 
         return $queryBuilder
             ->select('uid')
@@ -621,7 +631,7 @@ final class GlossaryRepository
             return null;
         }
 
-        $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)
+        $queryBuilder = $this->connectionPool
             ->getQueryBuilderForTable('tx_deepltranslate_glossary');
         $row = $queryBuilder
             ->select('g.uid', 'g.pid', 'g.glossary_id', 'g.glossary_name', 'g.glossary_lastsync', 'g.glossary_ready')
@@ -682,7 +692,7 @@ final class GlossaryRepository
                 'target_lang' => $lowerTargetLang,
                 'pid' => $page['uid'],
             ];
-            $db = GeneralUtility::makeInstance(ConnectionPool::class)
+            $db = $this->connectionPool
                 ->getConnectionForTable('tx_deepltranslate_glossary');
             $db->insert('tx_deepltranslate_glossary', $insert);
             $lastInsertId = $db->lastInsertId();
@@ -696,7 +706,7 @@ final class GlossaryRepository
 
     public function removeGlossarySync(string $glossaryId): bool
     {
-        $db = GeneralUtility::makeInstance(ConnectionPool::class)
+        $db = $this->connectionPool
             ->getConnectionForTable('tx_deepltranslate_glossary');
 
         // The dictionaries describe the state of a glossary which is about to be dropped, so
@@ -728,7 +738,7 @@ final class GlossaryRepository
      */
     public function getGlossariesDeeplConnected(): array
     {
-        $db = GeneralUtility::makeInstance(ConnectionPool::class)
+        $db = $this->connectionPool
             ->getQueryBuilderForTable('tx_deepltranslate_glossary');
         $statement = $db
             ->select('uid', 'glossary_id')
@@ -757,7 +767,7 @@ final class GlossaryRepository
      */
     private function getOriginalEntries(int $pageId): array
     {
-        $db = GeneralUtility::makeInstance(ConnectionPool::class)
+        $db = $this->connectionPool
             ->getQueryBuilderForTable('tx_deepltranslate_glossaryentry');
         $statement = $db
             ->select('uid', 'term')
@@ -788,7 +798,7 @@ final class GlossaryRepository
      */
     private function getLocalizedEntries(int $pageId, int $languageId): array
     {
-        $db = GeneralUtility::makeInstance(ConnectionPool::class)
+        $db = $this->connectionPool
             ->getQueryBuilderForTable('tx_deepltranslate_glossaryentry');
         $statement = $db
             ->select('uid', 'term', 'l10n_parent')
@@ -821,7 +831,7 @@ final class GlossaryRepository
      */
     private function getAvailableLocalizations(int $pageId): array
     {
-        $translations = GeneralUtility::makeInstance(TranslationConfigurationProvider::class)
+        $translations = $this->translationConfigurationProvider
             ->translationInfo('pages', $pageId);
 
         // Error string given, if not matching. Return an empty array then
@@ -851,7 +861,7 @@ final class GlossaryRepository
         string $targetLanguage,
         int $pageUid
     ): ?Glossary {
-        $db = GeneralUtility::makeInstance(ConnectionPool::class)
+        $db = $this->connectionPool
             ->getQueryBuilderForTable('tx_deepltranslate_glossary');
 
         $where = $db->expr()->and(
@@ -884,7 +894,7 @@ final class GlossaryRepository
      */
     private function getGlossariesInRootByCurrentPage(int $pageId): array
     {
-        $db = GeneralUtility::makeInstance(ConnectionPool::class)
+        $db = $this->connectionPool
             ->getQueryBuilderForTable('pages');
 
         $result = $db
@@ -907,7 +917,7 @@ final class GlossaryRepository
 
     private function findRootPageId(int $pageId): int
     {
-        $site = GeneralUtility::makeInstance(SiteFinder::class)->getSiteByPageId($pageId);
+        $site = $this->siteFinder->getSiteByPageId($pageId);
         return $site->getRootPageId();
     }
 
@@ -928,7 +938,7 @@ final class GlossaryRepository
      */
     public function setGlossaryNotSyncOnPage(int $pageId): void
     {
-        $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)
+        $queryBuilder = $this->connectionPool
             ->getQueryBuilderForTable('tx_deepltranslate_glossarydictionary');
         $queryBuilder->update('tx_deepltranslate_glossarydictionary')
             ->set('in_sync', 0)

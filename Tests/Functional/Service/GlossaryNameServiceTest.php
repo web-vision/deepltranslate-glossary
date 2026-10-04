@@ -1,0 +1,70 @@
+<?php
+
+declare(strict_types=1);
+
+namespace WebVision\Deepltranslate\Glossary\Tests\Functional\Service;
+
+use PHPUnit\Framework\Attributes\Test;
+use Symfony\Component\DependencyInjection\Container;
+use TYPO3\CMS\Core\EventDispatcher\ListenerProvider;
+use WebVision\Deepltranslate\Glossary\Event\ModifyGlossaryNameEvent;
+use WebVision\Deepltranslate\Glossary\Service\GlossaryNameService;
+use WebVision\Deepltranslate\Glossary\Tests\Functional\AbstractDeepLTestCase;
+
+final class GlossaryNameServiceTest extends AbstractDeepLTestCase
+{
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->importCSVDataSet(__DIR__ . '/Fixtures/glossaryFolder.csv');
+    }
+
+    #[Test]
+    public function glossaryIsNamedAfterItsFolder(): void
+    {
+        $subject = $this->get(GlossaryNameService::class);
+
+        self::assertSame('Glossary [2]', $subject->getGlossaryName(2));
+    }
+
+    #[Test]
+    public function folderWithoutTitleGetsAGenericName(): void
+    {
+        $this->importCSVDataSet(__DIR__ . '/Fixtures/untitledGlossaryFolder.csv');
+        $subject = $this->get(GlossaryNameService::class);
+
+        self::assertSame('Glossary [7]', $subject->getGlossaryName(7));
+    }
+
+    #[Test]
+    public function listenerChangesTheName(): void
+    {
+        $this->registerNameListener(static function (ModifyGlossaryNameEvent $event): void {
+            $event->glossaryName = sprintf('ACME %s (%d)', $event->folderTitle, $event->pageId);
+        });
+        $subject = $this->get(GlossaryNameService::class);
+
+        self::assertSame('ACME Glossary (2)', $subject->getGlossaryName(2));
+    }
+
+    #[Test]
+    public function emptyNameOfAListenerFallsBackToTheDefaultName(): void
+    {
+        // DeepL refuses a glossary without a name, so an empty name would fail every sync.
+        $this->registerNameListener(static function (ModifyGlossaryNameEvent $event): void {
+            $event->glossaryName = '  ';
+        });
+        $subject = $this->get(GlossaryNameService::class);
+
+        self::assertSame('Glossary [2]', $subject->getGlossaryName(2));
+    }
+
+    private function registerNameListener(\Closure $listener): void
+    {
+        /** @var Container $container */
+        $container = $this->getContainer();
+        $container->set('glossary-name-listener', $listener);
+        $this->get(ListenerProvider::class)->addListener(ModifyGlossaryNameEvent::class, 'glossary-name-listener');
+    }
+}
