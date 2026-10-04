@@ -47,6 +47,18 @@ This command does not delete your glossaries in TYPO3.
 
 After this, you are able to sync your glossaries with DeepL again.
 
+..  code-block:: bash
+
+    vendor/bin/typo3 deepl:glossary:cleanup --notinsync
+
+This command compares the glossary records with the glossaries DeepL lists
+for the configured API key. A record whose DeepL glossary no longer exists is
+detached: its glossary ID is removed, so the next synchronisation creates the
+glossary again. Nothing is deleted at DeepL.
+
+When DeepL lists no glossary at all, or the list cannot be fetched, nothing is
+detached and the command shows a warning. Check the log in that case.
+
 ..  _sync-cli:
 
 Synchronisation
