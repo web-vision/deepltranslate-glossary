@@ -36,8 +36,11 @@ in the DeepL API and deletes them from the API. In addition, each glossary ID is
 checked against the database and if found, the database record is updated and the
 dictionaries describing the deleted glossary are removed with it.
 
-The command then checks the local database to see if any glossaries still have
-sync information, and cleans them up too.
+..  warning::
+
+    `--all` deletes every glossary of the DeepL account. When several instances
+    share the API key, the glossaries of the other instances are deleted as
+    well. Use `--glossaryId` in that case.
 
 At the end you will get a table with all deleted glossary IDs and the information
 if the database has been updated with this glossary.
@@ -53,7 +56,8 @@ After this, you are able to sync your glossaries with DeepL again.
 This command compares the glossary records with the glossaries DeepL lists
 for the configured API key. A record whose DeepL glossary no longer exists is
 detached: its glossary ID is removed, so the next synchronisation creates the
-glossary again. Nothing is deleted at DeepL.
+glossary again. Nothing is deleted at DeepL, so instances sharing the API key
+are not affected.
 
 When DeepL lists no glossary at all, nothing is detached and the command shows
 a warning. Check the configured API key in that case. When the list cannot be
