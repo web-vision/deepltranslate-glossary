@@ -669,6 +669,17 @@ final class GlossaryRepository
     }
 
     /**
+     * Tells whether a glossary folder holds any term in its default language, usable or not.
+     *
+     * @throws DBALException
+     * @throws Exception
+     */
+    public function hasTerms(int $pageId): bool
+    {
+        return $this->getOriginalEntries($pageId) !== [];
+    }
+
+    /**
      * @return array<int, array{uid: int, term: string}>|array<empty>
      * @throws Exception
      * @throws \Doctrine\DBAL\Exception

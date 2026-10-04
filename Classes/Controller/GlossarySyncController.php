@@ -61,13 +61,7 @@ final class GlossarySyncController
         }
 
         try {
-            $this->multilingualGlossaryService->syncGlossary((int)$processingParameters['uid']);
-            $this->flashMessageService->getMessageQueueByIdentifier()->enqueue(new FlashMessage(
-                $this->languageService->sL('LLL:EXT:deepltranslate_glossary/Resources/Private/Language/locallang.xlf:glossary.sync.message'),
-                $this->languageService->sL('LLL:EXT:deepltranslate_glossary/Resources/Private/Language/locallang.xlf:glossary.sync.title'),
-                ContextualFeedbackSeverity::OK,
-                true
-            ));
+            $this->reportSynchronisedFolder($this->multilingualGlossaryService->syncGlossary((int)$processingParameters['uid']));
         } catch (GlossaryFolderNotSyncableException $exception) {
             $this->flashMessageService->getMessageQueueByIdentifier()->enqueue(new FlashMessage(
                 $exception->getMessage(),
@@ -85,6 +79,26 @@ final class GlossarySyncController
         }
 
         return new RedirectResponse($processingParameters['returnUrl']);
+    }
+
+    private function reportSynchronisedFolder(bool $hasGlossary): void
+    {
+        if (!$hasGlossary) {
+            $this->flashMessageService->getMessageQueueByIdentifier()->enqueue(new FlashMessage(
+                $this->languageService->sL('LLL:EXT:deepltranslate_glossary/Resources/Private/Language/locallang.xlf:glossary.sync.message.removed'),
+                $this->languageService->sL('LLL:EXT:deepltranslate_glossary/Resources/Private/Language/locallang.xlf:glossary.sync.title.removed'),
+                ContextualFeedbackSeverity::INFO,
+                true
+            ));
+            return;
+        }
+
+        $this->flashMessageService->getMessageQueueByIdentifier()->enqueue(new FlashMessage(
+            $this->languageService->sL('LLL:EXT:deepltranslate_glossary/Resources/Private/Language/locallang.xlf:glossary.sync.message'),
+            $this->languageService->sL('LLL:EXT:deepltranslate_glossary/Resources/Private/Language/locallang.xlf:glossary.sync.title'),
+            ContextualFeedbackSeverity::OK,
+            true
+        ));
     }
 
     private function getBackendUser(): ?BackendUserAuthentication

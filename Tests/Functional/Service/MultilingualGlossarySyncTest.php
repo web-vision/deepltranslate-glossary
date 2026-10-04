@@ -289,21 +289,64 @@ final class MultilingualGlossarySyncTest extends AbstractDeepLTestCase
     }
 
     #[Test]
-    public function folderWithOnlyBlankTranslationsDropsTheGlossary(): void
+    public function syncOfFolderWithTermsReportsTheGlossaryAsPublished(): void
+    {
+        $subject = $this->get(MultilingualGlossaryService::class);
+
+        self::assertTrue($subject->syncGlossary(2));
+    }
+
+    #[Test]
+    public function syncOfFolderWithoutTermsReportsTheGlossaryAsRemoved(): void
     {
         $subject = $this->get(MultilingualGlossaryService::class);
         $subject->syncGlossary(2);
         $this->get(ConnectionPool::class)
             ->getConnectionForTable('tx_deepltranslate_glossaryentry')
+            ->delete('tx_deepltranslate_glossaryentry', ['pid' => 2]);
+
+        self::assertFalse($subject->syncGlossary(2));
+    }
+
+    #[Test]
+    public function folderWithOnlyBlankTranslationsKeepsTheGlossary(): void
+    {
+        $subject = $this->get(MultilingualGlossaryService::class);
+        $subject->syncGlossary(2);
+        $glossaryId = $this->fetchGlossaryRecords()[0]['glossary_id'];
+        $this->get(ConnectionPool::class)
+            ->getConnectionForTable('tx_deepltranslate_glossaryentry')
             ->update('tx_deepltranslate_glossaryentry', ['term' => '   '], ['sys_language_uid' => 1]);
 
-        $subject->syncGlossary(2);
+        try {
+            $subject->syncGlossary(2);
+            self::fail('A folder whose terms yield no usable pair has to be reported.');
+        } catch (GlossaryFolderNotSyncableException $exception) {
+            self::assertSame(1791129095, $exception->getCode());
+        }
 
-        // Cleaning leaves no term pair, and DeepL refuses a dictionary without entries.
-        $glossaries = $this->fetchGlossaryRecords();
-        self::assertCount(1, $glossaries);
-        self::assertSame('', $glossaries[0]['glossary_id']);
-        self::assertSame([], $this->fetchDictionaryRecords());
+        // The folder still holds terms, so the last synchronised glossary stays in use.
+        $this->assertGlossaryKept($glossaryId);
+    }
+
+    #[Test]
+    public function folderWithoutPageTranslationKeepsTheGlossary(): void
+    {
+        $subject = $this->get(MultilingualGlossaryService::class);
+        $subject->syncGlossary(2);
+        $glossaryId = $this->fetchGlossaryRecords()[0]['glossary_id'];
+        $this->get(ConnectionPool::class)
+            ->getConnectionForTable('pages')
+            ->delete('pages', ['uid' => 3]);
+
+        try {
+            $subject->syncGlossary(2);
+            self::fail('A folder whose terms yield no usable pair has to be reported.');
+        } catch (GlossaryFolderNotSyncableException $exception) {
+            self::assertSame(1791129095, $exception->getCode());
+        }
+
+        $this->assertGlossaryKept($glossaryId);
     }
 
     #[Test]
@@ -528,6 +571,16 @@ final class MultilingualGlossarySyncTest extends AbstractDeepLTestCase
             )
             ->executeQuery()
             ->fetchOne();
+    }
+
+    private function assertGlossaryKept(string $glossaryId): void
+    {
+        $glossaries = $this->fetchGlossaryRecords();
+        self::assertCount(1, $glossaries);
+        self::assertSame($glossaryId, $glossaries[0]['glossary_id']);
+        self::assertSame(1, (int)$glossaries[0]['glossary_ready']);
+        self::assertCount(1, $this->fetchDictionaryRecords());
+        self::assertSame($glossaryId, $this->get(GlossaryAPIV3ClientInterface::class)->getGlossary($glossaryId)->glossaryId);
     }
 
     /**

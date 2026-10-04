@@ -103,6 +103,14 @@
                 <source>DeepL Sync ready</source>
                 <target>DeepL Sync abgeschlossen</target>
             </trans-unit>
+            <trans-unit id="glossary.sync.title.removed">
+                <source>DeepL glossary removed</source>
+                <target>DeepL-Glossar entfernt</target>
+            </trans-unit>
+            <trans-unit id="glossary.sync.message.removed">
+                <source>The folder holds no terms, so its glossary was removed from DeepL. Translations no longer use a glossary of this folder.</source>
+                <target>Der Ordner enthält keine Begriffe, daher wurde sein Glossar bei DeepL entfernt. Übersetzungen verwenden kein Glossar dieses Ordners mehr.</target>
+            </trans-unit>
             <trans-unit id="glossary.sync.message.failed">
                 <source>The glossary could not be synchronized with DeepL. Check the DeepL API key and the system log for details.</source>
                 <target>Das Glossar konnte nicht mit DeepL synchronisiert werden. Prüfen Sie den DeepL-API-Schlüssel und das Systemprotokoll für Details.</target>

@@ -44,15 +44,17 @@ final class MultilingualGlossaryService
      * The glossary of a folder is created once and edited afterwards, so the glossary id stays
      * stable and pages referencing it keep working across synchronisations.
      *
+     * @return bool false when the folder holds no term any more, so its glossary was removed
+     *
      * @throws DeepLException
      * @throws GlossaryFolderNotSyncableException
      */
-    public function syncGlossary(int $pageId): void
+    public function syncGlossary(int $pageId): bool
     {
         $this->assertSyncableFolder($pageId);
         $lock = $this->acquireFolderLock($pageId);
         try {
-            $this->synchroniseFolder($pageId);
+            return $this->synchroniseFolder($pageId);
         } finally {
             $lock->release();
         }
@@ -62,20 +64,19 @@ final class MultilingualGlossaryService
      * @throws DeepLException
      * @throws GlossaryFolderNotSyncableException
      */
-    private function synchroniseFolder(int $pageId): void
+    private function synchroniseFolder(int $pageId): bool
     {
         $dictionaries = $this->buildDictionaries($this->glossaryRepository->getDictionaryDataForSync($pageId, $this->getPossibleLanguagePairs()));
         if ($dictionaries === []) {
-            $record = $this->glossaryRepository->findGlossaryRecord($pageId);
-            if ($record !== null) {
-                $this->dropGlossary($record);
-            }
-            return;
+            $this->dropGlossaryOfEmptiedFolder($pageId);
+            return false;
         }
 
         $record = $this->glossaryRepository->findOrCreateGlossaryRecord($pageId);
         $information = $this->pushDictionaries($record, $dictionaries);
         $this->storeSyncedGlossary($information, $record, $pageId);
+
+        return true;
     }
 
     /**
@@ -276,6 +277,32 @@ final class MultilingualGlossaryService
             $this->client->deleteDictionary($glossaryId, $dictionary->sourceLang, $dictionary->targetLang);
         } catch (GlossaryNotFoundException) {
             // Removed in the meantime, for example by a concurrent synchronisation.
+        }
+    }
+
+    /**
+     * Only a folder without any term is emptied on purpose. Terms which form no usable pair
+     * point at a broken setup instead, for example a removed page translation, and dropping the
+     * glossary then would silently stop translations from using it.
+     *
+     * @throws DeepLException
+     * @throws GlossaryFolderNotSyncableException
+     */
+    private function dropGlossaryOfEmptiedFolder(int $pageId): void
+    {
+        if ($this->glossaryRepository->hasTerms($pageId)) {
+            throw new GlossaryFolderNotSyncableException(
+                sprintf(
+                    'The terms of glossary folder %d form no term pair DeepL supports. Check that the folder and its terms are translated.',
+                    $pageId
+                ),
+                1791129095
+            );
+        }
+
+        $record = $this->glossaryRepository->findGlossaryRecord($pageId);
+        if ($record !== null) {
+            $this->dropGlossary($record);
         }
     }
 
