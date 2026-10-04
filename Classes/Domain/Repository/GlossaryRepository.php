@@ -26,6 +26,7 @@ use WebVision\Deepltranslate\Glossary\Service\DeeplGlossaryService;
 use WebVision\Deepltranslate\Glossary\Service\GlossaryNameService;
 use WebVision\Deepltranslate\Glossary\Service\GlossaryTermSanitizer;
 use WebVision\Deepltranslate\Glossary\Service\MultilingualGlossaryService;
+use WebVision\Deepltranslate\Glossary\Upgrade\MigrateToMultilingualGlossaryWizard;
 
 // @todo Consider to rename/move this as service class.
 // @todo Split the collection of the terms of a folder (getDictionaryDataForSync() and its helpers)
@@ -344,6 +345,14 @@ final class GlossaryRepository
             $queryBuilder->expr()->eq('module', $queryBuilder->createNamedParameter('glossary', Connection::PARAM_STR)),
             $queryBuilder->expr()->eq('sys_language_uid', $queryBuilder->createNamedParameter(0, Connection::PARAM_INT)),
         ];
+    }
+
+    /**
+     * Tells whether a page belongs to a site, whose languages a glossary folder is synchronised in.
+     */
+    public function belongsToSite(int $pageId): bool
+    {
+        return $this->findRootPageIdOrNull($pageId) !== null;
     }
 
     /**
@@ -671,6 +680,29 @@ final class GlossaryRepository
         }
 
         return $glossaries;
+    }
+
+    /**
+     * Tells whether a folder still holds a glossary record of the DeepL glossary API v2, which
+     * stored one record per language pair.
+     *
+     * @todo Remove together with {@see MigrateToMultilingualGlossaryWizard}.
+     *
+     * @throws DBALException
+     */
+    public function hasGlossaryRecordOfApiV2(int $pageId): bool
+    {
+        $queryBuilder = $this->connectionPool->getQueryBuilderForTable('tx_deepltranslate_glossary');
+
+        return $queryBuilder
+            ->count('uid')
+            ->from('tx_deepltranslate_glossary')
+            ->where(
+                $queryBuilder->expr()->eq('pid', $queryBuilder->createNamedParameter($pageId, Connection::PARAM_INT)),
+                $queryBuilder->expr()->neq('source_lang', $queryBuilder->createNamedParameter('', Connection::PARAM_STR))
+            )
+            ->executeQuery()
+            ->fetchOne() > 0;
     }
 
     /**

@@ -22,7 +22,7 @@ use TYPO3\CMS\Core\Locking\LockFactory;
 use TYPO3\CMS\Core\Locking\LockingStrategyInterface;
 use TYPO3\CMS\Core\Log\LogManager;
 use TYPO3\CMS\Core\Log\LogRecord;
-use TYPO3\CMS\Core\Site\SiteFinder;
+use TYPO3\CMS\Core\Registry;
 use WebVision\Deepltranslate\Core\Client\DeepLClientFactoryInterface;
 use WebVision\Deepltranslate\Glossary\Client\GlossaryAPIV3ClientInterface;
 use WebVision\Deepltranslate\Glossary\Domain\Repository\GlossaryRepository;
@@ -32,6 +32,7 @@ use WebVision\Deepltranslate\Glossary\Service\MultilingualGlossaryService;
 use WebVision\Deepltranslate\Glossary\Tests\Functional\AbstractDeepLTestCase;
 use WebVision\Deepltranslate\Glossary\Tests\Functional\Service\Fixtures\CollectingLogWriter;
 use WebVision\Deepltranslate\Glossary\Tests\Functional\Service\Fixtures\ConcurrentlyDeletingGlossaryClient;
+use WebVision\Deepltranslate\Glossary\Upgrade\MigrateToMultilingualGlossaryWizard;
 
 /**
  * Synchronising a glossary folder has to end up with exactly one persistent DeepL glossary
@@ -175,7 +176,7 @@ final class MultilingualGlossarySyncTest extends AbstractDeepLTestCase
             $this->get(CacheManager::class)->getCache('deepltranslate_glossary'),
             new ConcurrentlyDeletingGlossaryClient(new NullLogger(), $this->get(DeepLClientFactoryInterface::class)),
             $this->get(GlossaryRepository::class),
-            $this->get(SiteFinder::class),
+            $this->get(Registry::class),
             $this->get(LockFactory::class),
         );
 
@@ -377,6 +378,39 @@ final class MultilingualGlossarySyncTest extends AbstractDeepLTestCase
         $subject->syncGlossary(2);
 
         self::assertSame([], $this->fetchGlossaryRecords());
+    }
+
+    #[Test]
+    public function folderWithGlossaryOfApiV2IsNotSyncedBeforeTheMigration(): void
+    {
+        $this->insertGlossaryRecordOfApiV2('3f2b0000-0000-0000-0000-000000000002');
+        $subject = $this->get(MultilingualGlossaryService::class);
+
+        try {
+            $subject->syncGlossary(2);
+            self::fail('A folder still holding glossaries of the API v2 has to be migrated first.');
+        } catch (GlossaryFolderNotSyncableException $exception) {
+            self::assertSame(1791130218, $exception->getCode());
+        }
+
+        // The upgrade wizard removes the glossaries it finds stored, a newly published one included.
+        $glossaries = $this->fetchGlossaryRecords();
+        self::assertCount(1, $glossaries);
+        self::assertSame('3f2b0000-0000-0000-0000-000000000002', $glossaries[0]['glossary_id']);
+        self::assertSame([], $this->fetchDictionaryRecords());
+    }
+
+    #[Test]
+    public function folderWithGlossaryOfApiV2IsSyncedAfterTheMigration(): void
+    {
+        // The deprecated API v2 handling may still create such a record after the migration.
+        $this->insertGlossaryRecordOfApiV2('');
+        $this->get(Registry::class)->set('installUpdate', MigrateToMultilingualGlossaryWizard::class, 1);
+        $subject = $this->get(MultilingualGlossaryService::class);
+
+        $subject->syncGlossary(2);
+
+        self::assertCount(1, $this->fetchDictionaryRecords());
     }
 
     #[Test]
@@ -624,6 +658,20 @@ final class MultilingualGlossarySyncTest extends AbstractDeepLTestCase
             )
             ->executeQuery()
             ->fetchOne();
+    }
+
+    private function insertGlossaryRecordOfApiV2(string $glossaryId): void
+    {
+        $this->get(ConnectionPool::class)
+            ->getConnectionForTable('tx_deepltranslate_glossary')
+            ->insert('tx_deepltranslate_glossary', [
+                'pid' => 2,
+                'glossary_id' => $glossaryId,
+                'glossary_name' => 'Glossary: en => de',
+                'glossary_ready' => 1,
+                'source_lang' => 'en',
+                'target_lang' => 'de',
+            ]);
     }
 
     private function assertGlossaryKept(string $glossaryId): void

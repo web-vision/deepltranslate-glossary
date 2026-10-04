@@ -64,6 +64,10 @@ publishes the folder through the API v3 and creates its dictionaries. Run the
 synchronization of every glossary folder after the wizard, either through the
 backend or with :bash:`deepl:glossary:sync`.
 
+Until the wizard ran, a folder still holding glossaries of the API v2 is not
+synchronized. The synchronization fails with a message naming the wizard, as
+the wizard would otherwise remove the glossary published in the meantime.
+
 The wizard migrates the records even when no API key is configured or DeepL
 cannot be reached. The glossaries then stay on the DeepL account. The wizard
 logs the id of each of them, remove them one by one with
