@@ -7,6 +7,7 @@ namespace WebVision\Deepltranslate\Glossary\Tests\Functional\Domain\Repository;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+use WebVision\Deepltranslate\Glossary\Domain\Repository\GlossaryEntryRepository;
 use WebVision\Deepltranslate\Glossary\Domain\Repository\GlossaryRepository;
 use WebVision\Deepltranslate\Glossary\Tests\Functional\AbstractDeepLTestCase;
 
@@ -30,6 +31,9 @@ final class RepositoryInstantiationTest extends AbstractDeepLTestCase
     {
         yield 'glossary repository' => [
             'className' => GlossaryRepository::class,
+        ];
+        yield 'glossary entry repository' => [
+            'className' => GlossaryEntryRepository::class,
         ];
     }
 }
