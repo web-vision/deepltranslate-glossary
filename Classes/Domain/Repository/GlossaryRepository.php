@@ -903,15 +903,25 @@ final class GlossaryRepository
         }
     }
 
+    /**
+     * Marks the glossary of a folder and its dictionaries as no longer matching the terms.
+     */
     public function setGlossaryNotSyncOnPage(int $pageId): void
     {
         $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)
             ->getQueryBuilderForTable('tx_deepltranslate_glossary');
-
         $queryBuilder->update('tx_deepltranslate_glossary')
             ->set('glossary_ready', 0)
             ->where(
-                $queryBuilder->expr()->eq('pid', $pageId)
+                $queryBuilder->expr()->eq('pid', $queryBuilder->createNamedParameter($pageId, Connection::PARAM_INT))
+            )->executeStatement();
+
+        $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)
+            ->getQueryBuilderForTable('tx_deepltranslate_glossarydictionary');
+        $queryBuilder->update('tx_deepltranslate_glossarydictionary')
+            ->set('in_sync', 0)
+            ->where(
+                $queryBuilder->expr()->eq('pid', $queryBuilder->createNamedParameter($pageId, Connection::PARAM_INT))
             )->executeStatement();
     }
 }

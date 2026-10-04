@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace WebVision\Deepltranslate\Glossary\Domain\Repository;
 
+use Symfony\Component\DependencyInjection\Attribute\Autoconfigure;
 use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 // @todo Consider to rename/move this as service class.
+#[Autoconfigure(public: true)]
 final class GlossaryEntryRepository
 {
     /**
