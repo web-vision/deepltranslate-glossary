@@ -55,8 +55,9 @@ for the configured API key. A record whose DeepL glossary no longer exists is
 detached: its glossary ID is removed, so the next synchronisation creates the
 glossary again. Nothing is deleted at DeepL.
 
-When DeepL lists no glossary at all, or the list cannot be fetched, nothing is
-detached and the command shows a warning. Check the log in that case.
+When DeepL lists no glossary at all, nothing is detached and the command shows
+a warning. Check the configured API key in that case. When the list cannot be
+fetched, the command fails without detaching anything.
 
 ..  _sync-cli:
 

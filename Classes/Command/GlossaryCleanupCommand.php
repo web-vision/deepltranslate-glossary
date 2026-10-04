@@ -181,13 +181,14 @@ final class GlossaryCleanupCommand extends Command
             $io->info('No glossaries with sync mismatch.');
             return;
         }
+        // A failing request to DeepL throws, so the command stops before anything is detached.
         $remoteGlossaries = $this->client->getAllGlossaries();
         if ($remoteGlossaries === []) {
-            // The client returns no glossary as well when DeepL could not be asked. Detaching every
-            // record then would orphan glossaries DeepL still holds.
+            // An account without any glossary, typically another API key than the one the
+            // records were synchronised with. Detaching every record then would orphan
+            // glossaries the other account still holds.
             $io->warning(
-                'DeepL lists no glossary for this API key, or the list could not be fetched (see the log).'
-                . ' Nothing was detached.'
+                'DeepL lists no glossary for this API key. Nothing was detached, check the configured API key.'
             );
             return;
         }

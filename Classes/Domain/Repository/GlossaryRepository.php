@@ -695,9 +695,7 @@ final class GlossaryRepository
 
     /**
      * @return list<array{uid: int, glossary_id: string}>
-     * @throws Exception
      * @throws \Doctrine\DBAL\Exception
-     * @throws DBALException
      */
     public function getGlossariesDeeplConnected(): array
     {

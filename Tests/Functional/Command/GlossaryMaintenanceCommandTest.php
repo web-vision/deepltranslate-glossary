@@ -128,6 +128,51 @@ final class GlossaryMaintenanceCommandTest extends AbstractDeepLTestCase
         $client->deleteGlossary($refusedGlossaryId);
     }
 
+    #[Test]
+    public function cleanupOfUnsyncedGlossariesDetachesOnlyRecordsUnknownToDeepl(): void
+    {
+        $this->importCSVDataSet(__DIR__ . '/Fixtures/staleGlossary.csv');
+        $syncedGlossaryId = $this->fetchGlossaryId();
+        $commandTester = new CommandTester($this->get(GlossaryCleanupCommand::class));
+        $commandTester->setInputs(['yes']);
+
+        $exitCode = $commandTester->execute(['--notinsync' => true]);
+
+        self::assertSame(Command::SUCCESS, $exitCode);
+        self::assertSame('', $this->fetchGlossaryIdByUid(100));
+        self::assertSame(0, $this->countDictionaryRecordsOfGlossary(100));
+        // A glossary DeepL still knows is in sync and has to stay attached to its folder.
+        self::assertSame($syncedGlossaryId, $this->fetchGlossaryId());
+        self::assertCount(1, $this->get(GlossaryAPIV3ClientInterface::class)->getAllGlossaries());
+    }
+
+    /**
+     * An account listing no glossary at all, for example because another API key is configured,
+     * must not make every record look stale.
+     */
+    #[Test]
+    public function cleanupOfUnsyncedGlossariesDetachesNothingWhenDeeplListsNoGlossary(): void
+    {
+        $this->importCSVDataSet(__DIR__ . '/Fixtures/staleGlossary.csv');
+        $syncedGlossaryId = $this->fetchGlossaryId();
+        $client = $this->get(GlossaryAPIV3ClientInterface::class);
+        // The mock server keeps the glossaries of earlier tests, remove every one of them.
+        foreach ($client->getAllGlossaries() as $remoteGlossary) {
+            $client->deleteGlossary($remoteGlossary->glossaryId);
+        }
+        self::assertSame([], $client->getAllGlossaries());
+        $commandTester = new CommandTester($this->get(GlossaryCleanupCommand::class));
+        $commandTester->setInputs(['yes']);
+
+        $exitCode = $commandTester->execute(['--notinsync' => true]);
+
+        self::assertSame(Command::SUCCESS, $exitCode);
+        self::assertStringContainsString('Nothing was detached', $commandTester->getDisplay());
+        self::assertSame('3f2b0000-0000-0000-0000-00000000dead', $this->fetchGlossaryIdByUid(100));
+        self::assertSame(1, $this->countDictionaryRecordsOfGlossary(100));
+        self::assertSame($syncedGlossaryId, $this->fetchGlossaryId());
+    }
+
     private function fetchGlossaryId(): string
     {
         $queryBuilder = $this->get(ConnectionPool::class)
@@ -154,6 +199,42 @@ final class GlossaryMaintenanceCommandTest extends AbstractDeepLTestCase
         return (int)$queryBuilder
             ->count('uid')
             ->from('tx_deepltranslate_glossarydictionary')
+            ->executeQuery()
+            ->fetchOne();
+    }
+
+    private function fetchGlossaryIdByUid(int $uid): string
+    {
+        $queryBuilder = $this->get(ConnectionPool::class)
+            ->getQueryBuilderForTable('tx_deepltranslate_glossary');
+
+        return (string)$queryBuilder
+            ->select('glossary_id')
+            ->from('tx_deepltranslate_glossary')
+            ->where(
+                $queryBuilder->expr()->eq(
+                    'uid',
+                    $queryBuilder->createNamedParameter($uid, Connection::PARAM_INT)
+                )
+            )
+            ->executeQuery()
+            ->fetchOne();
+    }
+
+    private function countDictionaryRecordsOfGlossary(int $glossaryUid): int
+    {
+        $queryBuilder = $this->get(ConnectionPool::class)
+            ->getQueryBuilderForTable('tx_deepltranslate_glossarydictionary');
+
+        return (int)$queryBuilder
+            ->count('uid')
+            ->from('tx_deepltranslate_glossarydictionary')
+            ->where(
+                $queryBuilder->expr()->eq(
+                    'glossary',
+                    $queryBuilder->createNamedParameter($glossaryUid, Connection::PARAM_INT)
+                )
+            )
             ->executeQuery()
             ->fetchOne();
     }
