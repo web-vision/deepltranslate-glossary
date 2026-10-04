@@ -78,13 +78,7 @@ final class GlossarySyncController
         }
 
         try {
-            $this->multilingualGlossaryService->syncGlossary($pageId);
-            $this->flashMessageService->getMessageQueueByIdentifier()->enqueue(new FlashMessage(
-                $this->languageService->sL('LLL:EXT:deepltranslate_glossary/Resources/Private/Language/locallang.xlf:glossary.sync.message'),
-                $this->languageService->sL('LLL:EXT:deepltranslate_glossary/Resources/Private/Language/locallang.xlf:glossary.sync.title'),
-                ContextualFeedbackSeverity::OK,
-                true
-            ));
+            $this->reportSynchronisedFolder($this->multilingualGlossaryService->syncGlossary($pageId));
         } catch (GlossaryFolderNotSyncableException $exception) {
             $this->flashMessageService->getMessageQueueByIdentifier()->enqueue(new FlashMessage(
                 $exception->getMessage(),
@@ -145,6 +139,26 @@ final class GlossarySyncController
 
         // "web_list" is the list module of TYPO3 v13 and an alias of the records module of v14.
         return (string)$this->uriBuilder->buildUriFromRoute('web_list', $pageId > 0 ? ['id' => $pageId] : []);
+    }
+
+    private function reportSynchronisedFolder(bool $hasGlossary): void
+    {
+        if (!$hasGlossary) {
+            $this->flashMessageService->getMessageQueueByIdentifier()->enqueue(new FlashMessage(
+                $this->languageService->sL('LLL:EXT:deepltranslate_glossary/Resources/Private/Language/locallang.xlf:glossary.sync.message.removed'),
+                $this->languageService->sL('LLL:EXT:deepltranslate_glossary/Resources/Private/Language/locallang.xlf:glossary.sync.title.removed'),
+                ContextualFeedbackSeverity::INFO,
+                true
+            ));
+            return;
+        }
+
+        $this->flashMessageService->getMessageQueueByIdentifier()->enqueue(new FlashMessage(
+            $this->languageService->sL('LLL:EXT:deepltranslate_glossary/Resources/Private/Language/locallang.xlf:glossary.sync.message'),
+            $this->languageService->sL('LLL:EXT:deepltranslate_glossary/Resources/Private/Language/locallang.xlf:glossary.sync.title'),
+            ContextualFeedbackSeverity::OK,
+            true
+        ));
     }
 
     private function getBackendUser(): ?BackendUserAuthentication

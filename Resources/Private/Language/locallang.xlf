@@ -100,6 +100,12 @@
             <trans-unit id="glossary.sync.message">
                 <source>Synchronization with DeepL is done. Your glossaries are ready to use.</source>
             </trans-unit>
+            <trans-unit id="glossary.sync.title.removed">
+                <source>DeepL glossary removed</source>
+            </trans-unit>
+            <trans-unit id="glossary.sync.message.removed">
+                <source>The folder holds no terms, so its glossary was removed from DeepL. Translations no longer use a glossary of this folder.</source>
+            </trans-unit>
             <trans-unit id="glossary.sync.title.invalid">
                 <source>DeepL glossary sync invalid</source>
             </trans-unit>

@@ -39,6 +39,11 @@ warning.
 A glossary folder synchronizes successfully even when single term pairs are
 incomplete. Those pairs are skipped silently instead of failing the folder.
 
+When the terms of a folder form no complete pair at all, for example because
+the folder is no longer translated, the synchronization fails with a message,
+and translations keep using the glossary synchronized before. Only a folder
+without any term removes its glossary from DeepL.
+
 Affected installations
 ======================
 
