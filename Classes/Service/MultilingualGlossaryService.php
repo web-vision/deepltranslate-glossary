@@ -11,6 +11,8 @@ use DeepL\MultilingualGlossaryDictionaryInfo;
 use DeepL\MultilingualGlossaryInfo;
 use Doctrine\DBAL\Exception as DBALException;
 use Symfony\Component\DependencyInjection\Attribute\Autoconfigure;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
+use TYPO3\CMS\Core\Cache\Frontend\FrontendInterface;
 use WebVision\Deepltranslate\Glossary\Client\GlossaryAPIV3ClientInterface;
 use WebVision\Deepltranslate\Glossary\Domain\Repository\GlossaryRepository;
 
@@ -21,6 +23,8 @@ use WebVision\Deepltranslate\Glossary\Domain\Repository\GlossaryRepository;
 final class MultilingualGlossaryService
 {
     public function __construct(
+        #[Autowire(service: 'cache.deepltranslate_glossary')]
+        private readonly FrontendInterface $cache,
         private readonly GlossaryAPIV3ClientInterface $client,
         private readonly GlossaryRepository $glossaryRepository,
     ) {
@@ -36,7 +40,7 @@ final class MultilingualGlossaryService
      */
     public function syncGlossary(int $pageId): void
     {
-        $dictionaries = $this->buildDictionaries($this->glossaryRepository->getDictionaryDataForSync($pageId));
+        $dictionaries = $this->buildDictionaries($this->glossaryRepository->getDictionaryDataForSync($pageId, $this->getPossibleLanguagePairs()));
         if ($dictionaries === []) {
             $record = $this->glossaryRepository->findGlossaryRecord($pageId);
             if ($record !== null) {
@@ -77,6 +81,36 @@ final class MultilingualGlossaryService
         } catch (DeepLException) {
             // The failure to store the glossary is the one to report, the client logged this one.
         }
+    }
+
+    /**
+     * Returns the language pairs DeepL supports glossaries for, as target languages by source
+     * language.
+     *
+     * DeepL always supports some pairs, so an empty answer is neither cached nor trusted from the
+     * cache, and is fetched again instead.
+     *
+     * @return array<string, array<array-key, string>>
+     *
+     * @throws DeepLException
+     */
+    public function getPossibleLanguagePairs(): array
+    {
+        $cacheIdentifier = 'wv-deepl-glossary-pairs';
+        $languagePairs = $this->cache->get($cacheIdentifier);
+        if (is_array($languagePairs) && $languagePairs !== []) {
+            return $languagePairs;
+        }
+
+        $languagePairs = [];
+        foreach ($this->client->getGlossaryLanguagePairs() as $languagePair) {
+            $languagePairs[$languagePair->sourceLang][] = $languagePair->targetLang;
+        }
+        if ($languagePairs !== []) {
+            $this->cache->set($cacheIdentifier, $languagePairs);
+        }
+
+        return $languagePairs;
     }
 
     /**

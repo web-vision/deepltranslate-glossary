@@ -193,13 +193,14 @@ final class GlossaryRepository
      * any record. Used by the glossary API v3 synchronisation, which needs the dictionaries of
      * a folder before it knows whether a glossary has to be created at all.
      *
+     * @param array<string, array<array-key, string>> $languagePairs target languages by source language
      * @return array<int, array{sourceLanguage: string, targetLanguage: string, entries: array<string, string>}>
      *
      * @throws DBALException
      * @throws Exception
      * @throws SiteNotFoundException
      */
-    public function getDictionaryDataForSync(int $pageId): array
+    public function getDictionaryDataForSync(int $pageId, array $languagePairs): array
     {
         $localizationArray = $this->collectTermsByLanguage($pageId);
         if ($localizationArray === []) {
@@ -209,7 +210,7 @@ final class GlossaryRepository
         $sourceLangIsoCode = (string)array_key_first($localizationArray);
 
         $dictionaries = [];
-        foreach ($this->getPossibleLanguagePairs() as $sourceLang => $availableTargets) {
+        foreach ($languagePairs as $sourceLang => $availableTargets) {
             foreach ($availableTargets as $targetLang) {
                 if ($targetLang === $sourceLangIsoCode) {
                     continue;
@@ -468,15 +469,6 @@ final class GlossaryRepository
         }
 
         return $terms;
-    }
-
-    /**
-     * @return array<string, array<array-key, string>>
-     */
-    private function getPossibleLanguagePairs(): array
-    {
-        return GeneralUtility::makeInstance(DeeplGlossaryService::class)
-            ->getPossibleGlossaryLanguageConfig();
     }
 
     /**
