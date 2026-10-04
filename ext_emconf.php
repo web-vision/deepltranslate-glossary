@@ -3,7 +3,7 @@
 $EM_CONF[$_EXTKEY] = [
     'title' => 'DeepL Translate: Glossary',
     'description' => 'Add-on providing glossary functionality',
-    'version' => '6.0.3',
+    'version' => '6.1.0',
     'category' => 'backend',
     'state' => 'stable',
     'author' => 'web-vision GmbH Team',
@@ -15,7 +15,7 @@ $EM_CONF[$_EXTKEY] = [
             'typo3' => '13.4.34-14.3.99',
             'backend' => '13.4.34-14.3.99',
             'install' => '13.4.34-14.3.99',
-            'deepltranslate_core' => '6.0.7-6.0.99',
+            'deepltranslate_core' => '6.1.0-6.1.99',
         ],
         'conflicts' => [
             'wv_deepltranslate' => '',

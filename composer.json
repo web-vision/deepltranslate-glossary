@@ -50,7 +50,7 @@
 		"typo3/cms-backend": "~13.4.34@dev || ~14.3.6@dev",
 		"typo3/cms-core": "~13.4.34@dev || ~14.3.6@dev",
 		"typo3/cms-install": "~13.4.34@dev || ~14.3.6@dev",
-		"web-vision/deepltranslate-core": "~6.0.7@dev"
+		"web-vision/deepltranslate-core": "~6.1.0@dev"
 	},
 	"require-dev": {
 		"friendsofphp/php-cs-fixer": "^3.95.0",
@@ -112,7 +112,7 @@
 			"app-dir": ".Build",
 			"extension-key": "deepltranslate_glossary",
 			"web-dir": ".Build/Web",
-			"version": "6.0.3-dev",
+			"version": "6.1.0-dev",
 			"Package": {
 				"providesPackages": []
 			}
@@ -125,7 +125,7 @@
 			}
 		},
 		"branch-alias": {
-			"dev-main": "6.0.x-dev"
+			"dev-main": "6.1.x-dev"
 		}
 	},
 	"prefer-stable": true,

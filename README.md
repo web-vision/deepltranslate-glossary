@@ -24,7 +24,7 @@ This extension provides glossary-flavoured translations for the TYPO3 extension
 
 | Branch | State                       | Composer Package Name              | TYPO3 Extension Key     | Version       | TYPO3      | PHP                                          |
 |--------|-----------------------------|------------------------------------|-------------------------|---------------|------------|----------------------------------------------|
-| main   | development, active support | web-vision/deepltranslate-glossary | deepltranslate_glossary | ^6, 6.0.x-dev | v13 + v14  | 8.2, 8.3, 8.4, 8.5 (depending on TYPO3)      |
+| main   | development, active support | web-vision/deepltranslate-glossary | deepltranslate_glossary | ^6, 6.1.x-dev | v13 + v14  | 8.2, 8.3, 8.4, 8.5 (depending on TYPO3)      |
 | 5      | active support              | web-vision/deepltranslate-glossary | deepltranslate_glossary | ^5, 5.1.x-dev | v12 + v13  | 8.1, 8.2, 8.3, 8.4, 8.5 (depending on TYPO3) |
 
 ## Features
@@ -47,8 +47,8 @@ We prefer composer installation:
 
 ```bash
 composer require -W \
-  'web-vision/deepltranslate-core':'~6.0.0@dev' \
-  'web-vision/deepltranslate-glossary':'~6.0.0@dev'
+  'web-vision/deepltranslate-core':'~6.1.0@dev' \
+  'web-vision/deepltranslate-glossary':'~6.1.0@dev'
 ```
 
 > [!NOTE]
