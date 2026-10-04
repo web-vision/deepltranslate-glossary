@@ -53,22 +53,26 @@ final class GlossarySyncCommand extends Command
         $io = new SymfonyStyle($input, $output);
         $io->title('Glossary Sync');
 
-        try {
-            $pageId = $input->getOption('pageId');
-            if ($pageId !== null) {
-                $glossaries[] = ['uid' => (int)$pageId];
-            } else {
-                $glossaries = $this->glossaryRepository->findAllGlossaries();
-            }
+        $pageId = $input->getOption('pageId');
+        $glossaries = $pageId !== null
+            ? [['uid' => (int)$pageId]]
+            : $this->glossaryRepository->findAllGlossaries();
 
-            $io->progressStart(count($glossaries));
-            foreach ($glossaries as $glossary) {
+        $errors = [];
+        $io->progressStart(count($glossaries));
+        foreach ($glossaries as $glossary) {
+            // A failing folder must not keep the remaining folders from being synchronised.
+            try {
                 $this->multilingualGlossaryService->syncGlossary((int)$glossary['uid']);
-                $io->progressAdvance();
+            } catch (Exception $exception) {
+                $errors[] = sprintf('Page %d: %s (%s)', $glossary['uid'], $exception->getMessage(), $exception->getCode());
             }
-            $io->progressFinish();
-        } catch (Exception $exception) {
-            $io->error(sprintf('%s (%s)', $exception->getMessage(), $exception->getCode()));
+            $io->progressAdvance();
+        }
+        $io->progressFinish();
+
+        if ($errors !== []) {
+            $io->error($errors);
             return Command::FAILURE;
         }
 

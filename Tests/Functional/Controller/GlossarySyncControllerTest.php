@@ -104,4 +104,39 @@ final class GlossarySyncControllerTest extends AbstractDeepLTestCase
             $messages[0]->getMessage()
         );
     }
+
+    #[Test]
+    public function folderNotConfiguredAsGlossaryIsRejected(): void
+    {
+        $this->importCSVDataSet(__DIR__ . '/Fixtures/plainSysfolder.csv');
+        $request = (new ServerRequest('https://localhost/typo3/glossary/sync'))
+            ->withQueryParams([
+                'uid' => '5',
+                'returnUrl' => '/typo3/module/web/list?id=5',
+            ]);
+
+        $this->get(GlossarySyncController::class)->update($request);
+
+        $messages = $this->get(FlashMessageService::class)->getMessageQueueByIdentifier()->getAllMessages();
+        self::assertCount(1, $messages);
+        self::assertSame(ContextualFeedbackSeverity::ERROR, $messages[0]->getSeverity());
+    }
+
+    #[Test]
+    public function glossaryFolderOutsideAnySiteIsReportedAsFlashMessage(): void
+    {
+        $this->importCSVDataSet(__DIR__ . '/../Service/Fixtures/glossaryFolderOutsideAnySite.csv');
+        $request = (new ServerRequest('https://localhost/typo3/glossary/sync'))
+            ->withQueryParams([
+                'uid' => '21',
+                'returnUrl' => '/typo3/module/web/list?id=21',
+            ]);
+
+        $response = $this->get(GlossarySyncController::class)->update($request);
+
+        self::assertSame('/typo3/module/web/list?id=21', $response->getHeaderLine('location'));
+        $messages = $this->get(FlashMessageService::class)->getMessageQueueByIdentifier()->getAllMessages();
+        self::assertCount(1, $messages);
+        self::assertSame(ContextualFeedbackSeverity::ERROR, $messages[0]->getSeverity());
+    }
 }

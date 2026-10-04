@@ -7,9 +7,7 @@ namespace WebVision\Deepltranslate\Glossary\Controller;
 use DeepL\DeepLException;
 use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Backend\Attribute\AsController;
-use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
-use TYPO3\CMS\Core\Domain\Repository\PageRepository;
 use TYPO3\CMS\Core\Exception;
 use TYPO3\CMS\Core\Http\RedirectResponse;
 use TYPO3\CMS\Core\Localization\LanguageService;
@@ -19,6 +17,7 @@ use TYPO3\CMS\Core\Messaging\FlashMessageService;
 use TYPO3\CMS\Core\Type\ContextualFeedbackSeverity;
 use WebVision\Deepltranslate\Core\Exception\ApiKeyNotSetException;
 use WebVision\Deepltranslate\Core\Exception\InvalidArgumentException;
+use WebVision\Deepltranslate\Glossary\Exception\GlossaryFolderNotSyncableException;
 use WebVision\Deepltranslate\Glossary\Service\MultilingualGlossaryService;
 
 /**
@@ -61,25 +60,19 @@ final class GlossarySyncController
             return new RedirectResponse($processingParameters['returnUrl']);
         }
 
-        // Check page configuration of glossary type
-        /** @var array{uid: int, doktype: string|int, module: string} $pages */
-        $pages = BackendUtility::getRecord('pages', (int)$processingParameters['uid']);
-        if ((int)$pages['doktype'] !== PageRepository::DOKTYPE_SYSFOLDER && $pages['module'] !== 'glossary') {
-            $this->flashMessageService->getMessageQueueByIdentifier()->enqueue(new FlashMessage(
-                sprintf('Page "%d" not configured for glossary synchronization.', $pages['uid']),
-                $this->languageService->sL('LLL:EXT:deepltranslate_glossary/Resources/Private/Language/locallang.xlf:glossary.sync.title.invalid'),
-                ContextualFeedbackSeverity::ERROR,
-                true
-            ));
-            return new RedirectResponse($processingParameters['returnUrl']);
-        }
-
         try {
             $this->multilingualGlossaryService->syncGlossary((int)$processingParameters['uid']);
             $this->flashMessageService->getMessageQueueByIdentifier()->enqueue(new FlashMessage(
                 $this->languageService->sL('LLL:EXT:deepltranslate_glossary/Resources/Private/Language/locallang.xlf:glossary.sync.message'),
                 $this->languageService->sL('LLL:EXT:deepltranslate_glossary/Resources/Private/Language/locallang.xlf:glossary.sync.title'),
                 ContextualFeedbackSeverity::OK,
+                true
+            ));
+        } catch (GlossaryFolderNotSyncableException $exception) {
+            $this->flashMessageService->getMessageQueueByIdentifier()->enqueue(new FlashMessage(
+                $exception->getMessage(),
+                $this->languageService->sL('LLL:EXT:deepltranslate_glossary/Resources/Private/Language/locallang.xlf:glossary.sync.title.invalid'),
+                ContextualFeedbackSeverity::ERROR,
                 true
             ));
         } catch (DeepLException|ApiKeyNotSetException) {

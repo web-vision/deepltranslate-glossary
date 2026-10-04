@@ -342,12 +342,39 @@ final class GlossaryRepository
         $localizationArray = [
             $site->getDefaultLanguage()->getLocale()->getLanguageCode() => $this->normalizeTerms($entries),
         ];
+        $siteLanguages = $site->getAllLanguages();
         foreach ($this->getAvailableLocalizations($pageId) as $localizationLanguageId) {
-            $localizationArray[$this->getTargetLanguageIsoCode($site, $localizationLanguageId)]
+            // A translation in a language removed from the site configuration has no language code.
+            if (!isset($siteLanguages[$localizationLanguageId])) {
+                continue;
+            }
+            $localizationArray[$siteLanguages[$localizationLanguageId]->getLocale()->getLanguageCode()]
                 = $this->normalizeTerms($this->getLocalizedEntries($pageId, $localizationLanguageId));
         }
 
         return $localizationArray;
+    }
+
+    /**
+     * Tells whether a page is a visible folder set up as glossary, the only kind of page
+     * synchronised to DeepL. A hidden folder is left out, as its glossary is not used either, and
+     * so is a translation of a folder, as the terms of every language belong to the folder itself.
+     */
+    public function isGlossaryFolder(int $pageId): bool
+    {
+        $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)->getQueryBuilderForTable('pages');
+
+        return $queryBuilder
+            ->count('uid')
+            ->from('pages')
+            ->where(
+                $queryBuilder->expr()->eq('uid', $queryBuilder->createNamedParameter($pageId, Connection::PARAM_INT)),
+                $queryBuilder->expr()->eq('doktype', $queryBuilder->createNamedParameter(PageRepository::DOKTYPE_SYSFOLDER, Connection::PARAM_INT)),
+                $queryBuilder->expr()->eq('module', $queryBuilder->createNamedParameter('glossary', Connection::PARAM_STR)),
+                $queryBuilder->expr()->eq('sys_language_uid', $queryBuilder->createNamedParameter(0, Connection::PARAM_INT))
+            )
+            ->executeQuery()
+            ->fetchOne() > 0;
     }
 
     /**
@@ -470,7 +497,9 @@ final class GlossaryRepository
         return $db->select(
             ['uid'],
             'pages',
-            $identifiers
+            $identifiers,
+            [],
+            ['uid' => 'ASC']
         )->fetchAllAssociative() ?: [];
     }
 
