@@ -10,6 +10,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use Psr\Log\NullLogger;
 use SBUERK\TYPO3\Testing\SiteHandling\SiteBasedTestTrait;
+use TYPO3\CMS\Core\Cache\CacheManager;
 use TYPO3\CMS\Core\Context\Context;
 use TYPO3\CMS\Core\Context\DateTimeAspect;
 use TYPO3\CMS\Core\Database\Connection;
@@ -160,6 +161,7 @@ final class MultilingualGlossarySyncTest extends AbstractDeepLTestCase
         // Only the client is replaced, to remove the obsolete dictionary right before the sync
         // does, as a concurrent synchronisation would.
         $subject = new MultilingualGlossaryService(
+            $this->get(CacheManager::class)->getCache('deepltranslate_glossary'),
             new ConcurrentlyDeletingGlossaryClient(new NullLogger(), $this->get(DeepLClientFactoryInterface::class)),
             $this->get(GlossaryRepository::class),
         );
@@ -270,6 +272,19 @@ final class MultilingualGlossarySyncTest extends AbstractDeepLTestCase
         self::assertCount(1, $glossaries);
         self::assertSame('', $glossaries[0]['glossary_id']);
         self::assertSame([], $this->fetchDictionaryRecords());
+    }
+
+    #[Test]
+    public function cachedEmptyLanguagePairsAreFetchedAgain(): void
+    {
+        $cache = $this->get(CacheManager::class)->getCache('deepltranslate_glossary');
+        $cache->set('wv-deepl-glossary-pairs', []);
+        $subject = $this->get(MultilingualGlossaryService::class);
+
+        $subject->syncGlossary(2);
+
+        self::assertNotSame('', $this->fetchGlossaryRecords()[0]['glossary_id'] ?? '');
+        self::assertNotSame([], $cache->get('wv-deepl-glossary-pairs'));
     }
 
     #[Test]
