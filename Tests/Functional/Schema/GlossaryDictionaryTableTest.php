@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace WebVision\Deepltranslate\Glossary\Tests\Functional\Schema;
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
@@ -43,6 +44,75 @@ final class GlossaryDictionaryTableTest extends AbstractDeepLTestCase
         self::assertSame('en', $dictionaries[1]['source_lang']);
         self::assertSame('fr', $dictionaries[1]['target_lang']);
         self::assertSame(0, (int)$dictionaries[1]['in_sync']);
+    }
+
+    /**
+     * Every translation resolves its glossary by language pair through the dictionaries, joined on
+     * the glossary they belong to.
+     *
+     * @return \Generator<string, array{columns: list<string>}>
+     */
+    public static function indexedLookupColumns(): \Generator
+    {
+        yield 'glossary the dictionary belongs to' => [
+            'columns' => ['glossary'],
+        ];
+        yield 'language pair of the dictionary' => [
+            'columns' => ['source_lang', 'target_lang'],
+        ];
+    }
+
+    /**
+     * @param list<string> $columns
+     */
+    #[Test]
+    #[DataProvider('indexedLookupColumns')]
+    public function dictionaryLookupColumnsAreIndexed(array $columns): void
+    {
+        $indexes = $this->get(ConnectionPool::class)
+            ->getConnectionForTable('tx_deepltranslate_glossarydictionary')
+            ->createSchemaManager()
+            ->listTableIndexes('tx_deepltranslate_glossarydictionary');
+
+        $indexedColumns = [];
+        foreach ($indexes as $index) {
+            $indexedColumns[] = $index->getColumns();
+        }
+        self::assertContains($columns, $indexedColumns);
+    }
+
+    /**
+     * These columns were nullable in released versions. Deriving them from the TCA would make
+     * them NOT NULL, which fails the database compare of an instance holding a NULL value.
+     *
+     * @return \Generator<string, array{table: string, column: string}>
+     */
+    public static function formerlyNullableColumns(): \Generator
+    {
+        yield 'term of a glossary entry' => [
+            'table' => 'tx_deepltranslate_glossaryentry',
+            'column' => 'term',
+        ];
+        yield 'DeepL id of a glossary' => [
+            'table' => 'tx_deepltranslate_glossary',
+            'column' => 'glossary_id',
+        ];
+        yield 'ready state of a glossary' => [
+            'table' => 'tx_deepltranslate_glossary',
+            'column' => 'glossary_ready',
+        ];
+    }
+
+    #[Test]
+    #[DataProvider('formerlyNullableColumns')]
+    public function formerlyNullableColumnStaysNullable(string $table, string $column): void
+    {
+        $columns = $this->get(ConnectionPool::class)
+            ->getConnectionForTable($table)
+            ->createSchemaManager()
+            ->listTableColumns($table);
+
+        self::assertFalse($columns[$column]->getNotnull());
     }
 
     #[Test]
