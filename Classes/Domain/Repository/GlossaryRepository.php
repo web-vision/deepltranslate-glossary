@@ -18,7 +18,6 @@ use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\QueryBuilder;
 use TYPO3\CMS\Core\Domain\Repository\PageRepository;
 use TYPO3\CMS\Core\Exception\SiteNotFoundException;
-use TYPO3\CMS\Core\Site\Entity\Site;
 use TYPO3\CMS\Core\Site\SiteFinder;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use WebVision\Deepltranslate\Core\Domain\Dto\CurrentPage;
@@ -26,6 +25,7 @@ use WebVision\Deepltranslate\Glossary\Domain\Dto\Glossary;
 use WebVision\Deepltranslate\Glossary\Service\DeeplGlossaryService;
 use WebVision\Deepltranslate\Glossary\Service\GlossaryNameService;
 use WebVision\Deepltranslate\Glossary\Service\GlossaryTermSanitizer;
+use WebVision\Deepltranslate\Glossary\Service\MultilingualGlossaryService;
 
 // @todo Consider to rename/move this as service class.
 // @todo Split the collection of the terms of a folder (getDictionaryDataForSync() and its helpers)
@@ -51,98 +51,43 @@ final class GlossaryRepository
      * @throws Exception
      * @throws SiteNotFoundException
      * @throws \Doctrine\DBAL\Exception
+     *
+     * @deprecated since 6.1, will be removed in 7.0. Creates a glossary record per language pair
+     *             for the glossary API v2. Use {@see MultilingualGlossaryService::syncGlossary()}.
      */
     public function getGlossaryInformationForSync(int $pageId): array
     {
-        $glossaries = [];
-        $localizationArray = [];
-
+        trigger_error(
+            'GlossaryRepository::getGlossaryInformationForSync() is deprecated since 6.1 and will be removed in 7.0.'
+            . ' Use MultilingualGlossaryService::syncGlossary() instead.',
+            E_USER_DEPRECATED
+        );
         $page = BackendUtility::getRecord(
             'pages',
             $pageId
         );
-
         if ($page === null) {
             return [];
         }
         /** @var array{uid: int, title: string} $page */
-        $entries = $this->getOriginalEntries($pageId);
-        if ($entries === []) {
-            return [];
-        }
-        $localizationLanguageIds = $this->getAvailableLocalizations($pageId);
-        $site = $this->siteFinder
-            ->getSiteByPageId($pageId);
-        $sourceLangIsoCode = $site->getDefaultLanguage()->getLocale()->getLanguageCode();
-
-        /** @var array<string, array<int, array{uid: int, term: string}>> $localizationArray */
-        $localizationArray[$sourceLangIsoCode] = $entries;
-
-        // fetch all language information available for building all glossaries
-        foreach ($localizationLanguageIds as $localizationLanguageId) {
-            $localizedEntries = $this->getLocalizedEntries($pageId, $localizationLanguageId);
-            $targetLanguageIsoCode = $this->getTargetLanguageIsoCode($site, $localizationLanguageId);
-            $localizationArray[$targetLanguageIsoCode] = $localizedEntries;
-        }
-
-        // Not injected on purpose: the deprecated service injects this repository itself.
+        // Not injected on purpose: the deprecated service depends on this repository through
+        // MultilingualGlossaryService, so injecting it would be circular.
         $availableLanguagePairs = GeneralUtility::makeInstance(DeeplGlossaryService::class)
             ->getPossibleGlossaryLanguageConfig();
 
-        foreach ($availableLanguagePairs as $sourceLang => $availableTargets) {
-            // no entry to possible source in the current page
-            if (!isset($localizationArray[$sourceLang])) {
-                continue;
+        $glossaries = [];
+        foreach ($this->getDictionaryDataForSync($pageId, $availableLanguagePairs) as $dictionary) {
+            $glossaryInformation = $this->getGlossaryBySourceAndTargetForSync($dictionary['sourceLanguage'], $dictionary['targetLanguage'], $page);
+            $glossaryInformation->sourceLanguage = $dictionary['sourceLanguage'];
+            $glossaryInformation->targetLanguage = $dictionary['targetLanguage'];
+            $glossaryInformation->entries = [];
+            foreach ($dictionary['entries'] as $source => $target) {
+                $glossaryInformation->entries[] = [
+                    'source' => (string)$source,
+                    'target' => $target,
+                ];
             }
-
-            foreach ($availableTargets as $targetLang) {
-                // target isn't configured in the current page
-                if (!isset($localizationArray[$targetLang])) {
-                    continue;
-                }
-
-                // target is site default, continue
-                if ($targetLang === $sourceLangIsoCode) {
-                    continue;
-                }
-
-                $glossaryInformation = $this->getGlossaryBySourceAndTargetForSync(
-                    $sourceLang,
-                    $targetLang,
-                    $page
-                );
-                $glossaryInformation->sourceLanguage = $sourceLang;
-                $glossaryInformation->targetLanguage = $targetLang;
-
-                $entries = [];
-                foreach ($localizationArray[$sourceLang] as $entryId => $sourceEntry) {
-                    // no source target pair, next
-                    if (!isset($localizationArray[$targetLang][$entryId])) {
-                        continue;
-                    }
-                    $entries[] = [
-                        'source' => $sourceEntry['term'],
-                        'target' => $localizationArray[$targetLang][$entryId]['term'],
-                    ];
-                }
-                // no pairs detected
-                if (count($entries) == 0) {
-                    continue;
-                }
-                // remove duplicates
-                $sources = [];
-                foreach ($entries as $position => $entry) {
-                    if (in_array($entry['source'], $sources)) {
-                        unset($entries[$position]);
-                        continue;
-                    }
-                    $sources[] = $entry['source'];
-                }
-
-                // reset entries keys
-                $glossaryInformation->entries = array_values($entries);
-                $glossaries[] = $glossaryInformation;
-            }
+            $glossaries[] = $glossaryInformation;
         }
 
         return $glossaries;
@@ -483,8 +428,17 @@ final class GlossaryRepository
         return $result ? Glossary::fromDatabase($result) : null;
     }
 
+    /**
+     * @deprecated since 6.1, will be removed in 7.0. Stores the state of a glossary of the
+     *             glossary API v2. Use {@see MultilingualGlossaryService::syncGlossary()}.
+     */
     public function updateLocalGlossary(GlossaryInfo $information, int $uid): void
     {
+        trigger_error(
+            'GlossaryRepository::updateLocalGlossary() is deprecated since 6.1 and will be removed in 7.0.'
+            . ' Use MultilingualGlossaryService::syncGlossary() instead.',
+            E_USER_DEPRECATED
+        );
         $insertParams = [
             'glossary_id' => $information->glossaryId,
             'glossary_ready' => $information->ready ? 1 : 0,
@@ -610,12 +564,20 @@ final class GlossaryRepository
      * @throws Exception
      * @throws SiteNotFoundException
      * @throws \Doctrine\DBAL\Exception
+     *
+     * @deprecated since 6.1, will be removed in 7.0. Creates a glossary record per language pair
+     *             for the glossary API v2. Use {@see MultilingualGlossaryService::syncGlossary()}.
      */
     public function getGlossaryBySourceAndTargetForSync(
         string $sourceLanguage,
         string $targetLanguage,
         array $page
     ): Glossary {
+        trigger_error(
+            'GlossaryRepository::getGlossaryBySourceAndTargetForSync() is deprecated since 6.1 and will be removed in 7.0.'
+            . ' Use MultilingualGlossaryService::syncGlossary() instead.',
+            E_USER_DEPRECATED
+        );
         $lowerSourceLang = strtolower($sourceLanguage);
         $lowerTargetLang = strtolower($targetLanguage);
         if (strlen($lowerTargetLang) > 2) {
@@ -791,11 +753,6 @@ final class GlossaryRepository
         }
 
         return $availableTranslations;
-    }
-
-    protected function getTargetLanguageIsoCode(Site $site, int $languageId): string
-    {
-        return $site->getLanguageById($languageId)->getLocale()->getLanguageCode();
     }
 
     /**

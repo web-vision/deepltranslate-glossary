@@ -4,35 +4,29 @@ declare(strict_types=1);
 
 namespace WebVision\Deepltranslate\Glossary\Service;
 
-use DateTime;
+use DeepL\DeepLException;
 use DeepL\GlossaryEntries;
 use DeepL\GlossaryInfo;
 use DeepL\GlossaryLanguagePair;
-use Doctrine\DBAL\Driver\Exception;
 use Symfony\Component\DependencyInjection\Attribute\Autoconfigure;
-use Symfony\Component\DependencyInjection\Attribute\Autowire;
-use TYPO3\CMS\Core\Cache\Frontend\FrontendInterface;
-use TYPO3\CMS\Core\Exception\SiteNotFoundException;
 use WebVision\Deepltranslate\Glossary\Client\GlossaryAPIV2ClientInterface;
-use WebVision\Deepltranslate\Glossary\Domain\Repository\GlossaryRepository;
-use WebVision\Deepltranslate\Glossary\Exception\FailedToCreateGlossaryException;
 use WebVision\Deepltranslate\Glossary\Exception\GlossaryEntriesNotExistException;
+use WebVision\Deepltranslate\Glossary\Exception\GlossaryFolderNotSyncableException;
 
 /**
  * Glossary handling based on the DeepL glossary API v2.
  *
  * @deprecated since 6.1, will be removed in 7.0. The extension synchronises through
  *             {@see MultilingualGlossaryService} and the glossary API v3. This class is kept
- *             for consumers still relying on it and is no longer used internally.
+ *             for consumers still relying on it and is no longer used internally. Its
+ *             synchronisation goes through the API v3 as well.
  */
 #[Autoconfigure(public: true)]
 final readonly class DeeplGlossaryService
 {
     public function __construct(
-        #[Autowire(service: 'cache.deepltranslate_glossary')]
-        private FrontendInterface $cache,
         private GlossaryAPIV2ClientInterface $client,
-        private GlossaryRepository $glossaryRepository,
+        private MultilingualGlossaryService $multilingualGlossaryService,
     ) {
     }
 
@@ -110,67 +104,23 @@ final readonly class DeeplGlossaryService
      */
     public function getPossibleGlossaryLanguageConfig(): array
     {
-        $cacheIdentifier = 'wv-deepl-glossary-pairs';
-        if (($pairMappingArray = $this->cache->get($cacheIdentifier)) !== false) {
-            return $pairMappingArray;
+        try {
+            return $this->multilingualGlossaryService->getPossibleLanguagePairs();
+        } catch (DeepLException) {
+            // The API v2 handling reported a failure as no language pair at all.
+            return [];
         }
-
-        $possiblePairs = $this->listLanguagePairs();
-
-        $pairMappingArray = [];
-        foreach ($possiblePairs as $possiblePair) {
-            $pairMappingArray[$possiblePair->sourceLang][] = $possiblePair->targetLang;
-        }
-
-        $this->cache->set($cacheIdentifier, $pairMappingArray);
-
-        return $pairMappingArray;
     }
 
     /**
-     * @throws Exception
-     * @throws SiteNotFoundException
-     * @throws \Doctrine\DBAL\Exception
-     * @throws FailedToCreateGlossaryException
+     * Synchronises a glossary folder through the glossary API v3, see
+     * {@see MultilingualGlossaryService::syncGlossary()}.
+     *
+     * @throws DeepLException
+     * @throws GlossaryFolderNotSyncableException
      */
     public function syncGlossaries(int $uid): void
     {
-        $glossaries = $this->glossaryRepository->getGlossaryInformationForSync($uid);
-        if (empty($glossaries)) {
-            throw new FailedToCreateGlossaryException(
-                'Glossary can not created, the TYPO3 information are invalide.',
-                1714987594661
-            );
-        }
-
-        foreach ($glossaries as $glossaryInformation) {
-            if ($glossaryInformation->glossaryId !== '') {
-                $this->deleteGlossary($glossaryInformation->glossaryId);
-            }
-
-            try {
-                $glossary = $this->createGlossary(
-                    $glossaryInformation->name,
-                    $glossaryInformation->entries,
-                    $glossaryInformation->sourceLanguage,
-                    $glossaryInformation->targetLanguage
-                );
-            } catch (GlossaryEntriesNotExistException) {
-                $glossary = new GlossaryInfo(
-                    '',
-                    '',
-                    false,
-                    '',
-                    '',
-                    new DateTime(),
-                    0
-                );
-            }
-
-            $this->glossaryRepository->updateLocalGlossary(
-                $glossary,
-                $glossaryInformation->uid
-            );
-        }
+        $this->multilingualGlossaryService->syncGlossary($uid);
     }
 }
