@@ -17,6 +17,10 @@ for translations. A translation of a glossary folder is not synchronized on
 its own, as the terms of every language belong to the folder in the default
 language.
 
+Synchronizing from the backend requires the permission
+:guilabel:`Allowed Glossary Sync` and edit access to the folder, also when
+the synchronization is requested without the button.
+
 Before, the command synchronized any page passed with :bash:`--pageId`, while
 the backend refused it.
 

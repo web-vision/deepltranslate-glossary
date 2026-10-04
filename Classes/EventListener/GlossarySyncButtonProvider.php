@@ -18,9 +18,8 @@ use TYPO3\CMS\Core\Imaging\IconSize;
 use TYPO3\CMS\Core\Information\Typo3Version;
 use TYPO3\CMS\Core\Localization\LanguageService;
 use TYPO3\CMS\Core\Localization\LanguageServiceFactory;
-use TYPO3\CMS\Core\Type\Bitmask\Permission;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
-use WebVision\Deepltranslate\Glossary\Access\AllowedGlossarySyncAccess;
+use WebVision\Deepltranslate\Glossary\Access\GlossarySyncPermission;
 
 /**
  * Listens to {@see ModifyButtonBarEvent} to display the `glossary sync`button
@@ -38,6 +37,7 @@ final class GlossarySyncButtonProvider
         private LanguageServiceFactory $languageServiceFactory,
         private IconFactory $iconFactory,
         private UriBuilder $uriBuilder,
+        private GlossarySyncPermission $glossarySyncPermission,
     ) {
     }
 
@@ -63,16 +63,12 @@ final class GlossarySyncButtonProvider
             || $module === null
             || $normalizedParams === null
             || !empty($pageTSconfig['mod.']['SHARED.']['disableSysNoteButton'])
-            || !$this->canCreateNewRecord($id)
+            || !$this->glossarySyncPermission->isGranted($this->getBackendUserAuthentication(), $id)
             || !in_array($module->getIdentifier(), $this->getAllowedModules(), true)
             || ($module->getIdentifier() === $this->getRecordsOrListModuleIdentifier() && !$this->isCreationAllowed($pageTSconfig['mod.']['web_list.'] ?? []))
             || !isset($page['module'])
             || $page['module'] !== 'glossary'
         ) {
-            return;
-        }
-
-        if (!$this->getBackendUserAuthentication()->check('custom_options', AllowedGlossarySyncAccess::ALLOWED_GLOSSARY_SYNC)) {
             return;
         }
 
@@ -130,23 +126,6 @@ final class GlossarySyncButtonProvider
         return ($allowedNewTables === [] && $deniedNewTables === [])
             || (!in_array('tx_deepltranslate_glossaryentry', $deniedNewTables, true)
                 && ($allowedNewTables === [] || in_array('tx_deepltranslate_glossaryentry', $allowedNewTables, true)));
-    }
-
-    protected function canCreateNewRecord(int $id): bool
-    {
-        // @todo Use TcaSchemaFactory to access TCA configuration
-        $tableConfiguration = $GLOBALS['TCA']['tx_deepltranslate_glossaryentry']['ctrl'];
-        $pageRow = BackendUtility::getRecord('pages', $id);
-        $backendUser = $this->getBackendUserAuthentication();
-
-        return !($pageRow === null
-            || ($tableConfiguration['readOnly'] ?? false)
-            || ($tableConfiguration['hideTable'] ?? false)
-            || ($tableConfiguration['is_static'] ?? false)
-            || (($tableConfiguration['adminOnly'] ?? false) && !$backendUser->isAdmin())
-            || !$backendUser->doesUserHaveAccess($pageRow, Permission::CONTENT_EDIT)
-            || !$backendUser->check('tables_modify', 'tx_deepltranslate_glossaryentry')
-            || !$backendUser->workspaceCanCreateNewRecord('tx_deepltranslate_glossaryentry'));
     }
 
     /**
