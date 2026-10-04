@@ -8,6 +8,7 @@ use DeepL\GlossaryInfo;
 use DeepL\MultilingualGlossaryInfo;
 use Doctrine\DBAL\Driver\Exception;
 use Doctrine\DBAL\Exception as DBALException;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autoconfigure;
 use TYPO3\CMS\Backend\Configuration\TranslationConfigurationProvider;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
@@ -26,6 +27,7 @@ use WebVision\Deepltranslate\Glossary\Domain\Dto\GlossaryLanguageSelection;
 use WebVision\Deepltranslate\Glossary\Domain\Dto\GlossarySyncInformation;
 use WebVision\Deepltranslate\Glossary\Service\DeeplGlossaryService;
 use WebVision\Deepltranslate\Glossary\Service\GlossaryLanguageResolver;
+use WebVision\Deepltranslate\Glossary\Service\GlossaryTermSanitizer;
 
 // @todo Consider to rename/move this as service class.
 #[Autoconfigure(public: true)]
@@ -34,6 +36,8 @@ final class GlossaryRepository
     public function __construct(
         private readonly GlossaryLanguageResolver $glossaryLanguageResolver,
         private readonly Context $context,
+        private readonly GlossaryTermSanitizer $termSanitizer,
+        private readonly LoggerInterface $logger,
     ) {
     }
 
@@ -226,6 +230,32 @@ final class GlossaryRepository
     }
 
     /**
+     * Returns the single glossary record of a folder, or null when the folder has none.
+     *
+     * @return array{uid: int, glossary_id: string, glossary_name: string}|null
+     *
+     * @throws Exception
+     * @throws \Doctrine\DBAL\Exception
+     */
+    public function findGlossaryRecord(int $pageId): ?array
+    {
+        $record = GeneralUtility::makeInstance(ConnectionPool::class)
+            ->getConnectionForTable('tx_deepltranslate_glossary')
+            ->select(['uid', 'glossary_id', 'glossary_name'], 'tx_deepltranslate_glossary', ['pid' => $pageId], [], ['uid' => 'ASC'], 1)
+            ->fetchAssociative();
+        if ($record === false) {
+            return null;
+        }
+
+        // Released versions left glossary_id nullable.
+        return [
+            'uid' => (int)$record['uid'],
+            'glossary_id' => (string)$record['glossary_id'],
+            'glossary_name' => (string)$record['glossary_name'],
+        ];
+    }
+
+    /**
      * Returns the single glossary record of a folder, creating it when the folder has none yet.
      *
      * @return array{uid: int, glossary_id: string, glossary_name: string}
@@ -235,16 +265,13 @@ final class GlossaryRepository
      */
     public function findOrCreateGlossaryRecord(int $pageId): array
     {
-        $connection = GeneralUtility::makeInstance(ConnectionPool::class)
-            ->getConnectionForTable('tx_deepltranslate_glossary');
-        $record = $connection
-            ->select(['uid', 'glossary_id', 'glossary_name'], 'tx_deepltranslate_glossary', ['pid' => $pageId], [], ['uid' => 'ASC'], 1)
-            ->fetchAssociative();
-        if ($record !== false) {
-            /** @var array{uid: int, glossary_id: string, glossary_name: string} $record */
+        $record = $this->findGlossaryRecord($pageId);
+        if ($record !== null) {
             return $record;
         }
 
+        $connection = GeneralUtility::makeInstance(ConnectionPool::class)
+            ->getConnectionForTable('tx_deepltranslate_glossary');
         $page = BackendUtility::getRecord('pages', $pageId, 'uid,title');
         $glossaryName = sprintf('%s [%d]', $page['title'] ?? 'Glossary', $pageId);
         $connection->insert(
@@ -383,14 +410,37 @@ final class GlossaryRepository
 
         $entries = [];
         foreach ($localizationArray[$sourceLang] as $entryId => $sourceEntry) {
-            if (!isset($localizationArray[$targetLang][$entryId])) {
+            $targetTerm = $localizationArray[$targetLang][$entryId]['term'] ?? '';
+            if ($sourceEntry['term'] === '' || $targetTerm === '') {
                 continue;
             }
-            // A source term occurring twice would be sent to DeepL twice, the first pair wins.
+            // DeepL rejects the whole dictionary for a single term above its byte limit, which the
+            // backend refuses to store since DPL-230, but older or imported terms may still hold.
+            if ($this->termSanitizer->exceedsByteLimit($sourceEntry['term'])
+                || $this->termSanitizer->exceedsByteLimit($targetTerm)
+            ) {
+                $this->logger->warning(sprintf(
+                    'Glossary term pair of record %d (%s => %s) exceeds the DeepL limit of %d UTF-8 bytes and is skipped.',
+                    $sourceEntry['uid'],
+                    $sourceLang,
+                    $targetLang,
+                    GlossaryTermSanitizer::MAX_TERM_BYTES
+                ));
+                continue;
+            }
+            // DeepL accepts a source term once per dictionary. The terms are cleaned and ordered
+            // by uid already, so the oldest pair wins regardless of whitespace or database.
             if (isset($entries[$sourceEntry['term']])) {
+                $this->logger->warning(sprintf(
+                    'Glossary term "%s" (%s => %s) occurs more than once, record %d is skipped.',
+                    $sourceEntry['term'],
+                    $sourceLang,
+                    $targetLang,
+                    $sourceEntry['uid']
+                ));
                 continue;
             }
-            $entries[$sourceEntry['term']] = $localizationArray[$targetLang][$entryId]['term'];
+            $entries[$sourceEntry['term']] = $targetTerm;
         }
 
         return $entries;
@@ -413,7 +463,7 @@ final class GlossaryRepository
             }
             $terms[(int)$key] = [
                 'uid' => (int)($row['uid'] ?? 0),
-                'term' => (string)$row['term'],
+                'term' => $this->termSanitizer->sanitize((string)$row['term']),
             ];
         }
 
@@ -742,7 +792,8 @@ final class GlossaryRepository
                     'sys_language_uid',
                     $db->createNamedParameter(0, Connection::PARAM_INT)
                 )
-            );
+            )
+            ->orderBy('uid');
         $entries = [];
         foreach ($statement->executeQuery()->fetchAllAssociative() ?: [] as $entry) {
             $entries[$entry['uid']] = $entry;
@@ -772,13 +823,16 @@ final class GlossaryRepository
                     'sys_language_uid',
                     $db->createNamedParameter($languageId, Connection::PARAM_INT)
                 )
-            );
+            )
+            // Keyed by the default language record, so a translated source language keeps its order.
+            ->orderBy('l10n_parent')
+            ->addOrderBy('uid');
 
         $result = $statement->executeQuery();
 
         $localizedEntries = [];
         while ($localizedEntry = $result->fetchAssociative()) {
-            $localizedEntries[$localizedEntry['l10n_parent']] = $localizedEntry;
+            $localizedEntries[$localizedEntry['l10n_parent']] ??= $localizedEntry;
         }
         return $localizedEntries;
     }

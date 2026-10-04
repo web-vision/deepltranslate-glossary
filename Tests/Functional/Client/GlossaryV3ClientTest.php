@@ -15,7 +15,6 @@ use Psr\Log\LogLevel;
 use WebVision\Deepltranslate\Core\Client\DeepLClientFactoryInterface;
 use WebVision\Deepltranslate\Glossary\Client\GlossaryAPIV3Client;
 use WebVision\Deepltranslate\Glossary\Client\GlossaryAPIV3ClientInterface;
-use WebVision\Deepltranslate\Glossary\Service\MultilingualGlossaryService;
 use WebVision\Deepltranslate\Glossary\Tests\Functional\AbstractDeepLTestCase;
 use WebVision\Deepltranslate\Glossary\Tests\Functional\Client\Fixtures\CollectingLogger;
 
@@ -36,9 +35,7 @@ final class GlossaryV3ClientTest extends AbstractDeepLTestCase
     {
         /** @var GlossaryAPIV3ClientInterface $client */
         $client = $this->get(GlossaryAPIV3ClientInterface::class);
-        /** @var MultilingualGlossaryService $glossaryService */
-        $glossaryService = $this->get(MultilingualGlossaryService::class);
-        $deEnDictionary = $glossaryService->createDictionary(
+        $deEnDictionary = new MultilingualGlossaryDictionaryEntries(
             'de',
             'en',
             [
@@ -71,9 +68,7 @@ final class GlossaryV3ClientTest extends AbstractDeepLTestCase
     {
         /** @var GlossaryAPIV3ClientInterface $client */
         $client = $this->get(GlossaryAPIV3ClientInterface::class);
-        /** @var MultilingualGlossaryService $glossaryService */
-        $glossaryService = $this->get(MultilingualGlossaryService::class);
-        $deEnDictionary = $glossaryService->createDictionary(
+        $deEnDictionary = new MultilingualGlossaryDictionaryEntries(
             'de',
             'en',
             [
@@ -91,7 +86,7 @@ final class GlossaryV3ClientTest extends AbstractDeepLTestCase
 
         /** @var non-empty-string $glossaryId */
         $glossaryId = $createResponse->glossaryId;
-        $enFrDictionary = $glossaryService->createDictionary(
+        $enFrDictionary = new MultilingualGlossaryDictionaryEntries(
             'en',
             'fr',
             [
@@ -139,12 +134,11 @@ final class GlossaryV3ClientTest extends AbstractDeepLTestCase
     public function replacingDictionaryDropsRemovedTerms(): void
     {
         $client = $this->get(GlossaryAPIV3ClientInterface::class);
-        $glossaryService = $this->get(MultilingualGlossaryService::class);
         $glossaryId = $this->createGlossaryWithDeEnDictionary(__FUNCTION__)->glossaryId;
 
         $dictionaryInfo = $client->replaceDictionary(
             $glossaryId,
-            $glossaryService->createDictionary(
+            new MultilingualGlossaryDictionaryEntries(
                 'de',
                 'en',
                 [
@@ -165,11 +159,10 @@ final class GlossaryV3ClientTest extends AbstractDeepLTestCase
     public function dictionaryIsDeleted(): void
     {
         $client = $this->get(GlossaryAPIV3ClientInterface::class);
-        $glossaryService = $this->get(MultilingualGlossaryService::class);
         $glossaryId = $this->createGlossaryWithDeEnDictionary(__FUNCTION__)->glossaryId;
         $client->replaceDictionary(
             $glossaryId,
-            $glossaryService->createDictionary(
+            new MultilingualGlossaryDictionaryEntries(
                 'en',
                 'fr',
                 [
@@ -259,12 +252,11 @@ final class GlossaryV3ClientTest extends AbstractDeepLTestCase
     private function createGlossaryWithDeEnDictionary(string $testName): MultilingualGlossaryInfo
     {
         $client = $this->get(GlossaryAPIV3ClientInterface::class);
-        $glossaryService = $this->get(MultilingualGlossaryService::class);
 
         return $client->createGlossary(
             'Deepl-Client-Create-Function-Test:' . $testName,
             [
-                $glossaryService->createDictionary(
+                new MultilingualGlossaryDictionaryEntries(
                     'de',
                     'en',
                     [
