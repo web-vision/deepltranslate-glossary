@@ -65,7 +65,7 @@ final readonly class MigrateToMultilingualGlossaryWizard implements UpgradeWizar
                 continue;
             }
             $this->removeRemoteGlossaries($records);
-            $this->collapseRecords($records);
+            $this->collapseRecords($records, $pageId);
         }
 
         return true;
@@ -156,7 +156,7 @@ final readonly class MigrateToMultilingualGlossaryWizard implements UpgradeWizar
     /**
      * @param array<int, array<string, mixed>> $records
      */
-    private function collapseRecords(array $records): void
+    private function collapseRecords(array $records, int $pageId): void
     {
         $connection = $this->connectionPool->getConnectionForTable('tx_deepltranslate_glossary');
         // The dictionaries describe the removed glossaries, the next synchronisation stores new ones.
@@ -177,6 +177,8 @@ final readonly class MigrateToMultilingualGlossaryWizard implements UpgradeWizar
             'tx_deepltranslate_glossary',
             [
                 'glossary_id' => '',
+                // The former name describes a single language pair, the glossary covers them all.
+                'glossary_name' => sprintf('%s [%d]', $this->getFolderTitle($pageId), $pageId),
                 'glossary_lastsync' => 0,
                 'glossary_ready' => 0,
                 'source_lang' => '',
@@ -184,5 +186,23 @@ final readonly class MigrateToMultilingualGlossaryWizard implements UpgradeWizar
             ],
             ['uid' => (int)$keptRecord['uid']]
         );
+    }
+
+    private function getFolderTitle(int $pageId): string
+    {
+        $queryBuilder = $this->connectionPool->getQueryBuilderForTable('pages');
+        $title = $queryBuilder
+            ->select('title')
+            ->from('pages')
+            ->where(
+                $queryBuilder->expr()->eq(
+                    'uid',
+                    $queryBuilder->createNamedParameter($pageId, Connection::PARAM_INT)
+                )
+            )
+            ->executeQuery()
+            ->fetchOne();
+
+        return is_string($title) && $title !== '' ? $title : 'Glossary';
     }
 }
