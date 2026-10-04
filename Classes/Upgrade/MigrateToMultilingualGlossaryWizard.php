@@ -13,6 +13,7 @@ use TYPO3\CMS\Install\Attribute\UpgradeWizard;
 use TYPO3\CMS\Install\Updates\DatabaseUpdatedPrerequisite;
 use TYPO3\CMS\Install\Updates\UpgradeWizardInterface;
 use WebVision\Deepltranslate\Glossary\Client\GlossaryAPIV3ClientInterface;
+use WebVision\Deepltranslate\Glossary\Service\GlossaryNameService;
 
 /**
  * Collapses the glossary records of the DeepL glossary API v2, which stored one glossary per
@@ -25,6 +26,7 @@ final readonly class MigrateToMultilingualGlossaryWizard implements UpgradeWizar
         private ConnectionPool $connectionPool,
         private GlossaryAPIV3ClientInterface $client,
         private LoggerInterface $logger,
+        private GlossaryNameService $glossaryNameService,
     ) {
     }
 
@@ -178,7 +180,7 @@ final readonly class MigrateToMultilingualGlossaryWizard implements UpgradeWizar
             [
                 'glossary_id' => '',
                 // The former name describes a single language pair, the glossary covers them all.
-                'glossary_name' => sprintf('%s [%d]', $this->getFolderTitle($pageId), $pageId),
+                'glossary_name' => $this->glossaryNameService->getGlossaryName($pageId),
                 'glossary_lastsync' => 0,
                 'glossary_ready' => 0,
                 'source_lang' => '',
@@ -186,23 +188,5 @@ final readonly class MigrateToMultilingualGlossaryWizard implements UpgradeWizar
             ],
             ['uid' => (int)$keptRecord['uid']]
         );
-    }
-
-    private function getFolderTitle(int $pageId): string
-    {
-        $queryBuilder = $this->connectionPool->getQueryBuilderForTable('pages');
-        $title = $queryBuilder
-            ->select('title')
-            ->from('pages')
-            ->where(
-                $queryBuilder->expr()->eq(
-                    'uid',
-                    $queryBuilder->createNamedParameter($pageId, Connection::PARAM_INT)
-                )
-            )
-            ->executeQuery()
-            ->fetchOne();
-
-        return is_string($title) && $title !== '' ? $title : 'Glossary';
     }
 }

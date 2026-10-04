@@ -7,8 +7,12 @@ namespace WebVision\Deepltranslate\Glossary\Tests\Functional\Upgrade;
 use DeepL\MultilingualGlossaryDictionaryEntries;
 use PHPUnit\Framework\Attributes\Test;
 use Psr\Log\LogLevel;
+use Symfony\Component\DependencyInjection\Container;
 use TYPO3\CMS\Core\Database\ConnectionPool;
+use TYPO3\CMS\Core\EventDispatcher\ListenerProvider;
 use WebVision\Deepltranslate\Glossary\Client\GlossaryAPIV3ClientInterface;
+use WebVision\Deepltranslate\Glossary\Event\ModifyGlossaryNameEvent;
+use WebVision\Deepltranslate\Glossary\Service\GlossaryNameService;
 use WebVision\Deepltranslate\Glossary\Tests\Functional\AbstractDeepLTestCase;
 use WebVision\Deepltranslate\Glossary\Tests\Functional\Client\Fixtures\CollectingLogger;
 use WebVision\Deepltranslate\Glossary\Upgrade\MigrateToMultilingualGlossaryWizard;
@@ -91,6 +95,23 @@ final class MigrateToMultilingualGlossaryWizardTest extends AbstractDeepLTestCas
     }
 
     #[Test]
+    public function migratedRecordIsNamedByANameListener(): void
+    {
+        $this->importCSVDataSet(__DIR__ . '/Fixtures/perPairGlossaries.csv');
+        /** @var Container $container */
+        $container = $this->getContainer();
+        $container->set('glossary-name-listener', static function (ModifyGlossaryNameEvent $event): void {
+            $event->glossaryName = sprintf('ACME %d', $event->pageId);
+        });
+        $this->get(ListenerProvider::class)->addListener(ModifyGlossaryNameEvent::class, 'glossary-name-listener');
+        $subject = $this->get(MigrateToMultilingualGlossaryWizard::class);
+
+        $subject->executeUpdate();
+
+        self::assertSame('ACME 2', $this->fetchGlossaryRecords(2)[0]['glossary_name']);
+    }
+
+    #[Test]
     public function glossaryAlreadyRemovedAtDeeplIsNotReportedAsLeftBehind(): void
     {
         $client = $this->get(GlossaryAPIV3ClientInterface::class);
@@ -108,6 +129,7 @@ final class MigrateToMultilingualGlossaryWizardTest extends AbstractDeepLTestCas
             $this->get(ConnectionPool::class),
             $client,
             $logger,
+            $this->get(GlossaryNameService::class),
         );
 
         $subject->executeUpdate();

@@ -10,17 +10,20 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use Psr\Log\NullLogger;
 use SBUERK\TYPO3\Testing\SiteHandling\SiteBasedTestTrait;
+use Symfony\Component\DependencyInjection\Container;
 use TYPO3\CMS\Core\Cache\CacheManager;
 use TYPO3\CMS\Core\Context\Context;
 use TYPO3\CMS\Core\Context\DateTimeAspect;
 use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
+use TYPO3\CMS\Core\EventDispatcher\ListenerProvider;
 use TYPO3\CMS\Core\Locking\LockFactory;
 use TYPO3\CMS\Core\Locking\LockingStrategyInterface;
 use TYPO3\CMS\Core\Site\SiteFinder;
 use WebVision\Deepltranslate\Core\Client\DeepLClientFactoryInterface;
 use WebVision\Deepltranslate\Glossary\Client\GlossaryAPIV3ClientInterface;
 use WebVision\Deepltranslate\Glossary\Domain\Repository\GlossaryRepository;
+use WebVision\Deepltranslate\Glossary\Event\ModifyGlossaryNameEvent;
 use WebVision\Deepltranslate\Glossary\Exception\GlossaryFolderNotSyncableException;
 use WebVision\Deepltranslate\Glossary\Service\MultilingualGlossaryService;
 use WebVision\Deepltranslate\Glossary\Tests\Functional\AbstractDeepLTestCase;
@@ -489,6 +492,24 @@ final class MultilingualGlossarySyncTest extends AbstractDeepLTestCase
         $glossaryId = $this->fetchGlossaryRecords()[0]['glossary_id'];
         $entries = $this->get(GlossaryAPIV3ClientInterface::class)->getGlossaryEntries($glossaryId, 'en', 'de')[0]->entries;
         self::assertSame('erster Begriff', $entries['duplicate term'] ?? null);
+    }
+
+    #[Test]
+    public function glossaryIsCreatedUnderTheNameOfANameListener(): void
+    {
+        /** @var Container $container */
+        $container = $this->getContainer();
+        $container->set('glossary-name-listener', static function (ModifyGlossaryNameEvent $event): void {
+            $event->glossaryName = 'ACME glossary';
+        });
+        $this->get(ListenerProvider::class)->addListener(ModifyGlossaryNameEvent::class, 'glossary-name-listener');
+        $subject = $this->get(MultilingualGlossaryService::class);
+
+        $subject->syncGlossary(2);
+
+        $glossary = $this->fetchGlossaryRecords()[0];
+        self::assertSame('ACME glossary', $glossary['glossary_name']);
+        self::assertSame('ACME glossary', $this->get(GlossaryAPIV3ClientInterface::class)->getGlossary($glossary['glossary_id'])->name);
     }
 
     private function countGlossaryRecordsOnPage(int $pageId): int

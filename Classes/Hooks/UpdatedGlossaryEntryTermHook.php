@@ -13,7 +13,6 @@ use TYPO3\CMS\Core\Localization\LanguageServiceFactory;
 use TYPO3\CMS\Core\Messaging\FlashMessage;
 use TYPO3\CMS\Core\Messaging\FlashMessageService;
 use TYPO3\CMS\Core\Type\ContextualFeedbackSeverity;
-use TYPO3\CMS\Core\Utility\GeneralUtility;
 use WebVision\Deepltranslate\Glossary\Domain\Repository\GlossaryEntryRepository;
 use WebVision\Deepltranslate\Glossary\Domain\Repository\GlossaryRepository;
 
@@ -32,6 +31,7 @@ final class UpdatedGlossaryEntryTermHook
     public function __construct(
         private readonly GlossaryRepository $glossaryRepository,
         private readonly GlossaryEntryRepository $glossaryEntryRepository,
+        private readonly FlashMessageService $flashMessageService,
         LanguageServiceFactory $languageServiceFactory,
     ) {
         $this->languageService = $languageServiceFactory
@@ -145,7 +145,7 @@ final class UpdatedGlossaryEntryTermHook
             true
         );
         // @todo analyze behavior and refactor for CLI compatible mode not using flash messages
-        GeneralUtility::makeInstance(FlashMessageService::class)
+        $this->flashMessageService
             ->getMessageQueueByIdentifier()
             ->enqueue($flashMessage);
     }
