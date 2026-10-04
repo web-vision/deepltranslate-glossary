@@ -77,6 +77,20 @@ final class MigrateToMultilingualGlossaryWizardTest extends AbstractDeepLTestCas
     }
 
     #[Test]
+    public function migratedRecordIsNamedAfterItsFolder(): void
+    {
+        $this->importCSVDataSet(__DIR__ . '/Fixtures/perPairGlossaries.csv');
+        $subject = $this->get(MigrateToMultilingualGlossaryWizard::class);
+
+        $subject->executeUpdate();
+
+        // The former names describe a single language pair, the next synchronisation publishes
+        // the glossary under the name of its record.
+        self::assertSame('Glossary [2]', $this->fetchGlossaryRecords(2)[0]['glossary_name']);
+        self::assertSame('Second Glossary [5]', $this->fetchGlossaryRecords(5)[0]['glossary_name']);
+    }
+
+    #[Test]
     public function glossaryAlreadyRemovedAtDeeplIsNotReportedAsLeftBehind(): void
     {
         $client = $this->get(GlossaryAPIV3ClientInterface::class);
