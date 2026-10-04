@@ -23,6 +23,10 @@ command synchronized any page passed with :bash:`--pageId`.
 The synchronization button is no longer shown on a page with the glossary
 module which is not a folder.
 
+Translating uses the glossaries of glossary folders only, see
+:ref:`important-glossariesonlyfromcurrentsite-1791313139`. Before, a site
+without a glossary folder used the glossary of any folder of the site.
+
 A failing folder no longer stops the command. The remaining folders are
 synchronized, and every failure is reported at the end with a failing exit
 code. A term translated into a language that has been removed from the site
@@ -41,12 +45,17 @@ Synchronizing a page which is not a glossary folder, a page which does not
 exist, or a glossary folder outside any site fails with a message naming the
 page. No glossary is created for it.
 
+A glossary synchronized earlier from a folder without the glossary module
+assigned is no longer applied to translations, as it could not be kept up to
+date anymore.
+
 Affected installations
 ======================
 
 Installations keeping glossary terms on a page with the glossary module
-assigned which is not a folder, and instances synchronizing a folder without
-the glossary module assigned through the command line.
+assigned which is not a folder, and instances keeping glossary terms in a
+folder without the glossary module assigned, typically synchronized through
+the command line.
 
 Migration
 =========
@@ -56,4 +65,4 @@ module to it in its page properties under
 :guilabel:`Behaviour > Use as Container > Contains Plugin`, then synchronize
 it again.
 
-.. index:: CLI, Backend, ext:deepltranslate_glossary
+.. index:: CLI, Backend, Frontend, ext:deepltranslate_glossary

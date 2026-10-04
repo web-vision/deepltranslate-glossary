@@ -7,6 +7,7 @@ namespace WebVision\Deepltranslate\Glossary\Tests\Functional\Domain\Repository;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use SBUERK\TYPO3\Testing\SiteHandling\SiteBasedTestTrait;
+use TYPO3\CMS\Core\Database\ConnectionPool;
 use WebVision\Deepltranslate\Core\Domain\Dto\CurrentPage;
 use WebVision\Deepltranslate\Glossary\Domain\Repository\GlossaryRepository;
 use WebVision\Deepltranslate\Glossary\Tests\Functional\AbstractDeepLTestCase;
@@ -112,5 +113,37 @@ final class GlossaryLookupTest extends AbstractDeepLTestCase
 
         self::assertSame('', $glossary->glossaryId);
         self::assertFalse($glossary->ready);
+    }
+
+    #[Test]
+    public function glossaryOfHiddenFolderIsNotUsed(): void
+    {
+        $this->get(ConnectionPool::class)
+            ->getConnectionForTable('pages')
+            ->update('pages', ['hidden' => 1], ['uid' => 2]);
+        $subject = $this->get(GlossaryRepository::class);
+
+        $glossary = $subject->getGlossaryBySourceAndTarget(
+            'en',
+            'de',
+            new CurrentPage(2, 'Glossary')
+        );
+
+        self::assertSame('', $glossary->glossaryId);
+    }
+
+    #[Test]
+    public function glossaryFolderOutsideAnySiteDoesNotPreventTheLookup(): void
+    {
+        $this->importCSVDataSet(__DIR__ . '/Fixtures/glossaryFolderOutsideAnySite.csv');
+        $subject = $this->get(GlossaryRepository::class);
+
+        $glossary = $subject->getGlossaryBySourceAndTarget(
+            'en',
+            'de',
+            new CurrentPage(2, 'Glossary')
+        );
+
+        self::assertSame('3f2b0000-0000-0000-0000-000000000001', $glossary->glossaryId);
     }
 }

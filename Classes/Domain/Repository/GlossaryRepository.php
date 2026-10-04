@@ -418,12 +418,25 @@ final class GlossaryRepository
             ->from('pages')
             ->where(
                 $queryBuilder->expr()->eq('uid', $queryBuilder->createNamedParameter($pageId, Connection::PARAM_INT)),
-                $queryBuilder->expr()->eq('doktype', $queryBuilder->createNamedParameter(PageRepository::DOKTYPE_SYSFOLDER, Connection::PARAM_INT)),
-                $queryBuilder->expr()->eq('module', $queryBuilder->createNamedParameter('glossary', Connection::PARAM_STR)),
-                $queryBuilder->expr()->eq('sys_language_uid', $queryBuilder->createNamedParameter(0, Connection::PARAM_INT))
+                ...$this->getGlossaryFolderConstraints($queryBuilder)
             )
             ->executeQuery()
             ->fetchOne() > 0;
+    }
+
+    /**
+     * The constraints of a glossary folder, shared by every query deciding which folders are
+     * synchronised or used for translations, so the two cannot disagree.
+     *
+     * @return string[]
+     */
+    private function getGlossaryFolderConstraints(QueryBuilder $queryBuilder): array
+    {
+        return [
+            $queryBuilder->expr()->eq('doktype', $queryBuilder->createNamedParameter(PageRepository::DOKTYPE_SYSFOLDER, Connection::PARAM_INT)),
+            $queryBuilder->expr()->eq('module', $queryBuilder->createNamedParameter('glossary', Connection::PARAM_STR)),
+            $queryBuilder->expr()->eq('sys_language_uid', $queryBuilder->createNamedParameter(0, Connection::PARAM_INT)),
+        ];
     }
 
     /**
@@ -548,22 +561,15 @@ final class GlossaryRepository
      */
     public function findAllGlossaries(): array
     {
-        $db = GeneralUtility::makeInstance(ConnectionPool::class)
-            ->getConnectionForTable('pages');
+        $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)->getQueryBuilderForTable('pages');
 
-        $identifiers = [
-            'module' => 'glossary',
-            'doktype' => 254,
-            'sys_language_uid' => 0,
-        ];
-
-        return $db->select(
-            ['uid'],
-            'pages',
-            $identifiers,
-            [],
-            ['uid' => 'ASC']
-        )->fetchAllAssociative() ?: [];
+        return $queryBuilder
+            ->select('uid')
+            ->from('pages')
+            ->where(...$this->getGlossaryFolderConstraints($queryBuilder))
+            ->orderBy('uid')
+            ->executeQuery()
+            ->fetchAllAssociative();
     }
 
     /**
@@ -609,72 +615,15 @@ final class GlossaryRepository
         string $targetLanguage,
         int $pageUid
     ): ?Glossary {
-        // Glossary module folders of the current site take precedence.
+        // Only glossary module folders can be synchronised, so only their glossaries are current.
         $glossaryPages = $this->getGlossariesInRootByCurrentPage($pageUid);
-        if ($glossaryPages !== []) {
-            return $this->findFirstGlossaryInPages($sourceLanguage, $targetLanguage, $glossaryPages);
-        }
-
-        // Without one, a folder of the current site not marked as glossary module is still
-        // honoured, otherwise instances synchronising through the command line only would
-        // silently lose their glossary. A folder of another site never is.
-        return $this->findFirstGlossaryOfSite($sourceLanguage, $targetLanguage, $pageUid);
-    }
-
-    /**
-     * @param int[] $pageIds
-     * @throws \Doctrine\DBAL\Exception
-     */
-    private function findFirstGlossaryInPages(string $sourceLanguage, string $targetLanguage, array $pageIds): ?Glossary
-    {
-        $queryBuilder = $this->createGlossaryQueryBuilder($sourceLanguage, $targetLanguage);
-        $row = $queryBuilder
-            ->andWhere(
-                $queryBuilder->expr()->in(
-                    'g.pid',
-                    $queryBuilder->createNamedParameter($pageIds, Connection::PARAM_INT_ARRAY)
-                )
-            )
-            ->setMaxResults(1)
-            ->executeQuery()
-            ->fetchAssociative();
-
-        return $row === false ? null : Glossary::fromDatabase($row);
-    }
-
-    /**
-     * The glossary with the lowest uid stored in any page of the site of the given page.
-     *
-     * @throws \Doctrine\DBAL\Exception
-     */
-    private function findFirstGlossaryOfSite(string $sourceLanguage, string $targetLanguage, int $pageUid): ?Glossary
-    {
-        $rootPageId = $this->findRootPageIdOrNull($pageUid);
-        if ($rootPageId === null) {
+        if ($glossaryPages === []) {
             return null;
         }
 
-        $result = $this->createGlossaryQueryBuilder($sourceLanguage, $targetLanguage)->executeQuery();
-        foreach ($result->iterateAssociative() as $row) {
-            if ($this->findRootPageIdOrNull((int)$row['pid']) === $rootPageId) {
-                $result->free();
-                return Glossary::fromDatabase($row);
-            }
-        }
-
-        return null;
-    }
-
-    /**
-     * A glossary of the API v3 is valid for every language pair one of its dictionaries covers,
-     * so the pair is matched on the dictionaries and not on the glossary record.
-     */
-    private function createGlossaryQueryBuilder(string $sourceLanguage, string $targetLanguage): QueryBuilder
-    {
         $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)
             ->getQueryBuilderForTable('tx_deepltranslate_glossary');
-
-        return $queryBuilder
+        $row = $queryBuilder
             ->select('g.uid', 'g.pid', 'g.glossary_id', 'g.glossary_name', 'g.glossary_lastsync', 'g.glossary_ready')
             ->from('tx_deepltranslate_glossary', 'g')
             ->innerJoin(
@@ -685,9 +634,15 @@ final class GlossaryRepository
             )
             ->where(
                 $queryBuilder->expr()->eq('d.source_lang', $queryBuilder->createNamedParameter($sourceLanguage)),
-                $queryBuilder->expr()->eq('d.target_lang', $queryBuilder->createNamedParameter($targetLanguage))
+                $queryBuilder->expr()->eq('d.target_lang', $queryBuilder->createNamedParameter($targetLanguage)),
+                $queryBuilder->expr()->in('g.pid', $queryBuilder->createNamedParameter($glossaryPages, Connection::PARAM_INT_ARRAY))
             )
-            ->orderBy('g.uid');
+            ->orderBy('g.uid')
+            ->setMaxResults(1)
+            ->executeQuery()
+            ->fetchAssociative();
+
+        return $row === false ? null : Glossary::fromDatabase($row);
     }
 
     /**
@@ -921,7 +876,6 @@ final class GlossaryRepository
 
     /**
      * @return int[]
-     * @throws SiteNotFoundException
      * @throws Exception
      * @throws \Doctrine\DBAL\Exception
      */
@@ -933,33 +887,18 @@ final class GlossaryRepository
         $result = $db
             ->select('uid')
             ->from('pages')
-            ->where(
-                $db->expr()->eq(
-                    'doktype',
-                    $db->createNamedParameter(
-                        PageRepository::DOKTYPE_SYSFOLDER,
-                        Connection::PARAM_INT
-                    )
-                ),
-                $db->expr()->eq('module', $db->createNamedParameter('glossary'))
-            )->executeQuery();
+            ->where(...$this->getGlossaryFolderConstraints($db))
+            ->executeQuery();
 
-        $rows = $result->fetchAllAssociative();
-        if (count($rows) === 0) {
-            return [];
-        }
-
-        $rootPage = $this->findRootPageId($pageId);
-
+        $rootPage = $this->findRootPageIdOrNull($pageId);
         $ids = [];
-        foreach ($rows as $row) {
-            $glossaryRootPageID = $this->findRootPageId($row['uid']);
-            if ($glossaryRootPageID !== $rootPage) {
-                continue;
+        // A glossary folder outside any site belongs to no site, so it is never one of the current site.
+        while ($rootPage !== null && $row = $result->fetchAssociative()) {
+            if ($this->findRootPageIdOrNull((int)$row['uid']) === $rootPage) {
+                $ids[] = (int)$row['uid'];
             }
-
-            $ids[] = $row['uid'];
         }
+
         return $ids;
     }
 
