@@ -635,7 +635,10 @@ final class GlossaryRepository
             ->where(
                 $queryBuilder->expr()->eq('d.source_lang', $queryBuilder->createNamedParameter($sourceLanguage)),
                 $queryBuilder->expr()->eq('d.target_lang', $queryBuilder->createNamedParameter($targetLanguage)),
-                $queryBuilder->expr()->in('g.pid', $queryBuilder->createNamedParameter($glossaryPages, Connection::PARAM_INT_ARRAY))
+                $queryBuilder->expr()->in('g.pid', $queryBuilder->createNamedParameter($glossaryPages, Connection::PARAM_INT_ARRAY)),
+                // A glossary not ready to use must not hide a usable one of another folder.
+                $queryBuilder->expr()->eq('g.glossary_ready', $queryBuilder->createNamedParameter(1, Connection::PARAM_INT)),
+                $queryBuilder->expr()->neq('g.glossary_id', $queryBuilder->createNamedParameter(''))
             )
             ->orderBy('g.uid')
             ->setMaxResults(1)
@@ -918,18 +921,13 @@ final class GlossaryRepository
     }
 
     /**
-     * Marks the glossary of a folder and its dictionaries as no longer matching the terms.
+     * Marks the dictionaries of a folder as no longer matching its terms.
+     *
+     * The glossary stays ready, so translations keep using its last synchronised state until the
+     * folder is synchronised again.
      */
     public function setGlossaryNotSyncOnPage(int $pageId): void
     {
-        $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)
-            ->getQueryBuilderForTable('tx_deepltranslate_glossary');
-        $queryBuilder->update('tx_deepltranslate_glossary')
-            ->set('glossary_ready', 0)
-            ->where(
-                $queryBuilder->expr()->eq('pid', $queryBuilder->createNamedParameter($pageId, Connection::PARAM_INT))
-            )->executeStatement();
-
         $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)
             ->getQueryBuilderForTable('tx_deepltranslate_glossarydictionary');
         $queryBuilder->update('tx_deepltranslate_glossarydictionary')

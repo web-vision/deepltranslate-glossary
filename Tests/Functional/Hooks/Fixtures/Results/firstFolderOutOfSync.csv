@@ -1,6 +1,6 @@
 "tx_deepltranslate_glossary"
 ,"uid","pid","glossary_ready"
-,1,2,0
+,1,2,1
 ,2,4,1
 "tx_deepltranslate_glossarydictionary"
 ,"uid","pid","glossary","in_sync"
