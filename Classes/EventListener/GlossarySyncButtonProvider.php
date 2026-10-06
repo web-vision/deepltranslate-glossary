@@ -16,9 +16,8 @@ use TYPO3\CMS\Core\Imaging\Icon;
 use TYPO3\CMS\Core\Imaging\IconFactory;
 use TYPO3\CMS\Core\Localization\LanguageService;
 use TYPO3\CMS\Core\Localization\LanguageServiceFactory;
-use TYPO3\CMS\Core\Type\Bitmask\Permission;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
-use WebVision\Deepltranslate\Glossary\Access\AllowedGlossarySyncAccess;
+use WebVision\Deepltranslate\Glossary\Access\GlossarySyncPermission;
 use WebVision\Deepltranslate\Glossary\Controller\GlossarySyncController;
 
 final class GlossarySyncButtonProvider
@@ -29,6 +28,11 @@ final class GlossarySyncButtonProvider
         'web_layout',
         'web_list',
     ];
+
+    public function __construct(
+        private readonly GlossarySyncPermission $glossarySyncPermission,
+    ) {
+    }
 
     public function __invoke(ModifyButtonBarEvent $event): void
     {
@@ -52,15 +56,11 @@ final class GlossarySyncButtonProvider
             || $module === null
             || $normalizedParams === null
             || !empty($pageTSconfig['mod.']['SHARED.']['disableSysNoteButton'])
-            || !$this->canCreateNewRecord($id)
             || !in_array($module->getIdentifier(), self::ALLOWED_MODULES, true)
             || ($module->getIdentifier() === 'web_list' && !$this->isCreationAllowed($pageTSconfig['mod.']['web_list.'] ?? []))
             || !$this->isGlossaryFolder($page)
+            || !$this->glossarySyncPermission->isGranted($this->getBackendUserAuthentication(), $id)
         ) {
-            return;
-        }
-
-        if (!$this->getBackendUserAuthentication()->check('custom_options', AllowedGlossarySyncAccess::ALLOWED_GLOSSARY_SYNC)) {
             return;
         }
 
@@ -130,22 +130,6 @@ final class GlossarySyncButtonProvider
         return ($allowedNewTables === [] && $deniedNewTables === [])
             || (!in_array(self::TABLE_NAME, $deniedNewTables)
                 && ($allowedNewTables === [] || in_array(self::TABLE_NAME, $allowedNewTables)));
-    }
-
-    protected function canCreateNewRecord(int $id): bool
-    {
-        $tableConfiguration = $GLOBALS['TCA'][self::TABLE_NAME]['ctrl'];
-        $pageRow = BackendUtility::getRecord('pages', $id);
-        $backendUser = $this->getBackendUserAuthentication();
-
-        return !($pageRow === null
-            || ($tableConfiguration['readOnly'] ?? false)
-            || ($tableConfiguration['hideTable'] ?? false)
-            || ($tableConfiguration['is_static'] ?? false)
-            || (($tableConfiguration['adminOnly'] ?? false) && !$backendUser->isAdmin())
-            || !$backendUser->doesUserHaveAccess($pageRow, Permission::CONTENT_EDIT)
-            || !$backendUser->check('tables_modify', self::TABLE_NAME)
-            || !$backendUser->workspaceCanCreateNewRecord(self::TABLE_NAME));
     }
 
     /**

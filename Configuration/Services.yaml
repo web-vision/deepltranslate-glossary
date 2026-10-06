@@ -20,6 +20,9 @@ services:
     arguments:
       $cache: '@cache.deepltranslate_glossary'
 
+  WebVision\Deepltranslate\Glossary\Access\GlossarySyncPermission:
+    public: true
+
   WebVision\Deepltranslate\Glossary\EventListener\GlossarySyncButtonProvider:
     tags:
       - name: 'event.listener'

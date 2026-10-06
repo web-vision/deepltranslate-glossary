@@ -88,6 +88,9 @@
             <trans-unit id="glossary.sync.message.invalid">
                 <source>Glossary synchronization with DeepL error. Your glossaries has no entries or is invalid.</source>
             </trans-unit>
+            <trans-unit id="glossary.sync.message.denied">
+                <source>You are not allowed to synchronize the glossary of this folder with DeepL.</source>
+            </trans-unit>
             <trans-unit id="glossary.sync.collision.title">
                 <source>Glossary folder %1$d: language code "%2$s" is shared by several site languages</source>
             </trans-unit>
