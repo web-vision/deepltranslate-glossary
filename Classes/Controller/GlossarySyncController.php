@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace WebVision\Deepltranslate\Glossary\Controller;
 
 use DeepL\DeepLException;
+use DeepL\QuotaExceededException;
 use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Backend\Attribute\AsController;
 use TYPO3\CMS\Backend\Routing\UriBuilder;
@@ -22,6 +23,7 @@ use WebVision\Deepltranslate\Core\Exception\InvalidArgumentException;
 use WebVision\Deepltranslate\Glossary\Access\GlossarySyncPermission;
 use WebVision\Deepltranslate\Glossary\Domain\Dto\GlossaryLanguageCollision;
 use WebVision\Deepltranslate\Glossary\Exception\GlossaryFolderNotSyncableException;
+use WebVision\Deepltranslate\Glossary\Exception\GlossarySyncInProgressException;
 use WebVision\Deepltranslate\Glossary\Service\GlossaryLanguageCollisionMessageBuilder;
 use WebVision\Deepltranslate\Glossary\Service\MultilingualGlossaryService;
 
@@ -87,6 +89,21 @@ final class GlossarySyncController
         } catch (GlossaryFolderNotSyncableException $exception) {
             $this->flashMessageService->getMessageQueueByIdentifier()->enqueue(new FlashMessage(
                 $exception->getMessage(),
+                $this->languageService->sL('LLL:EXT:deepltranslate_glossary/Resources/Private/Language/locallang.xlf:glossary.sync.title.invalid'),
+                ContextualFeedbackSeverity::ERROR,
+                true
+            ));
+        } catch (GlossarySyncInProgressException) {
+            $this->flashMessageService->getMessageQueueByIdentifier()->enqueue(new FlashMessage(
+                $this->languageService->sL('LLL:EXT:deepltranslate_glossary/Resources/Private/Language/locallang.xlf:glossary.sync.message.inProgress'),
+                $this->languageService->sL('LLL:EXT:deepltranslate_glossary/Resources/Private/Language/locallang.xlf:glossary.sync.title.inProgress'),
+                ContextualFeedbackSeverity::WARNING,
+                true
+            ));
+        } catch (QuotaExceededException) {
+            // DeepL answers so for the character quota and for the maximum number of glossaries alike.
+            $this->flashMessageService->getMessageQueueByIdentifier()->enqueue(new FlashMessage(
+                $this->languageService->sL('LLL:EXT:deepltranslate_glossary/Resources/Private/Language/locallang.xlf:glossary.sync.message.quotaExceeded'),
                 $this->languageService->sL('LLL:EXT:deepltranslate_glossary/Resources/Private/Language/locallang.xlf:glossary.sync.title.invalid'),
                 ContextualFeedbackSeverity::ERROR,
                 true

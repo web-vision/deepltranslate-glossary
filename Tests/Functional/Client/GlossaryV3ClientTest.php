@@ -17,6 +17,7 @@ use WebVision\Deepltranslate\Glossary\Client\GlossaryAPIV3Client;
 use WebVision\Deepltranslate\Glossary\Client\GlossaryAPIV3ClientInterface;
 use WebVision\Deepltranslate\Glossary\Tests\Functional\AbstractDeepLTestCase;
 use WebVision\Deepltranslate\Glossary\Tests\Functional\Client\Fixtures\CollectingLogger;
+use WebVision\Deepltranslate\Glossary\Tests\Functional\Client\Fixtures\NotFoundAnsweringClientFactory;
 
 final class GlossaryV3ClientTest extends AbstractDeepLTestCase
 {
@@ -231,7 +232,41 @@ final class GlossaryV3ClientTest extends AbstractDeepLTestCase
         }
 
         // Callers expect a removed glossary and recover from it, so it is no error to alert on.
-        self::assertNotContains(LogLevel::ERROR, $logger->levels);
+        self::assertSame([LogLevel::DEBUG], $logger->levels);
+        self::assertSame(['operation' => 'getGlossary', 'glossaryId' => $glossaryId], $logger->contexts[0]);
+    }
+
+    #[Test]
+    public function notFoundAnswerToListingTheGlossariesIsLoggedAsError(): void
+    {
+        $logger = new CollectingLogger();
+        $client = new GlossaryAPIV3Client($logger, new NotFoundAnsweringClientFactory($this->get(DeepLClientFactoryInterface::class)));
+
+        try {
+            $client->getAllGlossaries();
+            self::fail('A request DeepL answers with "not found" has to be reported to the caller.');
+        } catch (GlossaryNotFoundException) {
+        }
+
+        // No glossary is addressed, so "not found" points at a wrong server URL.
+        self::assertSame([LogLevel::ERROR], $logger->levels);
+        self::assertSame(['operation' => 'getAllGlossaries', 'glossaryId' => ''], $logger->contexts[0]);
+    }
+
+    #[Test]
+    public function notFoundAnswerToCreatingAGlossaryIsLoggedAsError(): void
+    {
+        $logger = new CollectingLogger();
+        $client = new GlossaryAPIV3Client($logger, new NotFoundAnsweringClientFactory($this->get(DeepLClientFactoryInterface::class)));
+
+        try {
+            $client->createGlossary('Glossary', [new MultilingualGlossaryDictionaryEntries('de', 'en', ['Hallo' => 'Hello'])]);
+            self::fail('A request DeepL answers with "not found" has to be reported to the caller.');
+        } catch (GlossaryNotFoundException) {
+        }
+
+        self::assertSame([LogLevel::ERROR], $logger->levels);
+        self::assertSame(['operation' => 'createGlossary', 'glossaryId' => ''], $logger->contexts[0]);
     }
 
     #[Test]

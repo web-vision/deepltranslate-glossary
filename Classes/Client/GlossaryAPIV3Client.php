@@ -42,7 +42,7 @@ final class GlossaryAPIV3Client extends AbstractClient implements GlossaryAPIV3C
         try {
             return $this->client()->getGlossaryLanguages();
         } catch (DeepLException $exception) {
-            $this->logAndRethrow($exception);
+            $this->logAndRethrow($exception, 'getGlossaryLanguagePairs');
         }
     }
 
@@ -51,7 +51,7 @@ final class GlossaryAPIV3Client extends AbstractClient implements GlossaryAPIV3C
         try {
             return $this->client()->listMultilingualGlossaries();
         } catch (DeepLException $exception) {
-            $this->logAndRethrow($exception);
+            $this->logAndRethrow($exception, 'getAllGlossaries');
         }
     }
 
@@ -60,7 +60,7 @@ final class GlossaryAPIV3Client extends AbstractClient implements GlossaryAPIV3C
         try {
             return $this->client()->getMultilingualGlossary($glossaryId);
         } catch (DeepLException $exception) {
-            $this->logAndRethrow($exception);
+            $this->logAndRethrow($exception, 'getGlossary', $glossaryId);
         }
     }
 
@@ -77,7 +77,7 @@ final class GlossaryAPIV3Client extends AbstractClient implements GlossaryAPIV3C
                 $dictionaries,
             );
         } catch (DeepLException $exception) {
-            $this->logAndRethrow($exception);
+            $this->logAndRethrow($exception, 'createGlossary');
         }
     }
 
@@ -96,7 +96,7 @@ final class GlossaryAPIV3Client extends AbstractClient implements GlossaryAPIV3C
                 $dictionaries,
             );
         } catch (DeepLException $exception) {
-            $this->logAndRethrow($exception);
+            $this->logAndRethrow($exception, 'updateGlossary', $glossaryId);
         }
     }
 
@@ -110,7 +110,7 @@ final class GlossaryAPIV3Client extends AbstractClient implements GlossaryAPIV3C
                 $dictionary,
             );
         } catch (DeepLException $exception) {
-            $this->logAndRethrow($exception);
+            $this->logAndRethrow($exception, 'replaceDictionary', $glossaryId);
         }
     }
 
@@ -119,7 +119,7 @@ final class GlossaryAPIV3Client extends AbstractClient implements GlossaryAPIV3C
         try {
             $this->client()->deleteMultilingualGlossary($glossaryId);
         } catch (DeepLException $exception) {
-            $this->logAndRethrow($exception);
+            $this->logAndRethrow($exception, 'deleteGlossary', $glossaryId);
         }
     }
 
@@ -136,7 +136,7 @@ final class GlossaryAPIV3Client extends AbstractClient implements GlossaryAPIV3C
                 $targetLanguage,
             );
         } catch (DeepLException $exception) {
-            $this->logAndRethrow($exception);
+            $this->logAndRethrow($exception, 'deleteDictionary', $glossaryId);
         }
     }
 
@@ -155,7 +155,7 @@ final class GlossaryAPIV3Client extends AbstractClient implements GlossaryAPIV3C
                 $targetLanguage,
             );
         } catch (DeepLException $exception) {
-            $this->logAndRethrow($exception);
+            $this->logAndRethrow($exception, 'getGlossaryEntries', $glossaryId);
         }
     }
 
@@ -166,20 +166,29 @@ final class GlossaryAPIV3Client extends AbstractClient implements GlossaryAPIV3C
      * indistinguishable from a successful one, so a caller would persist an empty glossary id
      * together with a fresh synchronisation timestamp.
      *
-     * A glossary removed at DeepL is expected by the callers, which recover from it, so it is
-     * logged as debug information only.
+     * A glossary removed at DeepL is expected by the callers of a request on an existing
+     * glossary, which recover from it, so it is logged as debug information only. A request
+     * addressing no glossary, like listing or creating glossaries, is not answered with "not
+     * found" by DeepL, so such an answer points at a wrong server URL and is logged as error.
+     *
+     * @param string $glossaryId the glossary the request addresses, empty for none
      *
      * @throws DeepLException
      */
-    private function logAndRethrow(DeepLException $exception): never
+    private function logAndRethrow(DeepLException $exception, string $operation, string $glossaryId = ''): never
     {
         $this->logger->log(
-            $exception instanceof GlossaryNotFoundException ? LogLevel::DEBUG : LogLevel::ERROR,
+            $exception instanceof GlossaryNotFoundException && $glossaryId !== '' ? LogLevel::DEBUG : LogLevel::ERROR,
             sprintf(
-                '%s (%d)',
+                'DeepL glossary request %s failed: %s (%d)',
+                $operation,
                 $exception->getMessage(),
                 $exception->getCode()
-            )
+            ),
+            [
+                'operation' => $operation,
+                'glossaryId' => $glossaryId,
+            ]
         );
 
         throw $exception;

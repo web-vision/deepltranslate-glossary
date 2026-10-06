@@ -19,11 +19,13 @@ use TYPO3\CMS\Core\Locking\LockFactory;
 use TYPO3\CMS\Core\Locking\LockingStrategyInterface;
 use TYPO3\CMS\Core\Registry;
 use TYPO3\CMS\Core\Site\Entity\SiteLanguage;
+use WebVision\Deepltranslate\Core\Exception\ApiKeyNotSetException;
 use WebVision\Deepltranslate\Glossary\Client\GlossaryAPIV3ClientInterface;
 use WebVision\Deepltranslate\Glossary\Domain\Dto\GlossaryLanguageCollision;
 use WebVision\Deepltranslate\Glossary\Domain\Dto\GlossarySyncResult;
 use WebVision\Deepltranslate\Glossary\Domain\Repository\GlossaryRepository;
 use WebVision\Deepltranslate\Glossary\Exception\GlossaryFolderNotSyncableException;
+use WebVision\Deepltranslate\Glossary\Exception\GlossarySyncInProgressException;
 use WebVision\Deepltranslate\Glossary\Upgrade\MigrateToMultilingualGlossaryWizard;
 
 /**
@@ -52,8 +54,10 @@ final class MultilingualGlossaryService
      * Site languages sharing a glossary language code the site configuration does not decide
      * unambiguously are logged and returned, so the caller can report them.
      *
+     * @throws ApiKeyNotSetException
      * @throws DeepLException
      * @throws GlossaryFolderNotSyncableException
+     * @throws GlossarySyncInProgressException
      */
     public function syncGlossary(int $pageId): GlossarySyncResult
     {
@@ -115,7 +119,7 @@ final class MultilingualGlossaryService
      * Two synchronisations of the same folder at once, like the scheduler and an editor, would
      * both create a glossary at DeepL and leave one of them orphaned.
      *
-     * @throws GlossaryFolderNotSyncableException
+     * @throws GlossarySyncInProgressException
      */
     private function acquireFolderLock(int $pageId): LockingStrategyInterface
     {
@@ -128,9 +132,9 @@ final class MultilingualGlossaryService
         } catch (LockAcquireWouldBlockException) {
         }
 
-        throw new GlossaryFolderNotSyncableException(
+        throw new GlossarySyncInProgressException(
             sprintf('Glossary folder %d is being synchronised already.', $pageId),
-            1791134376
+            1791321875
         );
     }
 
@@ -243,7 +247,7 @@ final class MultilingualGlossaryService
      */
     private function pushDictionaries(array $record, array $dictionaries): MultilingualGlossaryInfo
     {
-        $glossary = $this->findRemoteGlossary($record['glossary_id']);
+        $glossary = $this->findRemoteGlossary($record);
         if ($glossary === null) {
             return $this->client->createGlossary($record['glossary_name'], $dictionaries);
         }
@@ -252,19 +256,26 @@ final class MultilingualGlossaryService
     }
 
     /**
+     * A glossary removed on the DeepL side leaves the stored id worthless, and the folder is
+     * published again as a new glossary. The folder is detached from the removed glossary
+     * first, so it does not stay attached to it when creating the new one fails, for example
+     * at the glossary limit of the account, or when the new id cannot be stored.
+     *
+     * @param array{uid: int, glossary_id: string, glossary_name: string} $record
+     *
+     * @throws DBALException
      * @throws DeepLException
      */
-    private function findRemoteGlossary(string $glossaryId): ?MultilingualGlossaryInfo
+    private function findRemoteGlossary(array $record): ?MultilingualGlossaryInfo
     {
-        if ($glossaryId === '') {
+        if ($record['glossary_id'] === '') {
             return null;
         }
 
         try {
-            return $this->client->getGlossary($glossaryId);
+            return $this->client->getGlossary($record['glossary_id']);
         } catch (GlossaryNotFoundException) {
-            // The glossary was removed on the DeepL side, so the stored id is worthless and the
-            // folder is published again as a new glossary.
+            $this->glossaryRepository->resetGlossaryRecord((int)$record['uid']);
             return null;
         }
     }
@@ -279,12 +290,12 @@ final class MultilingualGlossaryService
         $syncedDictionaries = [];
         foreach ($dictionaries as $dictionary) {
             // Replacing instead of merging, so a term removed in TYPO3 disappears at DeepL too.
-            $pair = $dictionary->sourceLang . '-' . $dictionary->targetLang;
+            $pair = $this->buildPairKey($dictionary->sourceLang, $dictionary->targetLang);
             $syncedDictionaries[$pair] = $this->client->replaceDictionary($glossary->glossaryId, $dictionary);
         }
 
         foreach ($glossary->dictionaries as $remoteDictionary) {
-            if (isset($syncedDictionaries[$remoteDictionary->sourceLang . '-' . $remoteDictionary->targetLang])) {
+            if (isset($syncedDictionaries[$this->buildPairKey($remoteDictionary->sourceLang, $remoteDictionary->targetLang)])) {
                 continue;
             }
             $this->deleteObsoleteDictionary($glossary->glossaryId, $remoteDictionary);
@@ -296,6 +307,15 @@ final class MultilingualGlossaryService
             $glossary->creationTime,
             array_values($syncedDictionaries)
         );
+    }
+
+    /**
+     * DeepL treats language codes case-insensitively, so "EN" and "en" name the same dictionary,
+     * which must not be deleted as obsolete right after it was replaced.
+     */
+    private function buildPairKey(string $sourceLanguage, string $targetLanguage): string
+    {
+        return strtolower($sourceLanguage) . '-' . strtolower($targetLanguage);
     }
 
     /**
@@ -363,20 +383,27 @@ final class MultilingualGlossaryService
     }
 
     /**
+     * The folder is detached first, so translations stop using the glossary before it is gone at
+     * DeepL. When detaching fails, the glossary at DeepL is left untouched instead of the folder
+     * pointing at a removed glossary. A glossary DeepL refuses to remove is left behind detached,
+     * the failure is reported and the glossary can be removed with the cleanup command.
+     *
      * @param array{uid: int, glossary_id: string, glossary_name: string} $record
      *
+     * @throws DBALException
      * @throws DeepLException
      */
     private function dropGlossary(array $record): void
     {
-        if ($record['glossary_id'] !== '') {
-            try {
-                $this->client->deleteGlossary($record['glossary_id']);
-            } catch (GlossaryNotFoundException) {
-                // Already gone on the DeepL side, only the local state needs cleaning up.
-            }
+        $this->glossaryRepository->resetGlossaryRecord((int)$record['uid']);
+        if ($record['glossary_id'] === '') {
+            return;
         }
 
-        $this->glossaryRepository->resetGlossaryRecord((int)$record['uid']);
+        try {
+            $this->client->deleteGlossary($record['glossary_id']);
+        } catch (GlossaryNotFoundException) {
+            // Already gone on the DeepL side, only the local state needed cleaning up.
+        }
     }
 }

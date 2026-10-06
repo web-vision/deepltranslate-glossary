@@ -94,6 +94,21 @@ A folder outside any site, a folder whose terms form no language pair and a fold
 still holding glossaries of the glossary API v2 fail this way. The latter keeps failing
 until the upgrade wizard ran, see :ref:`upgrade60to61`.
 
+When DeepL refuses the API key or the quota of the account is exceeded, the command
+stops at the folder where it happened and reports how many folders were left out, as
+every remaining folder would fail the same way. DeepL reports an exceeded quota as well
+when the account holds its maximum number of glossaries, glossaries of other
+installations sharing the API key included. Check the usage of the account before
+looking for a billing problem.
+
+The command also reports, without failing:
+
+*   a folder holding no terms. It has no glossary at DeepL, a glossary published
+    for it before has been removed.
+*   a folder skipped because another process is synchronising it, for example an
+    editor while the scheduler task runs. The next run synchronises it.
+*   that no glossary folder exists at all.
+
 Site languages sharing a glossary language code the site configuration does
 not decide unambiguously are reported as warnings, see
 :ref:`site-configuration-glossary-terms-warnings`.

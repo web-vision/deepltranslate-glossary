@@ -31,14 +31,18 @@ without a glossary folder used the glossary of any folder of the site.
 
 A failing folder no longer stops the command. The remaining folders are
 synchronized, and every failure is reported at the end with a failing exit
-code. A term translated into a language that has been removed from the site
-configuration is skipped instead of failing the folder.
+code. Only a refused API key or an exceeded quota stops the command, as every
+remaining folder would fail the same way. A term translated into a language
+that has been removed from the site configuration is skipped instead of
+failing the folder. The command reports a folder whose glossary was removed
+because it holds no terms, and tells when no glossary folder exists at all.
 
 A folder is synchronized by one process at a time. A synchronization started
 while the folder is being synchronized, for example by a scheduler task while
-an editor clicks the button, fails with a message and can be repeated once the
-running one has finished. The lock applies per server, so it does not prevent
-two synchronizations started on different servers.
+an editor clicks the button, does not run. The backend reports that the folder
+is being synchronized already, and the command reports the folder as skipped
+without failing. The lock applies per server, so it does not prevent two
+synchronizations started on different servers.
 
 Impact
 ======

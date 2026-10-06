@@ -112,6 +112,15 @@
             <trans-unit id="glossary.sync.message.failed">
                 <source>The glossary could not be synchronized with DeepL. Check the DeepL API key and the system log for details.</source>
             </trans-unit>
+            <trans-unit id="glossary.sync.message.quotaExceeded">
+                <source>DeepL refused the request because a limit of the DeepL account is reached, either the character quota of the billing period or the maximum number of glossaries. Check the usage of the DeepL account and remove glossaries no longer used.</source>
+            </trans-unit>
+            <trans-unit id="glossary.sync.title.inProgress">
+                <source>DeepL glossary sync running</source>
+            </trans-unit>
+            <trans-unit id="glossary.sync.message.inProgress">
+                <source>The glossary of this folder is already being synchronized with DeepL, for example by a scheduler task. Synchronize it again once that has finished.</source>
+            </trans-unit>
             <trans-unit id="glossary.sync.message.denied">
                 <source>You are not allowed to synchronize the glossary of this folder with DeepL.</source>
             </trans-unit>

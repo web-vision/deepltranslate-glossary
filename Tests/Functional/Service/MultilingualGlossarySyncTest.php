@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace WebVision\Deepltranslate\Glossary\Tests\Functional\Service;
 
 use DeepL\MultilingualGlossaryDictionaryEntries;
+use DeepL\TooManyRequestsException;
 use Doctrine\DBAL\Exception as DBALException;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
@@ -28,8 +29,10 @@ use WebVision\Deepltranslate\Glossary\Client\GlossaryAPIV3ClientInterface;
 use WebVision\Deepltranslate\Glossary\Domain\Repository\GlossaryRepository;
 use WebVision\Deepltranslate\Glossary\Event\ModifyGlossaryNameEvent;
 use WebVision\Deepltranslate\Glossary\Exception\GlossaryFolderNotSyncableException;
+use WebVision\Deepltranslate\Glossary\Exception\GlossarySyncInProgressException;
 use WebVision\Deepltranslate\Glossary\Service\MultilingualGlossaryService;
 use WebVision\Deepltranslate\Glossary\Tests\Functional\AbstractDeepLTestCase;
+use WebVision\Deepltranslate\Glossary\Tests\Functional\Fixtures\Client\InterceptingGlossaryClient;
 use WebVision\Deepltranslate\Glossary\Tests\Functional\Service\Fixtures\CollectingLogWriter;
 use WebVision\Deepltranslate\Glossary\Tests\Functional\Service\Fixtures\ConcurrentlyDeletingGlossaryClient;
 use WebVision\Deepltranslate\Glossary\Upgrade\MigrateToMultilingualGlossaryWizard;
@@ -172,13 +175,8 @@ final class MultilingualGlossarySyncTest extends AbstractDeepLTestCase
         );
         // Only the client is replaced, to remove the obsolete dictionary right before the sync
         // does, as a concurrent synchronisation would.
-        $subject = new MultilingualGlossaryService(
-            $this->get(CacheManager::class)->getCache('deepltranslate_glossary'),
-            new ConcurrentlyDeletingGlossaryClient(new NullLogger(), $this->get(DeepLClientFactoryInterface::class)),
-            $this->get(GlossaryRepository::class),
-            $this->get(Registry::class),
-            $this->get(LockFactory::class),
-            new NullLogger(),
+        $subject = $this->createSubjectWithClient(
+            new ConcurrentlyDeletingGlossaryClient(new NullLogger(), $this->get(DeepLClientFactoryInterface::class))
         );
 
         $subject->syncGlossary(2);
@@ -208,6 +206,55 @@ final class MultilingualGlossarySyncTest extends AbstractDeepLTestCase
     }
 
     #[Test]
+    public function folderIsDetachedFromGlossaryDeletedAtDeeplWhenRecreatingItFails(): void
+    {
+        $this->get(MultilingualGlossaryService::class)->syncGlossary(2);
+        $removedGlossaryId = $this->fetchGlossaryRecords()[0]['glossary_id'];
+        $this->get(GlossaryAPIV3ClientInterface::class)->deleteGlossary($removedGlossaryId);
+        // For example the glossary limit of the account, or an outage of DeepL.
+        $client = $this->createInterceptingClient()
+            ->failOn('createGlossary', new TooManyRequestsException('Too many requests'));
+
+        try {
+            $this->createSubjectWithClient($client)->syncGlossary(2);
+            self::fail('A glossary DeepL could not create has to be reported.');
+        } catch (TooManyRequestsException) {
+        }
+
+        // Translations must not keep sending the id of the removed glossary.
+        self::assertSame(['getGlossary', 'createGlossary'], $client->requests);
+        $glossaries = $this->fetchGlossaryRecords();
+        self::assertCount(1, $glossaries);
+        self::assertSame('', $glossaries[0]['glossary_id']);
+        self::assertSame(0, (int)$glossaries[0]['glossary_ready']);
+        self::assertSame([], $this->fetchDictionaryRecords());
+    }
+
+    #[Test]
+    public function folderDetachedFromGlossaryDeletedAtDeeplIsPublishedAgainByTheNextSync(): void
+    {
+        $subject = $this->get(MultilingualGlossaryService::class);
+        $subject->syncGlossary(2);
+        $removedGlossaryId = $this->fetchGlossaryRecords()[0]['glossary_id'];
+        $this->get(GlossaryAPIV3ClientInterface::class)->deleteGlossary($removedGlossaryId);
+        $client = $this->createInterceptingClient()
+            ->failOn('createGlossary', new TooManyRequestsException('Too many requests'));
+        try {
+            $this->createSubjectWithClient($client)->syncGlossary(2);
+        } catch (TooManyRequestsException) {
+        }
+
+        $subject->syncGlossary(2);
+
+        $glossaries = $this->fetchGlossaryRecords();
+        self::assertCount(1, $glossaries);
+        self::assertNotSame('', $glossaries[0]['glossary_id']);
+        self::assertNotSame($removedGlossaryId, $glossaries[0]['glossary_id']);
+        self::assertSame(1, (int)$glossaries[0]['glossary_ready']);
+        self::assertCount(1, $this->fetchDictionaryRecords());
+    }
+
+    #[Test]
     public function folderBeingSynchronisedIsNotSynchronisedAgainMeanwhile(): void
     {
         // Held by a concurrent synchronisation, for example the scheduler while an editor clicks.
@@ -221,8 +268,9 @@ final class MultilingualGlossarySyncTest extends AbstractDeepLTestCase
         try {
             $subject->syncGlossary(2);
             self::fail('A folder being synchronised must not be synchronised a second time at once.');
-        } catch (GlossaryFolderNotSyncableException $exception) {
-            self::assertSame(1791134376, $exception->getCode());
+        } catch (GlossarySyncInProgressException $exception) {
+            // Not a broken folder, so callers can tell it apart and report it as skipped.
+            self::assertSame(1791321875, $exception->getCode());
         } finally {
             $lock->release();
         }
@@ -292,6 +340,64 @@ final class MultilingualGlossarySyncTest extends AbstractDeepLTestCase
         self::assertSame('', $glossaries[0]['glossary_id']);
         self::assertSame(0, (int)$glossaries[0]['glossary_ready']);
         self::assertSame([], $this->fetchDictionaryRecords());
+    }
+
+    #[Test]
+    public function emptiedFolderIsDetachedWhenDeeplRefusesToRemoveItsGlossary(): void
+    {
+        $this->get(MultilingualGlossaryService::class)->syncGlossary(2);
+        $glossaryId = $this->fetchGlossaryRecords()[0]['glossary_id'];
+        $this->get(ConnectionPool::class)
+            ->getConnectionForTable('tx_deepltranslate_glossaryentry')
+            ->delete('tx_deepltranslate_glossaryentry', ['pid' => 2]);
+        $client = $this->createInterceptingClient()
+            ->failOn('deleteGlossary', new TooManyRequestsException('Too many requests'));
+
+        try {
+            $this->createSubjectWithClient($client)->syncGlossary(2);
+            self::fail('A glossary DeepL refused to remove has to be reported.');
+        } catch (TooManyRequestsException) {
+        }
+
+        // The folder is detached first, translations stop using the glossary of the emptied folder.
+        $glossaries = $this->fetchGlossaryRecords();
+        self::assertCount(1, $glossaries);
+        self::assertSame('', $glossaries[0]['glossary_id']);
+        self::assertSame(0, (int)$glossaries[0]['glossary_ready']);
+        self::assertSame([], $this->fetchDictionaryRecords());
+        // Left behind at DeepL, for the cleanup command.
+        self::assertSame($glossaryId, $this->get(GlossaryAPIV3ClientInterface::class)->getGlossary($glossaryId)->glossaryId);
+    }
+
+    #[Test]
+    public function dictionaryAnsweredWithUpperCaseLanguageCodesIsNotDeletedAsObsolete(): void
+    {
+        $this->get(MultilingualGlossaryService::class)->syncGlossary(2);
+        $glossaryId = $this->fetchGlossaryRecords()[0]['glossary_id'];
+        $client = $this->createInterceptingClient()->answerWithUpperCaseLanguageCodes();
+
+        $this->createSubjectWithClient($client)->syncGlossary(2);
+
+        self::assertNotContains('deleteDictionary', $client->requests);
+        self::assertCount(1, $this->get(GlossaryAPIV3ClientInterface::class)->getGlossaryEntries($glossaryId, 'en', 'de'));
+        // Stored the way translations look the language pair up.
+        $dictionaries = $this->fetchDictionaryRecords();
+        self::assertCount(1, $dictionaries);
+        self::assertSame('en', $dictionaries[0]['source_lang']);
+        self::assertSame('de', $dictionaries[0]['target_lang']);
+    }
+
+    #[Test]
+    public function glossaryRecordWithoutNameIsPublishedUnderTheNameOfItsFolder(): void
+    {
+        // DeepL refuses to create a glossary without a name.
+        $this->insertGlossaryRecord('');
+
+        $this->get(MultilingualGlossaryService::class)->syncGlossary(2);
+
+        $glossary = $this->fetchGlossaryRecords()[0];
+        self::assertSame('Glossary [2]', $glossary['glossary_name']);
+        self::assertSame('Glossary [2]', $this->get(GlossaryAPIV3ClientInterface::class)->getGlossary($glossary['glossary_id'])->name);
     }
 
     #[Test]
@@ -659,6 +765,37 @@ final class MultilingualGlossarySyncTest extends AbstractDeepLTestCase
             )
             ->executeQuery()
             ->fetchOne();
+    }
+
+    private function createInterceptingClient(): InterceptingGlossaryClient
+    {
+        return new InterceptingGlossaryClient(new NullLogger(), $this->get(DeepLClientFactoryInterface::class));
+    }
+
+    /**
+     * Only the client is replaced, everything else is the service of the container.
+     */
+    private function createSubjectWithClient(GlossaryAPIV3ClientInterface $client): MultilingualGlossaryService
+    {
+        return new MultilingualGlossaryService(
+            $this->get(CacheManager::class)->getCache('deepltranslate_glossary'),
+            $client,
+            $this->get(GlossaryRepository::class),
+            $this->get(Registry::class),
+            $this->get(LockFactory::class),
+            new NullLogger(),
+        );
+    }
+
+    private function insertGlossaryRecord(string $glossaryName): void
+    {
+        $this->get(ConnectionPool::class)
+            ->getConnectionForTable('tx_deepltranslate_glossary')
+            ->insert('tx_deepltranslate_glossary', [
+                'pid' => 2,
+                'glossary_id' => '',
+                'glossary_name' => $glossaryName,
+            ]);
     }
 
     private function insertGlossaryRecordOfApiV2(string $glossaryId): void

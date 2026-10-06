@@ -60,6 +60,51 @@ final class GlossaryNameServiceTest extends AbstractDeepLTestCase
         self::assertSame('Glossary [2]', $subject->getGlossaryName(2));
     }
 
+    #[Test]
+    public function nameOfAListenerAboveTheByteLimitIsCutOnACharacterBoundary(): void
+    {
+        // An umlaut takes two UTF-8 bytes, the cut must not split the one crossing 1024 bytes.
+        $this->registerNameListener(static function (ModifyGlossaryNameEvent $event): void {
+            $event->glossaryName = 'a' . str_repeat('ü', 600);
+        });
+        $subject = $this->get(GlossaryNameService::class);
+
+        self::assertSame('a' . str_repeat('ü', 511), $subject->getGlossaryName(2));
+    }
+
+    #[Test]
+    public function storedNameIsKept(): void
+    {
+        $subject = $this->get(GlossaryNameService::class);
+
+        self::assertSame('ACME glossary', $subject->fitStoredName(' ACME glossary ', 2));
+    }
+
+    #[Test]
+    public function blankStoredNameIsReplacedByTheNameOfTheFolder(): void
+    {
+        // DeepL refuses to create a glossary without a name.
+        $subject = $this->get(GlossaryNameService::class);
+
+        self::assertSame('Glossary [2]', $subject->fitStoredName('  ', 2));
+    }
+
+    #[Test]
+    public function storedNameAboveTheByteLimitIsCutOnACharacterBoundary(): void
+    {
+        $subject = $this->get(GlossaryNameService::class);
+
+        self::assertSame('a' . str_repeat('ü', 511), $subject->fitStoredName('a' . str_repeat('ü', 600), 2));
+    }
+
+    #[Test]
+    public function storedNameOfExactlyTheByteLimitIsKept(): void
+    {
+        $subject = $this->get(GlossaryNameService::class);
+
+        self::assertSame(str_repeat('ü', 512), $subject->fitStoredName(str_repeat('ü', 512), 2));
+    }
+
     private function registerNameListener(\Closure $listener): void
     {
         /** @var Container $container */

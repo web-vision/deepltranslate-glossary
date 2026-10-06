@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace WebVision\Deepltranslate\Glossary\Command;
 
+use DeepL\AuthorizationException;
+use DeepL\QuotaExceededException;
 use Exception;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -13,8 +15,10 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Contracts\Service\Attribute\Required;
 use TYPO3\CMS\Core\Localization\LanguageServiceFactory;
+use WebVision\Deepltranslate\Core\Exception\ApiKeyNotSetException;
 use WebVision\Deepltranslate\Glossary\Domain\Dto\GlossaryLanguageCollision;
 use WebVision\Deepltranslate\Glossary\Domain\Repository\GlossaryRepository;
+use WebVision\Deepltranslate\Glossary\Exception\GlossarySyncInProgressException;
 use WebVision\Deepltranslate\Glossary\Service\GlossaryLanguageCollisionMessageBuilder;
 use WebVision\Deepltranslate\Glossary\Service\MultilingualGlossaryService;
 
@@ -71,26 +75,52 @@ final class GlossarySyncCommand extends Command
         $io->title('Glossary Sync');
 
         $pageId = $input->getOption('pageId');
-        $glossaries = $pageId !== null
-            ? [['uid' => (int)$pageId]]
-            : $this->glossaryRepository->findAllGlossaries();
+        $pageIds = $pageId !== null
+            ? [(int)$pageId]
+            : array_values(array_map(static fn (array $glossary): int => (int)$glossary['uid'], $this->glossaryRepository->findAllGlossaries()));
+        if ($pageIds === []) {
+            $io->note('No glossary folder found. A glossary folder is a visible folder with the glossary module assigned.');
+            return Command::SUCCESS;
+        }
 
         $errors = [];
+        $notes = [];
         $collisionsByPageId = [];
-        $io->progressStart(count($glossaries));
-        foreach ($glossaries as $glossary) {
-            // A failing folder must not keep the remaining folders from being synchronised.
+        $io->progressStart(count($pageIds));
+        foreach ($pageIds as $index => $folderId) {
+            // A failing folder must not keep the remaining folders from being synchronised, a
+            // refused API key or an exceeded quota stops the command, see below.
             try {
-                $collisionsByPageId[(int)$glossary['uid']] = $this->multilingualGlossaryService
-                    ->syncGlossary((int)$glossary['uid'])
-                    ->collisions;
+                $result = $this->multilingualGlossaryService->syncGlossary($folderId);
+                $collisionsByPageId[$folderId] = $result->collisions;
+                if (!$result->hasGlossary) {
+                    $notes[] = sprintf('Page %d: the folder holds no terms, so it has no DeepL glossary. A glossary published before was removed from DeepL.', $folderId);
+                }
+            } catch (GlossarySyncInProgressException) {
+                $notes[] = sprintf('Page %d: skipped, the folder is being synchronised by another process.', $folderId);
+            } catch (AuthorizationException|QuotaExceededException|ApiKeyNotSetException $exception) {
+                // Every remaining folder would fail the same way, and retrying them only adds
+                // requests DeepL refuses.
+                $errors[] = sprintf('Page %d: %s (%s)', $folderId, $exception->getMessage(), $exception->getCode());
+                if ($exception instanceof QuotaExceededException) {
+                    $errors[] = 'DeepL reports an exceeded quota as well when the account holds its maximum number of'
+                        . ' glossaries. Check the usage of the DeepL account and remove glossaries no longer used.';
+                }
+                $remaining = count($pageIds) - $index - 1;
+                if ($remaining > 0) {
+                    $errors[] = sprintf('Aborted, glossary folders left out: %d.', $remaining);
+                }
+                break;
             } catch (Exception $exception) {
-                $errors[] = sprintf('Page %d: %s (%s)', $glossary['uid'], $exception->getMessage(), $exception->getCode());
+                $errors[] = sprintf('Page %d: %s (%s)', $folderId, $exception->getMessage(), $exception->getCode());
             }
             $io->progressAdvance();
         }
         $io->progressFinish();
         $this->reportCollisions($io, $collisionsByPageId);
+        if ($notes !== []) {
+            $io->note($notes);
+        }
 
         if ($errors !== []) {
             $io->error($errors);

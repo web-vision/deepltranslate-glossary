@@ -103,6 +103,14 @@
                 <source>DeepL Sync ready</source>
                 <target>DeepL Sync abgeschlossen</target>
             </trans-unit>
+            <trans-unit id="glossary.sync.title.inProgress">
+                <source>DeepL glossary sync running</source>
+                <target>DeepL-Glossar-Synchronisierung läuft</target>
+            </trans-unit>
+            <trans-unit id="glossary.sync.message.inProgress">
+                <source>The glossary of this folder is already being synchronized with DeepL, for example by a scheduler task. Synchronize it again once that has finished.</source>
+                <target>Das Glossar dieses Ordners wird bereits mit DeepL synchronisiert, zum Beispiel durch eine Scheduler-Aufgabe. Synchronisieren Sie es erneut, sobald dies abgeschlossen ist.</target>
+            </trans-unit>
             <trans-unit id="glossary.sync.message.denied">
                 <source>You are not allowed to synchronize the glossary of this folder with DeepL.</source>
                 <target>Sie dürfen das Glossar dieses Ordners nicht mit DeepL synchronisieren.</target>
@@ -118,6 +126,10 @@
             <trans-unit id="glossary.sync.message.failed">
                 <source>The glossary could not be synchronized with DeepL. Check the DeepL API key and the system log for details.</source>
                 <target>Das Glossar konnte nicht mit DeepL synchronisiert werden. Prüfen Sie den DeepL-API-Schlüssel und das Systemprotokoll für Details.</target>
+            </trans-unit>
+            <trans-unit id="glossary.sync.message.quotaExceeded">
+                <source>DeepL refused the request because a limit of the DeepL account is reached, either the character quota of the billing period or the maximum number of glossaries. Check the usage of the DeepL account and remove glossaries no longer used.</source>
+                <target>DeepL hat die Anfrage abgelehnt, weil ein Limit des DeepL-Kontos erreicht ist, entweder das Zeichenkontingent des Abrechnungszeitraums oder die maximale Anzahl an Glossaren. Prüfen Sie die Nutzung des DeepL-Kontos und entfernen Sie nicht mehr benötigte Glossare.</target>
             </trans-unit>
             <trans-unit id="glossary.not-sync.message">
                 <source>Glossary synchronization with DeepL is pending. Translations use the last synchronized state until then.</source>

@@ -106,6 +106,8 @@ The synchronisation reports its outcome as a message:
     the folder or its terms are not translated. The glossary is kept as it is.
 *   The folder still holds glossaries of the DeepL glossary API v2. An administrator
     has to run the upgrade wizard first, see :ref:`upgrade60to61`.
+*   The folder is being synchronised already, for example by a scheduler task.
+    Synchronise it again once that has finished.
 *   DeepL could not be reached or refused the request. Check the API key and the
     system log.
 

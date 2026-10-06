@@ -192,6 +192,9 @@ final class GlossaryRepository
     {
         $record = $this->findGlossaryRecord($pageId);
         if ($record !== null) {
+            // A record written by a released version or by hand may come without a name, which
+            // DeepL refuses. The name DeepL reports back is stored with the synchronisation.
+            $record['glossary_name'] = $this->glossaryNameService->fitStoredName($record['glossary_name'], $pageId);
             return $record;
         }
 
@@ -241,48 +244,52 @@ final class GlossaryRepository
                     ],
                     ['uid' => $uid]
                 );
-                $this->replaceDictionaryRecords($information, $uid, $pageId);
+                $this->replaceDictionaryRecords($connection, $information, $uid, $pageId);
             });
     }
 
     /**
-     * Detaches the folder from its remote glossary, used when nothing is left to synchronise.
+     * Detaches the folder from its remote glossary, used when nothing is left to synchronise
+     * and when DeepL no longer knows the glossary.
      *
      * @throws \Doctrine\DBAL\Exception
      */
     public function resetGlossaryRecord(int $uid): void
     {
+        // A translation in between must not find dictionaries of a detached glossary.
         $this->connectionPool
             ->getConnectionForTable('tx_deepltranslate_glossary')
-            ->update(
-                'tx_deepltranslate_glossary',
-                [
-                    'glossary_id' => '',
-                    'glossary_lastsync' => 0,
-                    'glossary_ready' => 0,
-                ],
-                ['uid' => $uid]
-            );
-
-        $this->deleteDictionaryRecords($uid);
+            ->transactional(function (Connection $connection) use ($uid): void {
+                $connection->update(
+                    'tx_deepltranslate_glossary',
+                    [
+                        'glossary_id' => '',
+                        'glossary_lastsync' => 0,
+                        'glossary_ready' => 0,
+                    ],
+                    ['uid' => $uid]
+                );
+                $this->deleteDictionaryRecords($connection, $uid);
+            });
     }
 
     /**
+     * Language codes are stored lowercase, the way {@see self::getGlossaryBySourceAndTarget()}
+     * looks them up, whatever case DeepL answers with.
+     *
      * @throws \Doctrine\DBAL\Exception
      */
-    private function replaceDictionaryRecords(MultilingualGlossaryInfo $information, int $uid, int $pageId): void
+    private function replaceDictionaryRecords(Connection $connection, MultilingualGlossaryInfo $information, int $uid, int $pageId): void
     {
-        $this->deleteDictionaryRecords($uid);
-        $connection = $this->connectionPool
-            ->getConnectionForTable('tx_deepltranslate_glossarydictionary');
+        $this->deleteDictionaryRecords($connection, $uid);
         foreach ($information->dictionaries as $dictionary) {
             $connection->insert(
                 'tx_deepltranslate_glossarydictionary',
                 [
                     'pid' => $pageId,
                     'glossary' => $uid,
-                    'source_lang' => $dictionary->sourceLang,
-                    'target_lang' => $dictionary->targetLang,
+                    'source_lang' => strtolower($dictionary->sourceLang),
+                    'target_lang' => strtolower($dictionary->targetLang),
                     'entry_count' => $dictionary->entryCount,
                     'in_sync' => 1,
                 ]
@@ -293,11 +300,9 @@ final class GlossaryRepository
     /**
      * @throws \Doctrine\DBAL\Exception
      */
-    private function deleteDictionaryRecords(int $uid): void
+    private function deleteDictionaryRecords(Connection $connection, int $uid): void
     {
-        $this->connectionPool
-            ->getConnectionForTable('tx_deepltranslate_glossarydictionary')
-            ->delete('tx_deepltranslate_glossarydictionary', ['glossary' => $uid]);
+        $connection->delete('tx_deepltranslate_glossarydictionary', ['glossary' => $uid]);
     }
 
     /**
@@ -644,7 +649,7 @@ final class GlossaryRepository
         $affected = $db->select(['uid'], 'tx_deepltranslate_glossary', ['glossary_id' => $glossaryId])
             ->fetchAllAssociative();
         foreach ($affected as $glossary) {
-            $this->deleteDictionaryRecords((int)$glossary['uid']);
+            $this->deleteDictionaryRecords($db, (int)$glossary['uid']);
         }
 
         $count = $db->update(
