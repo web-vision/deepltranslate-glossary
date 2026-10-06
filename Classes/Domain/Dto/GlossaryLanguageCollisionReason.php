@@ -6,9 +6,8 @@ namespace WebVision\Deepltranslate\Glossary\Domain\Dto;
 
 /**
  * Why several site languages sharing one glossary language code needed a decision nobody made explicitly.
-
  *
- * @internal and not part of public API.
+ * Part of {@see \WebVision\Deepltranslate\Glossary\Event\AfterGlossarySynchronizedEvent}.
  */
 enum GlossaryLanguageCollisionReason: string
 {

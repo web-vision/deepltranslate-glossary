@@ -9,9 +9,8 @@ use TYPO3\CMS\Core\Site\Entity\SiteLanguage;
 /**
  * Several site languages share one glossary language code and the site configuration does not decide
  * unambiguously which one provides the glossary terms.
-
  *
- * @internal and not part of public API.
+ * Part of {@see \WebVision\Deepltranslate\Glossary\Event\AfterGlossarySynchronizedEvent}.
  */
 final readonly class GlossaryLanguageCollision
 {

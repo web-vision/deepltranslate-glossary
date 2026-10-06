@@ -10,6 +10,7 @@ use DeepL\MultilingualGlossaryDictionaryEntries;
 use DeepL\MultilingualGlossaryDictionaryInfo;
 use DeepL\MultilingualGlossaryInfo;
 use Doctrine\DBAL\Exception as DBALException;
+use Psr\EventDispatcher\EventDispatcherInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autoconfigure;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
@@ -24,6 +25,7 @@ use WebVision\Deepltranslate\Glossary\Client\GlossaryAPIV3ClientInterface;
 use WebVision\Deepltranslate\Glossary\Domain\Dto\GlossaryLanguageCollision;
 use WebVision\Deepltranslate\Glossary\Domain\Dto\GlossarySyncResult;
 use WebVision\Deepltranslate\Glossary\Domain\Repository\GlossaryRepository;
+use WebVision\Deepltranslate\Glossary\Event\AfterGlossarySynchronizedEvent;
 use WebVision\Deepltranslate\Glossary\Exception\GlossaryFolderNotSyncableException;
 use WebVision\Deepltranslate\Glossary\Exception\GlossarySyncInProgressException;
 use WebVision\Deepltranslate\Glossary\Upgrade\MigrateToMultilingualGlossaryWizard;
@@ -46,6 +48,7 @@ final class MultilingualGlossaryService
         private readonly Registry $registry,
         private readonly LockFactory $lockFactory,
         private readonly LoggerInterface $logger,
+        private readonly EventDispatcherInterface $eventDispatcher,
     ) {
     }
 
@@ -58,6 +61,8 @@ final class MultilingualGlossaryService
      * Site languages sharing a glossary language code the site configuration does not decide
      * unambiguously are logged and returned, so the caller can report them.
      *
+     * {@see AfterGlossarySynchronizedEvent} is dispatched once the result is stored, and only then.
+     *
      * @throws ApiKeyNotSetException
      * @throws DeepLException
      * @throws GlossaryFolderNotSyncableException
@@ -69,10 +74,22 @@ final class MultilingualGlossaryService
         $this->assertMigratedFolder($pageId);
         $lock = $this->acquireFolderLock($pageId);
         try {
-            return $this->synchroniseFolder($pageId);
+            $result = $this->synchroniseFolder($pageId);
         } finally {
             $lock->release();
         }
+
+        // Dispatched outside the lock, so the work of a listener does not keep the scheduler or
+        // an editor from synchronising the folder.
+        $this->eventDispatcher->dispatch(new AfterGlossarySynchronizedEvent(
+            $pageId,
+            $result->glossaryId,
+            $result->hasGlossary,
+            $result->dictionaries,
+            $result->collisions,
+        ));
+
+        return $result;
     }
 
     /**
@@ -86,14 +103,24 @@ final class MultilingualGlossaryService
         $dictionaries = $this->buildDictionaries($syncInformation->dictionaries);
         if ($dictionaries === []) {
             $this->dropGlossaryOfEmptiedFolder($pageId);
-            return new GlossarySyncResult(false, $syncInformation->collisions);
+            return new GlossarySyncResult(
+                hasGlossary: false,
+                collisions: $syncInformation->collisions,
+                glossaryId: '',
+                dictionaries: [],
+            );
         }
 
         $record = $this->glossaryRepository->findOrCreateGlossaryRecord($pageId);
         $information = $this->pushDictionaries($record, $dictionaries);
         $this->storeSyncedGlossary($information, $record, $pageId);
 
-        return new GlossarySyncResult(true, $syncInformation->collisions);
+        return new GlossarySyncResult(
+            hasGlossary: true,
+            collisions: $syncInformation->collisions,
+            glossaryId: $information->glossaryId,
+            dictionaries: array_values($information->dictionaries),
+        );
     }
 
     /**

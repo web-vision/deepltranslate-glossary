@@ -7,6 +7,7 @@ namespace WebVision\Deepltranslate\Glossary\Tests\Functional\Controller;
 use DeepL\DeepLException;
 use DeepL\QuotaExceededException;
 use PHPUnit\Framework\Attributes\Test;
+use Psr\EventDispatcher\EventDispatcherInterface;
 use Psr\Log\NullLogger;
 use SBUERK\TYPO3\Testing\SiteHandling\SiteBasedTestTrait;
 use TYPO3\CMS\Backend\Routing\UriBuilder;
@@ -250,6 +251,7 @@ final class GlossarySyncControllerTest extends AbstractDeepLTestCase
             $this->get(Registry::class),
             $this->get(LockFactory::class),
             new NullLogger(),
+            $this->get(EventDispatcherInterface::class),
         );
 
         return new GlossarySyncController(
