@@ -77,6 +77,20 @@ page settings, tab **DeepL Translate**.
 
 In each glossary directory, a button is enabled to synchronise that glossary.
 
+The button is shown, and the synchronisation is accepted, only for a backend
+user who
+
+#.  is an administrator, or whose group grants the permission
+    :guilabel:`Allowed Glossary Sync`,
+#.  may modify the table :sql:`tx_deepltranslate_glossaryentry`,
+#.  has the folder in a database mount and the page permission to edit its
+    content.
+
+Any other request to synchronise a folder is refused with an error message.
+After the synchronisation, the backend returns to the page it came from when
+that is a path on the same host, otherwise it shows the folder in the list
+module.
+
 After sync the tab *DeepL Translate* should look like this:
 
 ..  figure:: /Images/Editor/glossary-sync-tab-synced.png

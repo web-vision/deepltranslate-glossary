@@ -9,6 +9,7 @@ use PHPUnit\Framework\Attributes\Test;
 use SBUERK\TYPO3\Testing\SiteHandling\SiteBasedTestTrait;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Http\ServerRequest;
+use TYPO3\CMS\Core\Localization\LanguageServiceFactory;
 use TYPO3\CMS\Core\Messaging\FlashMessageService;
 use TYPO3\CMS\Core\Type\ContextualFeedbackSeverity;
 use WebVision\Deepltranslate\Glossary\Controller\GlossarySyncController;
@@ -79,12 +80,6 @@ final class GlossarySyncControllerFolderGuardTest extends AbstractDeepLTestCase
         yield 'standard page with module glossary' => [
             'pageUid' => 4,
         ];
-        yield 'deleted glossary folder' => [
-            'pageUid' => 5,
-        ];
-        yield 'page that does not exist' => [
-            'pageUid' => 99,
-        ];
     }
 
     #[Test]
@@ -106,6 +101,46 @@ final class GlossarySyncControllerFolderGuardTest extends AbstractDeepLTestCase
         self::assertSame(ContextualFeedbackSeverity::ERROR, $messages[0]->getSeverity());
         self::assertSame(
             sprintf('Page "%d" not configured for glossary synchronization.', $pageUid),
+            $messages[0]->getMessage()
+        );
+        self::assertSame(0, $this->countGlossariesOnPage($pageUid));
+    }
+
+    public static function pageNotAccessibleDataProvider(): \Generator
+    {
+        yield 'deleted glossary folder' => [
+            'pageUid' => 5,
+        ];
+        yield 'page that does not exist' => [
+            'pageUid' => 99,
+        ];
+    }
+
+    /**
+     * The permission check comes before the folder check and reads the page with the page
+     * permissions of the user, so a deleted or missing page is rejected as not accessible.
+     */
+    #[Test]
+    #[DataProvider('pageNotAccessibleDataProvider')]
+    public function pageNotAccessibleIsRejected(int $pageUid): void
+    {
+        $returnUrl = '/typo3/module/web/layout?id=' . $pageUid;
+        $request = (new ServerRequest('https://localhost/typo3/glossary'))
+            ->withQueryParams([
+                'uid' => (string)$pageUid,
+                'returnUrl' => $returnUrl,
+            ]);
+
+        $response = $this->get(GlossarySyncController::class)->update($request);
+
+        self::assertSame($returnUrl, $response->getHeaderLine('location'));
+        $messages = $this->get(FlashMessageService::class)->getMessageQueueByIdentifier()->getAllMessages();
+        self::assertCount(1, $messages);
+        self::assertSame(ContextualFeedbackSeverity::ERROR, $messages[0]->getSeverity());
+        self::assertSame(
+            $this->get(LanguageServiceFactory::class)
+                ->createFromUserPreferences($GLOBALS['BE_USER'])
+                ->sL('LLL:EXT:deepltranslate_glossary/Resources/Private/Language/locallang.xlf:glossary.sync.message.denied'),
             $messages[0]->getMessage()
         );
         self::assertSame(0, $this->countGlossariesOnPage($pageUid));
