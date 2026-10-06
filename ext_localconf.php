@@ -16,6 +16,8 @@ use WebVision\Deepltranslate\Glossary\Hooks\UpdatedGlossaryEntryTermHook;
     // hook registration
     $GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['t3lib/class.t3lib_tcemain.php']['processDatamapClass'][]
         = UpdatedGlossaryEntryTermHook::class;
+    $GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['t3lib/class.t3lib_tcemain.php']['processCmdmapClass'][]
+        = UpdatedGlossaryEntryTermHook::class;
     $GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['t3lib/class.t3lib_tcemain.php']['processDatamapClass'][]
         = GlossaryEntryTermLengthValidationHook::class;
 })();
