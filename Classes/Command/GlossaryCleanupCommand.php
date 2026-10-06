@@ -61,7 +61,7 @@ final class GlossaryCleanupCommand extends Command
                 'notinsync',
                 null,
                 InputOption::VALUE_NONE,
-                'Delete all Glossaries without synchronization information',
+                'Detach glossary records whose DeepL glossary no longer exists. Nothing is deleted at DeepL.',
             );
     }
 
@@ -150,9 +150,33 @@ final class GlossaryCleanupCommand extends Command
 
     private function removeGlossariesWithNoSync(SymfonyStyle $io): void
     {
-        $findNotConnected = $this->glossaryRepository->getGlossariesDeeplConnected();
+        $connectedGlossaries = $this->glossaryRepository->getGlossariesDeeplConnected();
+        if ($connectedGlossaries === []) {
+            $io->info('No glossaries with sync mismatch.');
+            return;
+        }
+        $remoteGlossaries = $this->deeplGlossaryService->listGlossaries();
+        if ($remoteGlossaries === []) {
+            // The client returns no glossary as well when DeepL could not be asked. Detaching every
+            // record then would orphan glossaries DeepL still holds.
+            $io->warning(
+                'DeepL lists no glossary for this API key, or the list could not be fetched (see the log).'
+                . ' Nothing was detached.'
+            );
+            return;
+        }
+        $remoteGlossaryIds = [];
+        foreach ($remoteGlossaries as $remoteGlossary) {
+            $remoteGlossaryIds[$remoteGlossary->glossaryId] = true;
+        }
+        // A record pointing at a glossary DeepL no longer knows is out of sync.
+        $findNotConnected = array_filter(
+            $connectedGlossaries,
+            static fn (array $glossary): bool => !isset($remoteGlossaryIds[$glossary['glossary_id']])
+        );
         if (count($findNotConnected) === 0) {
             $io->info('No glossaries with sync mismatch.');
+            return;
         }
 
         $io->progressStart(count($findNotConnected));
