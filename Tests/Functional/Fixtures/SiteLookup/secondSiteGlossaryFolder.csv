@@ -1,0 +1,6 @@
+pages
+,"uid","pid","doktype","title","module","sys_language_uid","l10n_parent","slug","is_siteroot"
+,14,10,254,"Glossary","glossary",0,0,"",0
+tx_deepltranslate_glossary
+,"uid","pid","glossary_id","glossary_name","glossary_lastsync","glossary_ready","source_lang","target_lang"
+,4,14,"3f2b0000-0000-0000-0000-000000000004","Glossary: EN => DE",1700000000,1,"en","de"

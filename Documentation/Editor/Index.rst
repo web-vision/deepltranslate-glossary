@@ -13,6 +13,9 @@ and source languages.
 On pages with Doktype 254 (Folder) and "Use Container" set to "DeepL Glossary",
 a synchronise button appears for easy synchronisation of the glossary terms listed in this page.
 
+A glossary folder serves the pages of its own site only. Every site that should be
+translated with a glossary needs a glossary folder of its own.
+
 Possible glossary combinations in multiple language translation modes are built
 on the fly, so your glossary can be used from any target to source, **except** the
 default system language.
