@@ -1,0 +1,10 @@
+pages
+,"uid","pid","doktype","title","module","sys_language_uid","l10n_parent","slug","is_siteroot"
+,1,0,1,"First Site","",0,0,"/",1
+,2,1,254,"Glossary","glossary",0,0,"",0
+,3,1,1,"First Content","",0,0,"/content",0
+,10,0,1,"Second Site","",0,0,"/",1
+,11,10,1,"Second Content","",0,0,"/content",0
+tx_deepltranslate_glossary
+,"uid","pid","glossary_id","glossary_name","glossary_lastsync","glossary_ready","source_lang","target_lang"
+,1,2,"3f2b0000-0000-0000-0000-000000000001","Glossary: EN => DE",1700000000,1,"en","de"
