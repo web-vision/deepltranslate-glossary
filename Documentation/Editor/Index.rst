@@ -70,6 +70,11 @@ page settings, tab **DeepL Translate**.
 
     Current **NO** Automatic sync is performed on save. Save and trigger sync manually.
 
+    Every change of the terms of a folder marks its glossaries as out of sync:
+    adding, editing, hiding, deleting, translating, moving or copying a term.
+    A glossary out of sync is not used for translations until the folder is
+    synchronized again.
+
 In each glossary directory, a button is enabled to synchronise that glossary.
 
 After sync the tab *DeepL Translate* should look like this:
