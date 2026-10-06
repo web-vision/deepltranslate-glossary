@@ -11,8 +11,10 @@ use Doctrine\DBAL\Driver\Exception;
 use Doctrine\DBAL\Exception as DBALException;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autoconfigure;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use TYPO3\CMS\Backend\Configuration\TranslationConfigurationProvider;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
+use TYPO3\CMS\Core\Cache\Frontend\FrontendInterface;
 use TYPO3\CMS\Core\Context\Context;
 use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
@@ -46,6 +48,8 @@ final class GlossaryRepository
         private readonly TranslationConfigurationProvider $translationConfigurationProvider,
         private readonly GlossaryNameService $glossaryNameService,
         private readonly GlossaryLanguageResolver $glossaryLanguageResolver,
+        #[Autowire(service: 'cache.runtime')]
+        private readonly FrontendInterface $runtimeCache,
     ) {
     }
 
@@ -880,12 +884,34 @@ final class GlossaryRepository
     }
 
     /**
+     * Returns the glossary folders of the site a page belongs to.
+     *
+     * Finding them resolves the site of every glossary folder of the installation, and a
+     * translation asks for the glossary of every record and field. The folders of a site are
+     * therefore resolved once per request and kept in the runtime cache, keyed by the root page.
+     *
+     * Only the folders are kept. The glossaries and dictionaries in them are read on every call,
+     * so a synchronisation, reset or removal of a glossary in the same process is used by the
+     * next translation at once. A glossary folder created, moved or hidden while a request runs
+     * is used from the next request on.
+     *
      * @return int[]
      * @throws Exception
      * @throws \Doctrine\DBAL\Exception
      */
     private function getGlossariesInRootByCurrentPage(int $pageId): array
     {
+        $rootPage = $this->findRootPageIdOrNull($pageId);
+        // A page outside any site has no glossary folder, so there is nothing to look up or cache.
+        if ($rootPage === null) {
+            return [];
+        }
+        $cacheIdentifier = 'deepltranslate-glossary-folders-' . $rootPage;
+        $cachedIds = $this->runtimeCache->get($cacheIdentifier);
+        if (is_array($cachedIds)) {
+            return $cachedIds;
+        }
+
         $db = $this->connectionPool
             ->getQueryBuilderForTable('pages');
 
@@ -895,14 +921,14 @@ final class GlossaryRepository
             ->where(...$this->getGlossaryFolderConstraints($db))
             ->executeQuery();
 
-        $rootPage = $this->findRootPageIdOrNull($pageId);
         $ids = [];
         // A glossary folder outside any site belongs to no site, so it is never one of the current site.
-        while ($rootPage !== null && $row = $result->fetchAssociative()) {
+        while ($row = $result->fetchAssociative()) {
             if ($this->findRootPageIdOrNull((int)$row['uid']) === $rootPage) {
                 $ids[] = (int)$row['uid'];
             }
         }
+        $this->runtimeCache->set($cacheIdentifier, $ids, ['deepltranslate_glossary_folders']);
 
         return $ids;
     }
