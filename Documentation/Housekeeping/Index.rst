@@ -1,4 +1,4 @@
-..  _housekeeping`:
+..  _housekeeping:
 
 Housekeeping
 ============
@@ -15,13 +15,22 @@ the following:
 
     vendor/bin/typo3 deepl:glossary:list
 
-This will give you an overview of the API connected glossaries, number of
-entries, creation date and Glossary DeepL ID.
+This will give you an overview of the API connected glossaries with their DeepL ID,
+name, dictionaries and creation date. Each dictionary is listed with its language pair
+and number of entries.
+
+..  code-block:: bash
+
+    vendor/bin/typo3 deepl:glossary:list 123-123
+
+Given a glossary ID, the command lists the entries of every dictionary of that
+glossary.
 
 Cleanup
 -------
 
-Due to sync failures, it is useful to delete all DeepL glossaries.
+The cleanup command removes glossaries from DeepL, for example the glossaries of
+the glossary API v2 the upgrade wizard kept while migrating to the glossary API v3.
 
 ..  code-block:: bash
 
@@ -31,31 +40,53 @@ Due to sync failures, it is useful to delete all DeepL glossaries.
 
     vendor/bin/typo3 deepl:glossary:cleanup --glossaryId 123-123
 
-This command retrieves information about all glossaries or one glossary registered
-in the DeepL API and deletes them from the API. In addition, each glossary ID is
-checked against the database and if found, the database record is updated.
+This command deletes all glossaries or one glossary registered in the DeepL API. In
+addition, each glossary ID is checked against the database and if found, the database
+record is detached from it and the dictionaries describing the deleted glossary are
+removed with it. The next synchronisation publishes the folder as a new glossary.
 
-The command then checks the local database to see if any glossaries still have
-sync information, and cleans them up too.
+..  warning::
 
-At the end you will get a table with all deleted glossary IDs and the information
-if the database has been updated with this glossary.
+    :bash:`--all` deletes every glossary of the DeepL account of the API key, not
+    only those of this installation. When other installations or tools share
+    the API key, for example a staging copy of the installation, their
+    glossaries are deleted as well. Use :bash:`--glossaryId` in that case.
 
-This command does not delete your glossaries in TYPO3.
+At the end you will get a table with all glossary IDs, telling whether DeepL deleted
+the glossary and whether a database record has been detached from it. A glossary
+DeepL refuses to delete, for example because of its rate limit, does not stop the
+others from being deleted. Its record keeps pointing at it, and the command reports
+the failure and ends with a failing exit code, so it can be run again.
 
-After this, you are able to sync your glossaries with DeepL again.
+..  code-block:: bash
+
+    vendor/bin/typo3 deepl:glossary:cleanup --legacy
+
+With `--legacy`, the command deletes exactly the glossaries of the glossary API v2
+the upgrade wizard kept at DeepL and listed, see :ref:`upgrade60to61`. Other
+glossaries of the DeepL account are not touched. A listed glossary a glossary record
+points at again is kept, and a glossary DeepL no longer knows counts as deleted.
+Both are no longer listed. A glossary DeepL refuses to delete does not stop the
+others, stays listed for the next run, and the command ends with a failing exit
+code. Run it only once no other instance sharing the API key still uses these
+glossaries, for example the live system a staging database was copied from. A
+glossary deleted with `--glossaryId` or `--all` is no longer listed either.
 
 ..  code-block:: bash
 
     vendor/bin/typo3 deepl:glossary:cleanup --notinsync
 
-This command compares the glossary records with the glossaries DeepL lists
-for the configured API key. A record whose DeepL glossary no longer exists is
-detached: its glossary ID is removed, so the next synchronisation creates the
-glossary again. Nothing is deleted at DeepL.
+With :bash:`--notinsync`, the command compares the glossary records with the glossaries
+of the DeepL account. A glossary record pointing at a glossary the DeepL account no
+longer contains loses its sync information, so the next synchronization publishes the
+folder again. Nothing is deleted from DeepL, so instances sharing the API key are not
+affected.
 
-When DeepL lists no glossary at all, or the list cannot be fetched, nothing is
-detached and the command shows a warning. Check the log in that case.
+When DeepL lists no glossary at all, nothing is detached and the command shows a
+warning. Check the configured API key in that case. When the list cannot be fetched,
+the command fails without detaching anything.
+
+This command does not delete your glossaries in TYPO3.
 
 ..  _sync-cli:
 
@@ -69,10 +100,30 @@ CLI command).
 
     vendor/bin/typo3 deepl:glossary:sync
 
-Accepts pageId as option. If not given, syncs all available glossaries.
+Accepts pageId as option. If not given, syncs every visible glossary folder in the
+default language.
+
+A failing folder does not stop the others from being synchronised. Every failure is
+reported at the end with the page id, and the command ends with a failing exit code.
+A folder outside any site, a folder whose terms form no language pair and a folder
+still holding glossaries of the glossary API v2 fail this way. The latter keeps failing
+until the upgrade wizard ran, see :ref:`upgrade60to61`.
+
+When DeepL refuses the API key or the quota of the account is exceeded, the command
+stops at the folder where it happened and reports how many folders were left out, as
+every remaining folder would fail the same way. DeepL reports an exceeded quota as well
+when the account holds its maximum number of glossaries, glossaries of other
+installations sharing the API key included. Check the usage of the account before
+looking for a billing problem.
+
+The command also reports, without failing:
+
+*   a folder holding no terms. It has no glossary at DeepL, a glossary published
+    for it before has been removed.
+*   a folder skipped because another process is synchronising it, for example an
+    editor while the scheduler task runs. The next run synchronises it.
+*   that no glossary folder exists at all.
 
 Site languages sharing a glossary language code the site configuration does
 not decide unambiguously are reported as warnings, see
 :ref:`site-configuration-glossary-terms-warnings`.
-
-..  _typo3_console: https://extensions.typo3.org/extension/typo3_console

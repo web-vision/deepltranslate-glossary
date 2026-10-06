@@ -154,7 +154,7 @@ Options:
             - cgl: cgl test and fix all php files
             - checkBom: check UTF-8 files do not contain BOM
             - checkExceptionCodes: Check for duplicate exception codes
-            - checkRst: test .rst files for integrity
+            - checkRst: check the changelog entries in Documentation/Changelog/<major.minor>/ for integrity
             - checkTestMethodsPrefix: check tests methods do not start with "test"
             - clean: clean up build, cache and testing related files and folders
             - cleanCache: clean up cache related files and folders

@@ -68,6 +68,24 @@
             <trans-unit id="glossary.glossary_ready">
                 <source>DeepL marked glossary as ready to use</source>
             </trans-unit>
+            <trans-unit id="glossary.dictionaries">
+                <source>Dictionaries</source>
+            </trans-unit>
+            <trans-unit id="glossarydictionary">
+                <source>Glossary dictionary</source>
+            </trans-unit>
+            <trans-unit id="glossarydictionary.source_lang">
+                <source>Source language</source>
+            </trans-unit>
+            <trans-unit id="glossarydictionary.target_lang">
+                <source>Target language</source>
+            </trans-unit>
+            <trans-unit id="glossarydictionary.entry_count">
+                <source>Entries</source>
+            </trans-unit>
+            <trans-unit id="glossarydictionary.in_sync">
+                <source>In sync with TYPO3</source>
+            </trans-unit>
             <trans-unit id="glossary.tab.sync">
                 <source>DeepL Sync</source>
             </trans-unit>
@@ -82,11 +100,26 @@
             <trans-unit id="glossary.sync.message">
                 <source>Synchronization with DeepL is done. Your glossaries are ready to use.</source>
             </trans-unit>
+            <trans-unit id="glossary.sync.title.removed">
+                <source>DeepL glossary removed</source>
+            </trans-unit>
+            <trans-unit id="glossary.sync.message.removed">
+                <source>The folder holds no terms, so its glossary was removed from DeepL. Translations no longer use a glossary of this folder.</source>
+            </trans-unit>
             <trans-unit id="glossary.sync.title.invalid">
                 <source>DeepL glossary sync invalid</source>
             </trans-unit>
-            <trans-unit id="glossary.sync.message.invalid">
-                <source>Glossary synchronization with DeepL error. Your glossaries has no entries or is invalid.</source>
+            <trans-unit id="glossary.sync.message.failed">
+                <source>The glossary could not be synchronized with DeepL. Check the DeepL API key and the system log for details.</source>
+            </trans-unit>
+            <trans-unit id="glossary.sync.message.quotaExceeded">
+                <source>DeepL refused the request because a limit of the DeepL account is reached, either the character quota of the billing period or the maximum number of glossaries. Check the usage of the DeepL account and remove glossaries no longer used.</source>
+            </trans-unit>
+            <trans-unit id="glossary.sync.title.inProgress">
+                <source>DeepL glossary sync running</source>
+            </trans-unit>
+            <trans-unit id="glossary.sync.message.inProgress">
+                <source>The glossary of this folder is already being synchronized with DeepL, for example by a scheduler task. Synchronize it again once that has finished.</source>
             </trans-unit>
             <trans-unit id="glossary.sync.message.denied">
                 <source>You are not allowed to synchronize the glossary of this folder with DeepL.</source>
@@ -119,7 +152,7 @@
                 <source>DeepL glossary is out of sync</source>
             </trans-unit>
             <trans-unit id="glossary.not-sync.message">
-                <source>Glossary synchronization with DeepL is pending. Your glossaries are not operational.</source>
+                <source>Glossary synchronization with DeepL is pending. Translations use the last synchronized state until then.</source>
             </trans-unit>
 
             <trans-unit id="glossaryentry">

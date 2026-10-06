@@ -1,0 +1,16 @@
+pages
+,"uid","pid","doktype","title","module","sys_language_uid","l10n_parent","slug"
+,1,0,1,"Deepl-Functional-Test","",0,0,"/"
+,2,1,254,"Glossary","glossary",0,0,""
+tx_deepltranslate_glossary
+,"uid","pid","glossary_id","glossary_name","glossary_lastsync","glossary_ready","source_lang","target_lang"
+,1,2,"v2-en-de","Glossary: en => de",1700000000,1,"en","de"
+,2,2,"v3-live","Glossary [2]",1800000000,1,"",""
+,3,2,"v2-en-fr","Glossary: en => fr",1700000000,1,"en","fr"
+,4,2,"v3-live","Glossary: en => it",1700000000,1,"en","it"
+tx_deepltranslate_glossarydictionary
+,"uid","pid","glossary","source_lang","target_lang","entry_count","in_sync"
+,1,2,1,"en","de",2,1
+,2,2,2,"en","de",2,1
+,3,2,2,"en","fr",1,1
+,4,2,3,"en","fr",1,1

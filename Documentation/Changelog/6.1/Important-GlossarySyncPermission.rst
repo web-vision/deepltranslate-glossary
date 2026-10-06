@@ -1,3 +1,5 @@
+.. include:: /Includes.rst.txt
+
 ..  _important-glossarysyncpermission-1791313278:
 
 =====================================================================
@@ -48,3 +50,5 @@ Grant :guilabel:`Allowed Glossary Sync`, the right to modify the table
 :sql:`tx_deepltranslate_glossaryentry`, a database mount of the glossary
 folder and the page permission to edit its content to every backend group
 that synchronizes glossaries.
+
+.. index:: Backend, ext:deepltranslate_glossary

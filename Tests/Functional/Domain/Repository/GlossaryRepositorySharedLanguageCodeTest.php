@@ -224,7 +224,7 @@ final class GlossaryRepositorySharedLanguageCodeTest extends AbstractDeepLTestCa
      */
     #[Test]
     #[DataProvider('sharedLanguageCodeDataProvider')]
-    public function getGlossaryInformationForSyncKeepsTermsOfLanguagesSharingALanguageCode(
+    public function getDictionaryDataForSyncKeepsTermsOfLanguagesSharingALanguageCode(
         string $fixture,
         array $languages,
         string $sourceLanguage,
@@ -246,11 +246,18 @@ final class GlossaryRepositorySharedLanguageCodeTest extends AbstractDeepLTestCa
         $this->importCSVDataSet($fixture);
         $this->setUpBackendUser(1);
 
-        $glossaries = $this->get(GlossaryRepository::class)->getGlossaryInformationForSync(2);
+        $syncInformation = $this->get(GlossaryRepository::class)->getDictionaryDataForSync(2, [
+            'de' => ['en', 'fr'],
+        ]);
 
         $entriesByPair = [];
-        foreach ($glossaries as $glossary) {
-            $entriesByPair[$glossary->sourceLanguage . '-' . $glossary->targetLanguage] = $glossary->entries;
+        foreach ($syncInformation->dictionaries as $dictionary) {
+            foreach ($dictionary['entries'] as $source => $target) {
+                $entriesByPair[$dictionary['sourceLanguage'] . '-' . $dictionary['targetLanguage']][] = [
+                    'source' => (string)$source,
+                    'target' => $target,
+                ];
+            }
         }
         // The order of glossary entries has no meaning and differs between database platforms.
         $actualEntries = $entriesByPair[$sourceLanguage . '-' . $targetLanguage] ?? [];

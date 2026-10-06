@@ -1,3 +1,6 @@
 tx_deepltranslate_glossary
-,"uid","pid","glossary_id","glossary_name","glossary_lastsync","glossary_ready","source_lang","target_lang"
-,100,1,"3f2b0000-0000-0000-0000-00000000dead","Removed at DeepL",1700000000,1,"en","de"
+,"uid","pid","glossary_id","glossary_name","glossary_lastsync","glossary_ready"
+,100,1,"3f2b0000-0000-0000-0000-00000000dead","Removed at DeepL [1]",1700000000,1
+tx_deepltranslate_glossarydictionary
+,"uid","pid","glossary","source_lang","target_lang","entry_count","in_sync"
+,100,1,100,"en","de",2,1

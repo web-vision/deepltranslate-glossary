@@ -1,0 +1,6 @@
+tx_deepltranslate_glossaryentry
+,"uid","pid","term","sys_language_uid","l10n_parent"
+,10,2,"duplicate term ",0,0
+,11,2,"duplicate term",0,0
+,12,2,"erster Begriff",1,10
+,13,2,"zweiter Begriff",1,11

@@ -4,13 +4,19 @@ declare(strict_types=1);
 
 namespace WebVision\Deepltranslate\Glossary\Domain\Repository;
 
+use Symfony\Component\DependencyInjection\Attribute\Autoconfigure;
 use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
-use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 // @todo Consider to rename/move this as service class.
+#[Autoconfigure(public: true)]
 final class GlossaryEntryRepository
 {
+    public function __construct(
+        private readonly ConnectionPool $connectionPool,
+    ) {
+    }
+
     /**
      * @deprecated
      */
@@ -26,7 +32,7 @@ final class GlossaryEntryRepository
      */
     public function findEntriesByGlossary(int $parentId): array
     {
-        $connection = GeneralUtility::makeInstance(ConnectionPool::class)
+        $connection = $this->connectionPool
             ->getConnectionForTable('tx_deepltranslate_glossaryentry');
 
         $result = $connection->select(
@@ -45,7 +51,7 @@ final class GlossaryEntryRepository
      */
     public function findEntryByUid(int $uid): array
     {
-        $connection = GeneralUtility::makeInstance(ConnectionPool::class)
+        $connection = $this->connectionPool
             ->getConnectionForTable('tx_deepltranslate_glossaryentry');
 
         $result = $connection->select(
@@ -66,7 +72,7 @@ final class GlossaryEntryRepository
      */
     public function findPageOfEntry(int $uid): ?int
     {
-        $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)
+        $queryBuilder = $this->connectionPool
             ->getQueryBuilderForTable('tx_deepltranslate_glossaryentry');
         // A hidden or deleted entry still tells which folder changed its terms.
         $queryBuilder->getRestrictions()->removeAll();

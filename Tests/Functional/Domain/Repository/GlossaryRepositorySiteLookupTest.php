@@ -98,20 +98,35 @@ final class GlossaryRepositorySiteLookupTest extends AbstractDeepLTestCase
         self::assertFalse($glossary->ready);
     }
 
-    #[Test]
-    public function glossaryOfUnmarkedFolderOfTheSameSiteIsUsed(): void
+    public static function unmarkedFolderOfTheSameSiteDataProvider(): \Generator
     {
-        $this->importCSVDataSet(__DIR__ . '/../../Fixtures/SiteLookup/secondSiteUnmarkedFolder.csv');
+        yield 'one folder not marked as glossary folder' => [
+            'fixture' => __DIR__ . '/../../Fixtures/SiteLookup/secondSiteUnmarkedFolder.csv',
+        ];
+        yield 'two folders not marked as glossary folder' => [
+            'fixture' => __DIR__ . '/../../Fixtures/SiteLookup/secondSiteTwoUnmarkedFolders.csv',
+        ];
+    }
+
+    /**
+     * Only a glossary folder can be synchronised, so the glossary of a folder not marked as
+     * glossary folder could never be updated again and is not used.
+     */
+    #[DataProvider('unmarkedFolderOfTheSameSiteDataProvider')]
+    #[Test]
+    public function glossaryOfUnmarkedFolderOfTheSameSiteIsNotUsed(string $fixture): void
+    {
+        $this->importCSVDataSet($fixture);
         $subject = $this->get(GlossaryRepository::class);
 
         $glossary = $subject->getGlossaryBySourceAndTarget('en', 'de', new CurrentPage(11, 'Second Content'));
 
-        self::assertSame(2, $glossary->uid);
-        self::assertSame('3f2b0000-0000-0000-0000-000000000002', $glossary->glossaryId);
+        self::assertSame(0, $glossary->uid);
+        self::assertSame('', $glossary->glossaryId);
     }
 
     #[Test]
-    public function glossaryFolderOfTheSiteTakesPrecedenceOverUnmarkedFolder(): void
+    public function glossaryFolderOfTheSiteIsUsedBesideUnmarkedFolder(): void
     {
         $this->importCSVDataSet(__DIR__ . '/../../Fixtures/SiteLookup/secondSiteUnmarkedFolder.csv');
         $this->importCSVDataSet(__DIR__ . '/../../Fixtures/SiteLookup/secondSiteGlossaryFolder.csv');
@@ -122,21 +137,10 @@ final class GlossaryRepositorySiteLookupTest extends AbstractDeepLTestCase
         self::assertSame(4, $glossary->uid);
     }
 
-    public static function glossaryWithLowestUidOfTheSiteIsUsedDataProvider(): \Generator
-    {
-        yield 'two glossary folders' => [
-            'fixture' => __DIR__ . '/../../Fixtures/SiteLookup/secondSiteTwoGlossaryFolders.csv',
-        ];
-        yield 'two folders not marked as glossary folder' => [
-            'fixture' => __DIR__ . '/../../Fixtures/SiteLookup/secondSiteTwoUnmarkedFolders.csv',
-        ];
-    }
-
-    #[DataProvider('glossaryWithLowestUidOfTheSiteIsUsedDataProvider')]
     #[Test]
-    public function glossaryWithLowestUidOfTheSiteIsUsed(string $fixture): void
+    public function glossaryWithLowestUidOfTheGlossaryFoldersOfTheSiteIsUsed(): void
     {
-        $this->importCSVDataSet($fixture);
+        $this->importCSVDataSet(__DIR__ . '/../../Fixtures/SiteLookup/secondSiteTwoGlossaryFolders.csv');
         $subject = $this->get(GlossaryRepository::class);
 
         $glossary = $subject->getGlossaryBySourceAndTarget('en', 'de', new CurrentPage(11, 'Second Content'));

@@ -1,3 +1,5 @@
+.. include:: /Includes.rst.txt
+
 ..  _important-sharedglossarylanguagecodes-1789729876:
 
 ==========================================================
@@ -46,3 +48,5 @@ Migration
 Mark the site language that should provide the glossary terms as
 ``preferred`` in :guilabel:`Site Management > Sites`, see
 :ref:`site-configuration`, and synchronize the glossaries again.
+
+.. index:: Backend, CLI, YAML, ext:deepltranslate_glossary

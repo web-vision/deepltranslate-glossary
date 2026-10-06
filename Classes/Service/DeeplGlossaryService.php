@@ -4,33 +4,31 @@ declare(strict_types=1);
 
 namespace WebVision\Deepltranslate\Glossary\Service;
 
-use DateTime;
+use DeepL\DeepLException;
 use DeepL\GlossaryEntries;
 use DeepL\GlossaryInfo;
 use DeepL\GlossaryLanguagePair;
-use Doctrine\DBAL\Driver\Exception;
-use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autoconfigure;
-use Symfony\Component\DependencyInjection\Attribute\Autowire;
-use TYPO3\CMS\Core\Cache\Frontend\FrontendInterface;
-use TYPO3\CMS\Core\Exception\SiteNotFoundException;
-use TYPO3\CMS\Core\Site\Entity\SiteLanguage;
 use WebVision\Deepltranslate\Glossary\Client\GlossaryAPIV2ClientInterface;
-use WebVision\Deepltranslate\Glossary\Domain\Dto\Glossary;
 use WebVision\Deepltranslate\Glossary\Domain\Dto\GlossaryLanguageCollision;
-use WebVision\Deepltranslate\Glossary\Domain\Repository\GlossaryRepository;
-use WebVision\Deepltranslate\Glossary\Exception\FailedToCreateGlossaryException;
 use WebVision\Deepltranslate\Glossary\Exception\GlossaryEntriesNotExistException;
+use WebVision\Deepltranslate\Glossary\Exception\GlossaryFolderNotSyncableException;
 
+/**
+ * Glossary handling based on the DeepL glossary API v2.
+ *
+ * @deprecated since 6.1, will be removed in 7.0. The extension synchronises through
+ *             {@see MultilingualGlossaryService::syncGlossary()} and the glossary API v3. This
+ *             class is kept for consumers still relying on it and is no longer used internally.
+ *             Its synchronisation goes through the API v3 as well. Every public method triggers
+ *             a deprecation notice.
+ */
 #[Autoconfigure(public: true)]
 final readonly class DeeplGlossaryService
 {
     public function __construct(
-        #[Autowire(service: 'cache.deepltranslate_glossary')]
-        private FrontendInterface $cache,
         private GlossaryAPIV2ClientInterface $client,
-        private GlossaryRepository $glossaryRepository,
-        private LoggerInterface $logger,
+        private MultilingualGlossaryService $multilingualGlossaryService,
     ) {
     }
 
@@ -41,6 +39,11 @@ final readonly class DeeplGlossaryService
      */
     public function listLanguagePairs(): array
     {
+        trigger_error(
+            'DeeplGlossaryService::listLanguagePairs() is deprecated since 6.1 and will be removed in 7.0.'
+            . ' Use the DeepL PHP library deeplcom/deepl-php to access the glossary API directly.',
+            E_USER_DEPRECATED
+        );
         return $this->client->getGlossaryLanguagePairs();
     }
 
@@ -51,6 +54,11 @@ final readonly class DeeplGlossaryService
      */
     public function listGlossaries(): array
     {
+        trigger_error(
+            'DeeplGlossaryService::listGlossaries() is deprecated since 6.1 and will be removed in 7.0.'
+            . ' Use the DeepL PHP library deeplcom/deepl-php to access the glossary API directly.',
+            E_USER_DEPRECATED
+        );
         return $this->client->getAllGlossaries();
     }
 
@@ -67,6 +75,11 @@ final readonly class DeeplGlossaryService
         string $sourceLang = 'de',
         string $targetLang = 'en'
     ): GlossaryInfo {
+        trigger_error(
+            'DeeplGlossaryService::createGlossary() is deprecated since 6.1 and will be removed in 7.0.'
+            . ' Use the DeepL PHP library deeplcom/deepl-php to access the glossary API directly.',
+            E_USER_DEPRECATED
+        );
         if (empty($entries)) {
             throw new GlossaryEntriesNotExistException(
                 'Glossary Entries are required',
@@ -84,6 +97,11 @@ final readonly class DeeplGlossaryService
      */
     public function deleteGlossary(string $glossaryId): void
     {
+        trigger_error(
+            'DeeplGlossaryService::deleteGlossary() is deprecated since 6.1 and will be removed in 7.0.'
+            . ' Use the DeepL PHP library deeplcom/deepl-php to access the glossary API directly.',
+            E_USER_DEPRECATED
+        );
         $this->client->deleteGlossary($glossaryId);
     }
 
@@ -92,6 +110,11 @@ final readonly class DeeplGlossaryService
      */
     public function glossaryInformation(string $glossaryId): ?GlossaryInfo
     {
+        trigger_error(
+            'DeeplGlossaryService::glossaryInformation() is deprecated since 6.1 and will be removed in 7.0.'
+            . ' Use the DeepL PHP library deeplcom/deepl-php to access the glossary API directly.',
+            E_USER_DEPRECATED
+        );
         return $this->client->getGlossary($glossaryId);
     }
 
@@ -100,6 +123,11 @@ final readonly class DeeplGlossaryService
      */
     public function glossaryEntries(string $glossaryId): ?GlossaryEntries
     {
+        trigger_error(
+            'DeeplGlossaryService::glossaryEntries() is deprecated since 6.1 and will be removed in 7.0.'
+            . ' Use the DeepL PHP library deeplcom/deepl-php to access the glossary API directly.',
+            E_USER_DEPRECATED
+        );
         return $this->client->getGlossaryEntries($glossaryId);
     }
 
@@ -108,103 +136,37 @@ final readonly class DeeplGlossaryService
      */
     public function getPossibleGlossaryLanguageConfig(): array
     {
-        $cacheIdentifier = 'wv-deepl-glossary-pairs';
-        if (($pairMappingArray = $this->cache->get($cacheIdentifier)) !== false) {
-            return $pairMappingArray;
+        trigger_error(
+            'DeeplGlossaryService::getPossibleGlossaryLanguageConfig() is deprecated since 6.1 and will be removed in 7.0.'
+            . ' Use the DeepL PHP library deeplcom/deepl-php to access the glossary API directly.',
+            E_USER_DEPRECATED
+        );
+        try {
+            return $this->multilingualGlossaryService->getPossibleLanguagePairs();
+        } catch (DeepLException) {
+            // The API v2 handling reported a failure as no language pair at all.
+            return [];
         }
-
-        $possiblePairs = $this->listLanguagePairs();
-
-        $pairMappingArray = [];
-        foreach ($possiblePairs as $possiblePair) {
-            $pairMappingArray[$possiblePair->sourceLang][] = $possiblePair->targetLang;
-        }
-
-        $this->cache->set($cacheIdentifier, $pairMappingArray);
-
-        return $pairMappingArray;
     }
 
     /**
-     * Synchronizes all glossaries of a glossary folder with DeepL.
+     * Synchronises a glossary folder through the glossary API v3, see
+     * {@see MultilingualGlossaryService::syncGlossary()}. A folder left without any term pair
+     * loses its glossary at DeepL, and a failure throws instead of being logged.
      *
      * @return list<GlossaryLanguageCollision> site languages sharing a glossary language code the site
      *     configuration does not resolve unambiguously, to be reported to the user
      *
-     * @throws Exception
-     * @throws SiteNotFoundException
-     * @throws \Doctrine\DBAL\Exception
-     * @throws FailedToCreateGlossaryException
+     * @throws DeepLException
+     * @throws GlossaryFolderNotSyncableException
      */
     public function syncGlossaries(int $uid): array
     {
-        $syncInformation = $this->glossaryRepository->getGlossarySyncInformation($uid);
-        $this->logCollisions($uid, $syncInformation->collisions);
-        if (empty($syncInformation->glossaries)) {
-            throw new FailedToCreateGlossaryException(
-                'Glossary can not created, the TYPO3 information are invalide.',
-                1714987594661
-            );
-        }
-
-        foreach ($syncInformation->glossaries as $glossaryInformation) {
-            $this->syncGlossary($glossaryInformation);
-        }
-
-        return $syncInformation->collisions;
-    }
-
-    private function syncGlossary(Glossary $glossaryInformation): void
-    {
-        if ($glossaryInformation->glossaryId !== '') {
-            $this->deleteGlossary($glossaryInformation->glossaryId);
-        }
-
-        try {
-            $glossary = $this->createGlossary(
-                $glossaryInformation->name,
-                $glossaryInformation->entries,
-                $glossaryInformation->sourceLanguage,
-                $glossaryInformation->targetLanguage
-            );
-        } catch (GlossaryEntriesNotExistException) {
-            $glossary = new GlossaryInfo(
-                '',
-                '',
-                false,
-                '',
-                '',
-                new DateTime(),
-                0
-            );
-        }
-
-        $this->glossaryRepository->updateLocalGlossary(
-            $glossary,
-            $glossaryInformation->uid
+        trigger_error(
+            'DeeplGlossaryService::syncGlossaries() is deprecated since 6.1 and will be removed in 7.0.'
+            . ' Use MultilingualGlossaryService::syncGlossary() instead.',
+            E_USER_DEPRECATED
         );
-    }
-
-    /**
-     * @param list<GlossaryLanguageCollision> $collisions
-     */
-    private function logCollisions(int $pageId, array $collisions): void
-    {
-        foreach ($collisions as $collision) {
-            $this->logger->warning(
-                'Glossary folder {pageId}: site languages share the glossary language code "{languageCode}" ({reason}).'
-                . ' Terms of site language {selectedLanguageId} are used, terms of site languages {ignoredLanguageIds} are ignored.',
-                [
-                    'pageId' => $pageId,
-                    'languageCode' => $collision->languageCode,
-                    'reason' => $collision->reason->value,
-                    'selectedLanguageId' => $collision->selectedLanguage->getLanguageId(),
-                    'ignoredLanguageIds' => implode(', ', array_map(
-                        static fn (SiteLanguage $language): int => $language->getLanguageId(),
-                        $collision->ignoredLanguages
-                    )),
-                ]
-            );
-        }
+        return $this->multilingualGlossaryService->syncGlossary($uid)->collisions;
     }
 }

@@ -28,7 +28,7 @@ final class Glossary
     /**
      * @param array{
      *     uid?: int|string,
-     *     glossary_id?: string,
+     *     glossary_id?: string|null,
      *     glossary_name?: string,
      *     glossary_lastsync?: int|string,
      *     glossary_ready?: int|string
@@ -52,8 +52,9 @@ final class Glossary
 
         return new self(
             (int)$result['uid'],
-            $result['glossary_id'],
-            $result['glossary_name'],
+            // Released versions left glossary_id nullable.
+            (string)($result['glossary_id'] ?? ''),
+            (string)($result['glossary_name'] ?? ''),
             $lastSync ?: null,
             $ready
         );

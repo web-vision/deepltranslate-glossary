@@ -1,3 +1,5 @@
+.. include:: /Includes.rst.txt
+
 .. _upgrade5to6:
 
 ==================
@@ -11,6 +13,7 @@ composer-mode
 =============
 
 ..  code-block:: bash
+
     composer require -W \
        "web-vision/deepltranslate-core":"6.0.*@dev" \
        "web-vision/deepltranslate-glossary":"6.0.*@dev"

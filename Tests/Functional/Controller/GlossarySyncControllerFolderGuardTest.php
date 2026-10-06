@@ -100,7 +100,7 @@ final class GlossarySyncControllerFolderGuardTest extends AbstractDeepLTestCase
         self::assertCount(1, $messages);
         self::assertSame(ContextualFeedbackSeverity::ERROR, $messages[0]->getSeverity());
         self::assertSame(
-            sprintf('Page "%d" not configured for glossary synchronization.', $pageUid),
+            sprintf('Page %d is no visible folder set up as glossary.', $pageUid),
             $messages[0]->getMessage()
         );
         self::assertSame(0, $this->countGlossariesOnPage($pageUid));

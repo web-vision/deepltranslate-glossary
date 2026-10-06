@@ -21,7 +21,7 @@ use TYPO3\CMS\Core\Localization\LanguageService;
 use TYPO3\CMS\Core\Localization\LanguageServiceFactory;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use WebVision\Deepltranslate\Glossary\Access\GlossarySyncPermission;
-use WebVision\Deepltranslate\Glossary\Controller\GlossarySyncController;
+use WebVision\Deepltranslate\Glossary\Domain\Repository\GlossaryRepository;
 
 /**
  * Listens to {@see ModifyButtonBarEvent} to display the `glossary sync`button
@@ -99,8 +99,10 @@ final class GlossarySyncButtonProvider
     }
 
     /**
-     * Same condition as the guard of {@see GlossarySyncController::update()},
-     * the button is offered only where the route synchronises.
+     * The type and module the synchronisation checks with
+     * {@see GlossaryRepository::isGlossaryFolder()}, so the button is offered only where the
+     * route synchronises. A hidden folder still shows it, the synchronisation then reports that
+     * the folder cannot be synchronised.
      *
      * @param array<string, mixed>|null $page
      */

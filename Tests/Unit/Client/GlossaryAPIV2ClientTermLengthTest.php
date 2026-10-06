@@ -7,6 +7,7 @@ namespace WebVision\Deepltranslate\Glossary\Tests\Unit\Client;
 use DateTime;
 use DeepL\GlossaryEntries;
 use DeepL\GlossaryInfo;
+use PHPUnit\Framework\Attributes\IgnoreDeprecations;
 use PHPUnit\Framework\Attributes\Test;
 use Psr\Log\LoggerInterface;
 use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
@@ -21,8 +22,10 @@ final class GlossaryAPIV2ClientTermLengthTest extends UnitTestCase
      * whole glossary folder, the same way an empty pair is dropped instead of sent.
      */
     #[Test]
+    #[IgnoreDeprecations]
     public function oversizedPairIsDroppedFromPayloadAndLogged(): void
     {
+        $this->expectUserDeprecationMessageMatches('/GlossaryAPIV2Client::createGlossary\(\) is deprecated/');
         $oversizedTerm = str_repeat('ü', 513);
         self::assertGreaterThan(1024, strlen($oversizedTerm));
 

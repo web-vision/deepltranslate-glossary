@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace WebVision\Deepltranslate\Glossary\Command;
 
+use DeepL\AuthorizationException;
+use DeepL\QuotaExceededException;
 use Exception;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -13,10 +15,12 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Contracts\Service\Attribute\Required;
 use TYPO3\CMS\Core\Localization\LanguageServiceFactory;
+use WebVision\Deepltranslate\Core\Exception\ApiKeyNotSetException;
 use WebVision\Deepltranslate\Glossary\Domain\Dto\GlossaryLanguageCollision;
 use WebVision\Deepltranslate\Glossary\Domain\Repository\GlossaryRepository;
-use WebVision\Deepltranslate\Glossary\Service\DeeplGlossaryService;
+use WebVision\Deepltranslate\Glossary\Exception\GlossarySyncInProgressException;
 use WebVision\Deepltranslate\Glossary\Service\GlossaryLanguageCollisionMessageBuilder;
+use WebVision\Deepltranslate\Glossary\Service\MultilingualGlossaryService;
 
 #[AsCommand(
     name: 'deepl:glossary:sync',
@@ -24,15 +28,15 @@ use WebVision\Deepltranslate\Glossary\Service\GlossaryLanguageCollisionMessageBu
 )]
 final class GlossarySyncCommand extends Command
 {
-    private DeeplGlossaryService $deeplGlossaryService;
+    private MultilingualGlossaryService $multilingualGlossaryService;
     private GlossaryRepository $glossaryRepository;
     private GlossaryLanguageCollisionMessageBuilder $collisionMessageBuilder;
     private LanguageServiceFactory $languageServiceFactory;
 
     #[Required]
-    public function injectDeeplGlossaryService(DeeplGlossaryService $deeplGlossaryService): void
+    public function injectMultilingualGlossaryService(MultilingualGlossaryService $multilingualGlossaryService): void
     {
-        $this->deeplGlossaryService = $deeplGlossaryService;
+        $this->multilingualGlossaryService = $multilingualGlossaryService;
     }
 
     #[Required]
@@ -70,24 +74,56 @@ final class GlossarySyncCommand extends Command
         $io = new SymfonyStyle($input, $output);
         $io->title('Glossary Sync');
 
-        try {
-            $pageId = $input->getOption('pageId');
-            if ($pageId !== null) {
-                $glossaries[] = ['uid' => (int)$pageId];
-            } else {
-                $glossaries = $this->glossaryRepository->findAllGlossaries();
-            }
+        $pageId = $input->getOption('pageId');
+        $pageIds = $pageId !== null
+            ? [(int)$pageId]
+            : array_values(array_map(static fn (array $glossary): int => (int)$glossary['uid'], $this->glossaryRepository->findAllGlossaries()));
+        if ($pageIds === []) {
+            $io->note('No glossary folder found. A glossary folder is a visible folder with the glossary module assigned.');
+            return Command::SUCCESS;
+        }
 
-            $io->progressStart(count($glossaries));
-            $collisionsByPageId = [];
-            foreach ($glossaries as $glossary) {
-                $collisionsByPageId[(int)$glossary['uid']] = $this->deeplGlossaryService->syncGlossaries($glossary['uid']);
-                $io->progressAdvance();
+        $errors = [];
+        $notes = [];
+        $collisionsByPageId = [];
+        $io->progressStart(count($pageIds));
+        foreach ($pageIds as $index => $folderId) {
+            // A failing folder must not keep the remaining folders from being synchronised, a
+            // refused API key or an exceeded quota stops the command, see below.
+            try {
+                $result = $this->multilingualGlossaryService->syncGlossary($folderId);
+                $collisionsByPageId[$folderId] = $result->collisions;
+                if (!$result->hasGlossary) {
+                    $notes[] = sprintf('Page %d: the folder holds no terms, so it has no DeepL glossary. A glossary published before was removed from DeepL.', $folderId);
+                }
+            } catch (GlossarySyncInProgressException) {
+                $notes[] = sprintf('Page %d: skipped, the folder is being synchronised by another process.', $folderId);
+            } catch (AuthorizationException|QuotaExceededException|ApiKeyNotSetException $exception) {
+                // Every remaining folder would fail the same way, and retrying them only adds
+                // requests DeepL refuses.
+                $errors[] = sprintf('Page %d: %s (%s)', $folderId, $exception->getMessage(), $exception->getCode());
+                if ($exception instanceof QuotaExceededException) {
+                    $errors[] = 'DeepL reports an exceeded quota as well when the account holds its maximum number of'
+                        . ' glossaries. Check the usage of the DeepL account and remove glossaries no longer used.';
+                }
+                $remaining = count($pageIds) - $index - 1;
+                if ($remaining > 0) {
+                    $errors[] = sprintf('Aborted, glossary folders left out: %d.', $remaining);
+                }
+                break;
+            } catch (Exception $exception) {
+                $errors[] = sprintf('Page %d: %s (%s)', $folderId, $exception->getMessage(), $exception->getCode());
             }
-            $io->progressFinish();
-            $this->reportCollisions($io, $collisionsByPageId);
-        } catch (Exception $exception) {
-            $io->error(sprintf('%s (%s)', $exception->getMessage(), $exception->getCode()));
+            $io->progressAdvance();
+        }
+        $io->progressFinish();
+        $this->reportCollisions($io, $collisionsByPageId);
+        if ($notes !== []) {
+            $io->note($notes);
+        }
+
+        if ($errors !== []) {
+            $io->error($errors);
             return Command::FAILURE;
         }
 

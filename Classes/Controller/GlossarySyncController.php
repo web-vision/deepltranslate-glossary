@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace WebVision\Deepltranslate\Glossary\Controller;
 
+use DeepL\DeepLException;
+use DeepL\QuotaExceededException;
 use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Backend\Attribute\AsController;
 use TYPO3\CMS\Backend\Routing\UriBuilder;
-use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
-use TYPO3\CMS\Core\Domain\Repository\PageRepository;
 use TYPO3\CMS\Core\Exception;
 use TYPO3\CMS\Core\Http\RedirectResponse;
 use TYPO3\CMS\Core\Localization\LanguageService;
@@ -18,12 +18,14 @@ use TYPO3\CMS\Core\Messaging\FlashMessage;
 use TYPO3\CMS\Core\Messaging\FlashMessageService;
 use TYPO3\CMS\Core\Type\ContextualFeedbackSeverity;
 use TYPO3\CMS\Core\Utility\MathUtility;
+use WebVision\Deepltranslate\Core\Exception\ApiKeyNotSetException;
 use WebVision\Deepltranslate\Core\Exception\InvalidArgumentException;
 use WebVision\Deepltranslate\Glossary\Access\GlossarySyncPermission;
 use WebVision\Deepltranslate\Glossary\Domain\Dto\GlossaryLanguageCollision;
-use WebVision\Deepltranslate\Glossary\Exception\FailedToCreateGlossaryException;
-use WebVision\Deepltranslate\Glossary\Service\DeeplGlossaryService;
+use WebVision\Deepltranslate\Glossary\Exception\GlossaryFolderNotSyncableException;
+use WebVision\Deepltranslate\Glossary\Exception\GlossarySyncInProgressException;
 use WebVision\Deepltranslate\Glossary\Service\GlossaryLanguageCollisionMessageBuilder;
+use WebVision\Deepltranslate\Glossary\Service\MultilingualGlossaryService;
 
 /**
  * Synchronization Controller for local deepltranslate glossary
@@ -37,7 +39,7 @@ final class GlossarySyncController
     private LanguageService $languageService;
 
     public function __construct(
-        private readonly DeeplGlossaryService $deeplGlossaryService,
+        private readonly MultilingualGlossaryService $multilingualGlossaryService,
         private readonly FlashMessageService $flashMessageService,
         private readonly GlossaryLanguageCollisionMessageBuilder $collisionMessageBuilder,
         private readonly GlossarySyncPermission $glossarySyncPermission,
@@ -80,33 +82,35 @@ final class GlossarySyncController
             return new RedirectResponse($returnUrl);
         }
 
-        // Only a folder set up as glossary, a sysfolder with module `glossary`, is synchronised.
-        $page = BackendUtility::getRecord('pages', $pageId, 'uid,doktype,module');
-        if ($page === null
-            || (int)($page['doktype'] ?? 0) !== PageRepository::DOKTYPE_SYSFOLDER
-            || ($page['module'] ?? '') !== 'glossary'
-        ) {
+        try {
+            $result = $this->multilingualGlossaryService->syncGlossary($pageId);
+            $this->enqueueCollisionWarnings($result->collisions, $pageId);
+            $this->reportSynchronisedFolder($result->hasGlossary);
+        } catch (GlossaryFolderNotSyncableException $exception) {
             $this->flashMessageService->getMessageQueueByIdentifier()->enqueue(new FlashMessage(
-                sprintf('Page "%d" not configured for glossary synchronization.', $pageId),
+                $exception->getMessage(),
                 $this->languageService->sL('LLL:EXT:deepltranslate_glossary/Resources/Private/Language/locallang.xlf:glossary.sync.title.invalid'),
                 ContextualFeedbackSeverity::ERROR,
                 true
             ));
-            return new RedirectResponse($returnUrl);
-        }
-
-        try {
-            $collisions = $this->deeplGlossaryService->syncGlossaries($pageId);
-            $this->enqueueCollisionWarnings($collisions, $pageId);
+        } catch (GlossarySyncInProgressException) {
             $this->flashMessageService->getMessageQueueByIdentifier()->enqueue(new FlashMessage(
-                $this->languageService->sL('LLL:EXT:deepltranslate_glossary/Resources/Private/Language/locallang.xlf:glossary.sync.message'),
-                $this->languageService->sL('LLL:EXT:deepltranslate_glossary/Resources/Private/Language/locallang.xlf:glossary.sync.title'),
-                ContextualFeedbackSeverity::OK,
+                $this->languageService->sL('LLL:EXT:deepltranslate_glossary/Resources/Private/Language/locallang.xlf:glossary.sync.message.inProgress'),
+                $this->languageService->sL('LLL:EXT:deepltranslate_glossary/Resources/Private/Language/locallang.xlf:glossary.sync.title.inProgress'),
+                ContextualFeedbackSeverity::WARNING,
                 true
             ));
-        } catch (FailedToCreateGlossaryException) {
+        } catch (QuotaExceededException) {
+            // DeepL answers so for the character quota and for the maximum number of glossaries alike.
             $this->flashMessageService->getMessageQueueByIdentifier()->enqueue(new FlashMessage(
-                $this->languageService->sL('LLL:EXT:deepltranslate_glossary/Resources/Private/Language/locallang.xlf:glossary.sync.message.invalid'),
+                $this->languageService->sL('LLL:EXT:deepltranslate_glossary/Resources/Private/Language/locallang.xlf:glossary.sync.message.quotaExceeded'),
+                $this->languageService->sL('LLL:EXT:deepltranslate_glossary/Resources/Private/Language/locallang.xlf:glossary.sync.title.invalid'),
+                ContextualFeedbackSeverity::ERROR,
+                true
+            ));
+        } catch (DeepLException|ApiKeyNotSetException) {
+            $this->flashMessageService->getMessageQueueByIdentifier()->enqueue(new FlashMessage(
+                $this->languageService->sL('LLL:EXT:deepltranslate_glossary/Resources/Private/Language/locallang.xlf:glossary.sync.message.failed'),
                 $this->languageService->sL('LLL:EXT:deepltranslate_glossary/Resources/Private/Language/locallang.xlf:glossary.sync.title.invalid'),
                 ContextualFeedbackSeverity::ERROR,
                 true
@@ -172,6 +176,26 @@ final class GlossarySyncController
                 true
             ));
         }
+    }
+
+    private function reportSynchronisedFolder(bool $hasGlossary): void
+    {
+        if (!$hasGlossary) {
+            $this->flashMessageService->getMessageQueueByIdentifier()->enqueue(new FlashMessage(
+                $this->languageService->sL('LLL:EXT:deepltranslate_glossary/Resources/Private/Language/locallang.xlf:glossary.sync.message.removed'),
+                $this->languageService->sL('LLL:EXT:deepltranslate_glossary/Resources/Private/Language/locallang.xlf:glossary.sync.title.removed'),
+                ContextualFeedbackSeverity::INFO,
+                true
+            ));
+            return;
+        }
+
+        $this->flashMessageService->getMessageQueueByIdentifier()->enqueue(new FlashMessage(
+            $this->languageService->sL('LLL:EXT:deepltranslate_glossary/Resources/Private/Language/locallang.xlf:glossary.sync.message'),
+            $this->languageService->sL('LLL:EXT:deepltranslate_glossary/Resources/Private/Language/locallang.xlf:glossary.sync.title'),
+            ContextualFeedbackSeverity::OK,
+            true
+        ));
     }
 
     private function getBackendUser(): ?BackendUserAuthentication

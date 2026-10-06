@@ -1,3 +1,5 @@
+.. include:: /Includes.rst.txt
+
 ..  _important-glossarycleanupnotinsync-1791313084:
 
 =====================================================================
@@ -14,10 +16,12 @@ glossary at DeepL.
 
 The option now compares the glossary records with the glossaries DeepL lists
 for the configured API key. Only a record whose DeepL glossary no longer
-exists loses its glossary id. Nothing is deleted at DeepL.
+exists loses its glossary id and its dictionaries. Nothing is deleted at
+DeepL.
 
-When DeepL lists no glossary at all, or the list cannot be fetched, the
-command detaches nothing and shows a warning. Check the log in that case.
+When DeepL lists no glossary at all, the command detaches nothing and shows a
+warning. Check the configured API key in that case. When the list cannot be
+fetched, the command fails without detaching anything.
 
 Impact
 ======
@@ -36,3 +40,5 @@ Migration
 
 None. A detached glossary folder gets a new DeepL glossary with its next
 synchronization, see :ref:`sync-cli`.
+
+.. index:: CLI, ext:deepltranslate_glossary

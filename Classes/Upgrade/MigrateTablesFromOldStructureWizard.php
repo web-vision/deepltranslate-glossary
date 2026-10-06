@@ -12,6 +12,11 @@ use TYPO3\CMS\Install\Attribute\UpgradeWizard;
 use TYPO3\CMS\Install\Updates\DatabaseUpdatedPrerequisite;
 use TYPO3\CMS\Install\Updates\UpgradeWizardInterface;
 
+/**
+ * @todo The attribute and the interfaces of `TYPO3\CMS\Install` are deprecated since TYPO3 v14
+ *       (#106947). Use `TYPO3\CMS\Core\Attribute\UpgradeWizard` and `TYPO3\CMS\Core\Upgrades`
+ *       once TYPO3 v13 is no longer supported.
+ */
 #[UpgradeWizard(identifier: 'deepltranslateGlossary_migrateGlossaryTables')]
 final readonly class MigrateTablesFromOldStructureWizard implements UpgradeWizardInterface
 {
