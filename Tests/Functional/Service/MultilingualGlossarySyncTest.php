@@ -9,6 +9,7 @@ use DeepL\TooManyRequestsException;
 use Doctrine\DBAL\Exception as DBALException;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
+use Psr\EventDispatcher\EventDispatcherInterface;
 use Psr\Log\LogLevel;
 use Psr\Log\NullLogger;
 use SBUERK\TYPO3\Testing\SiteHandling\SiteBasedTestTrait;
@@ -802,6 +803,7 @@ final class MultilingualGlossarySyncTest extends AbstractDeepLTestCase
             $this->get(Registry::class),
             $this->get(LockFactory::class),
             new NullLogger(),
+            $this->get(EventDispatcherInterface::class),
         );
     }
 

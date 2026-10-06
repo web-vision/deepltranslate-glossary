@@ -9,6 +9,7 @@ use DeepL\DeepLException;
 use DeepL\QuotaExceededException;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
+use Psr\EventDispatcher\EventDispatcherInterface;
 use Psr\Log\NullLogger;
 use SBUERK\TYPO3\Testing\SiteHandling\SiteBasedTestTrait;
 use Symfony\Component\Console\Command\Command;
@@ -237,6 +238,7 @@ final class GlossarySyncCommandTest extends AbstractDeepLTestCase
             $this->get(Registry::class),
             $this->get(LockFactory::class),
             new NullLogger(),
+            $this->get(EventDispatcherInterface::class),
         ));
         $command->injectGlossaryRepository($this->get(GlossaryRepository::class));
         $command->injectCollisionMessageBuilder(new GlossaryLanguageCollisionMessageBuilder());
