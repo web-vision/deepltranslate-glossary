@@ -1,0 +1,16 @@
+"pages",,,,,,,,
+,"uid","pid","doktype","title","module","sys_language_uid","l10n_parent","slug"
+,1,0,1,"Root","",0,0,"/"
+,2,1,254,"Glossar","glossary",0,0,""
+,3,1,254,"Glossary GB","glossary",1,2,""
+,20,0,254,"Glossar ausserhalb jeder Site","glossary",0,0,""
+,21,0,254,"Glossary outside any site","glossary",1,20,""
+"tx_deepltranslate_glossaryentry",,,,,
+,"uid","pid","term","sys_language_uid","l10n_parent"
+,1,2,"Aufzug",0,0
+,2,2,"lift",1,1
+,20,20,"Begriff ausserhalb",0,0
+,21,20,"outside term",1,20
+"be_users",,,,,,,,,,,,,,,,
+,"uid","pid","tstamp","username","password","admin","disable","starttime","endtime","options","crdate","workspace_perms","deleted","TSconfig","lastlogin","workspace_id"
+,1,0,1366642540,"admin","$1$tCrlLajZ$C0sikFQQ3SWaFAZ1Me0Z/1",1,0,0,0,0,1366642540,1,0,,1371033743,0

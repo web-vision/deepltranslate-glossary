@@ -163,6 +163,32 @@ final class GlossarySyncControllerFolderGuardTest extends AbstractDeepLTestCase
         self::assertSame(1, $this->countGlossariesOnPage(2));
     }
 
+    #[Test]
+    public function glossaryFolderOutsideAnySiteIsRejected(): void
+    {
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/GlossaryFolderGuard/glossaryFolderOutsideAnySite.csv');
+        $returnUrl = '/typo3/module/web/layout?id=20';
+        $request = (new ServerRequest('https://localhost/typo3/glossary'))
+            ->withQueryParams([
+                'uid' => '20',
+                'returnUrl' => $returnUrl,
+            ]);
+
+        $response = $this->get(GlossarySyncController::class)->update($request);
+
+        self::assertSame($returnUrl, $response->getHeaderLine('location'));
+        $messages = $this->get(FlashMessageService::class)->getMessageQueueByIdentifier()->getAllMessages();
+        self::assertCount(1, $messages);
+        self::assertSame(ContextualFeedbackSeverity::ERROR, $messages[0]->getSeverity());
+        self::assertSame(
+            $this->get(LanguageServiceFactory::class)
+                ->createFromUserPreferences($GLOBALS['BE_USER'])
+                ->sL('LLL:EXT:deepltranslate_glossary/Resources/Private/Language/locallang.xlf:glossary.sync.message.noSite'),
+            $messages[0]->getMessage()
+        );
+        self::assertSame(0, $this->countGlossariesOnPage(20));
+    }
+
     private function countGlossariesOnPage(int $pageUid): int
     {
         return $this->get(ConnectionPool::class)

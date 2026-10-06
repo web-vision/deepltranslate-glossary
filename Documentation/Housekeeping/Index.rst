@@ -73,6 +73,11 @@ CLI command).
 
 Accepts pageId as option. If not given, syncs all available glossaries.
 
+A glossary folder outside any site cannot be synchronized, its glossary
+languages are the languages of a site. Without pageId such a folder is
+skipped with a warning, the other glossaries are synchronized and the
+command ends with a failure exit code.
+
 Site languages sharing a glossary language code the site configuration does
 not decide unambiguously are reported as warnings, see
 :ref:`site-configuration-glossary-terms-warnings`.

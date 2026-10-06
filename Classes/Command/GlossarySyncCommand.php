@@ -11,6 +11,7 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
+use TYPO3\CMS\Core\Exception\SiteNotFoundException;
 use TYPO3\CMS\Core\Localization\LanguageServiceFactory;
 use WebVision\Deepltranslate\Glossary\Domain\Dto\GlossaryLanguageCollision;
 use WebVision\Deepltranslate\Glossary\Service\GlossaryLanguageCollisionMessageBuilder;
@@ -56,6 +57,7 @@ final class GlossarySyncCommand extends Command
         $this->io = new SymfonyStyle($input, $output);
         $this->io->title('Glossary Sync');
 
+        $pageIdsWithoutSite = [];
         try {
             $pageId = $input->getOption('pageId');
             if ($pageId !== null) {
@@ -67,17 +69,40 @@ final class GlossarySyncCommand extends Command
             $this->io->progressStart(count($glossaries));
             $collisionsByPageId = [];
             foreach ($glossaries as $glossary) {
-                $collisionsByPageId[(int)$glossary['uid']] = $this->deeplGlossaryService->syncGlossaries($glossary['uid']);
+                try {
+                    $collisionsByPageId[(int)$glossary['uid']] = $this->deeplGlossaryService->syncGlossaries($glossary['uid']);
+                } catch (SiteNotFoundException $exception) {
+                    // A folder asked for by its id fails. In a run over all folders, a folder
+                    // outside any site is skipped and does not stop the others.
+                    if ($pageId !== null) {
+                        throw $exception;
+                    }
+                    $pageIdsWithoutSite[] = (int)$glossary['uid'];
+                }
                 $this->io->progressAdvance();
             }
             $this->io->progressFinish();
             $this->reportCollisions($collisionsByPageId);
+            $this->reportFoldersWithoutSite($pageIdsWithoutSite);
         } catch (Exception $exception) {
             $this->io->error(sprintf('%s (%s)', $exception->getMessage(), $exception->getCode()));
             return Command::FAILURE;
         }
 
-        return Command::SUCCESS;
+        return $pageIdsWithoutSite === [] ? Command::SUCCESS : Command::FAILURE;
+    }
+
+    /**
+     * @param list<int> $pageIds
+     */
+    private function reportFoldersWithoutSite(array $pageIds): void
+    {
+        foreach ($pageIds as $pageId) {
+            $this->io->warning(sprintf(
+                'Glossary folder %d belongs to no site and cannot be synchronized with DeepL, it is skipped.',
+                $pageId
+            ));
+        }
     }
 
     /**
