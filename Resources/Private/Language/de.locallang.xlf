@@ -79,6 +79,10 @@
                 <source>DeepL Sync ready</source>
                 <target>DeepL Sync abgeschlossen</target>
             </trans-unit>
+            <trans-unit id="glossary.sync.message.denied">
+                <source>You are not allowed to synchronize the glossary of this folder with DeepL.</source>
+                <target>Sie dürfen das Glossar dieses Ordners nicht mit DeepL synchronisieren.</target>
+            </trans-unit>
             <trans-unit id="glossary.not-sync.message">
                 <source>Glossary synchronization with DeepL is pending. Your glossaries are not operational.</source>
                 <target>Die Glossar-Synchronisierung mit DeepL ist steht aus. Ihre Glossare sind nicht einsatzbereit.</target>
