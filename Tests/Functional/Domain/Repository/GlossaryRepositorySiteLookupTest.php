@@ -144,4 +144,43 @@ final class GlossaryRepositorySiteLookupTest extends AbstractDeepLTestCase
         self::assertSame(2, $glossary->uid);
         self::assertSame('3f2b0000-0000-0000-0000-000000000002', $glossary->glossaryId);
     }
+
+    public static function glossaryFolderOutsideAnySiteDoesNotPreventTheLookupDataProvider(): \Generator
+    {
+        yield 'glossary folder in a storage folder outside any site' => [
+            'fixture' => __DIR__ . '/../../Fixtures/SiteLookup/glossaryFolderOutsideAnySite.csv',
+        ];
+        yield 'glossary folder at the root level' => [
+            'fixture' => __DIR__ . '/../../Fixtures/SiteLookup/glossaryFolderAtRootLevel.csv',
+        ];
+    }
+
+    #[DataProvider('glossaryFolderOutsideAnySiteDoesNotPreventTheLookupDataProvider')]
+    #[Test]
+    public function glossaryFolderOutsideAnySiteDoesNotPreventTheLookup(string $fixture): void
+    {
+        $this->importCSVDataSet($fixture);
+        $subject = $this->get(GlossaryRepository::class);
+
+        $glossary = $subject->getGlossaryBySourceAndTarget('en', 'de', new CurrentPage(3, 'First Content'));
+
+        self::assertSame(1, $glossary->uid);
+        self::assertSame('3f2b0000-0000-0000-0000-000000000001', $glossary->glossaryId);
+    }
+
+    #[Test]
+    public function pageOutsideAnySiteGetsNoGlossary(): void
+    {
+        // The glossary folders outside any site belong to no site, not to the one of the page.
+        $this->importCSVDataSet(__DIR__ . '/../../Fixtures/SiteLookup/glossaryFolderOutsideAnySite.csv');
+        $this->importCSVDataSet(__DIR__ . '/../../Fixtures/SiteLookup/glossaryFolderAtRootLevel.csv');
+        $this->importCSVDataSet(__DIR__ . '/../../Fixtures/SiteLookup/pageOutsideAnySite.csv');
+        $subject = $this->get(GlossaryRepository::class);
+
+        $glossary = $subject->getGlossaryBySourceAndTarget('en', 'de', new CurrentPage(31, 'Without Site Content'));
+
+        self::assertSame(0, $glossary->uid);
+        self::assertSame('', $glossary->glossaryId);
+        self::assertFalse($glossary->ready);
+    }
 }

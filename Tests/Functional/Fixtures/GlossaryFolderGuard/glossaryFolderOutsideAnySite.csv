@@ -1,0 +1,8 @@
+"pages",,,,,,,,,
+,"uid","pid","doktype","title","module","sys_language_uid","l10n_parent","slug","deleted"
+,20,0,254,"Glossary outside any site","glossary",0,0,"",0
+,21,0,254,"Glossar ausserhalb jeder Site","glossary",1,20,"",0
+"tx_deepltranslate_glossaryentry",,,,,
+,"uid","pid","term","sys_language_uid","l10n_parent"
+,20,20,"outside term",0,0
+,21,20,"Begriff ausserhalb",1,20
