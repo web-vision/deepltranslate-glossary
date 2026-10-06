@@ -29,7 +29,11 @@ use WebVision\Deepltranslate\Glossary\Exception\GlossarySyncInProgressException;
 use WebVision\Deepltranslate\Glossary\Upgrade\MigrateToMultilingualGlossaryWizard;
 
 /**
- * This service defines helper methods for handling with multilingual Glossaries
+ * Synchronises a glossary folder into one persistent DeepL glossary of the glossary API v3,
+ * holding a dictionary per language pair.
+ *
+ * {@see self::syncGlossary()} is the public API to synchronise a glossary folder. The other
+ * public methods are internal.
  */
 #[Autoconfigure(public: true)]
 final class MultilingualGlossaryService
@@ -196,6 +200,8 @@ final class MultilingualGlossaryService
      * @return array<string, array<array-key, string>>
      *
      * @throws DeepLException
+     *
+     * @internal Used by the glossary synchronisation of this extension, not part of its public API.
      */
     public function getPossibleLanguagePairs(): array
     {

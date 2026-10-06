@@ -66,8 +66,10 @@ final class DeeplGlossaryServiceTest extends AbstractDeepLTestCase
     }
 
     #[Test]
+    #[IgnoreDeprecations]
     public function syncingThroughTheDeprecatedServicePublishesOneGlossaryPerFolder(): void
     {
+        $this->expectUserDeprecationMessageMatches('/DeeplGlossaryService::syncGlossaries\(\) is deprecated/');
         $subject = $this->get(DeeplGlossaryService::class);
 
         $subject->syncGlossaries(2);
@@ -140,8 +142,10 @@ final class DeeplGlossaryServiceTest extends AbstractDeepLTestCase
     }
 
     #[Test]
+    #[IgnoreDeprecations]
     public function cachedEmptyLanguagePairsAreFetchedAgain(): void
     {
+        $this->expectUserDeprecationMessageMatches('/DeeplGlossaryService::getPossibleGlossaryLanguageConfig\(\) is deprecated/');
         $cache = $this->get(CacheManager::class)->getCache('deepltranslate_glossary');
         $cache->set('wv-deepl-glossary-pairs', []);
         $subject = $this->get(DeeplGlossaryService::class);

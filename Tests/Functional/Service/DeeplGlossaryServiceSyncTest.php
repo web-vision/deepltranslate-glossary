@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace WebVision\Deepltranslate\Glossary\Tests\Functional\Service;
 
 use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\IgnoreDeprecations;
 use PHPUnit\Framework\Attributes\Test;
 use SBUERK\TYPO3\Testing\SiteHandling\SiteBasedTestTrait;
 use WebVision\Deepltranslate\Glossary\Domain\Dto\GlossaryLanguageCollision;
@@ -95,6 +96,7 @@ final class DeeplGlossaryServiceSyncTest extends AbstractDeepLTestCase
      */
     #[Test]
     #[DataProvider('collisionDataProvider')]
+    #[IgnoreDeprecations]
     public function syncGlossariesReturnsUnresolvedLanguageCodeCollisions(
         string $usLanguage,
         array $expectedCollisions,
@@ -110,6 +112,7 @@ final class DeeplGlossaryServiceSyncTest extends AbstractDeepLTestCase
         );
         $this->importCSVDataSet(__DIR__ . '/../Fixtures/SharedLanguageCode/sharedLanguageCodeEnglishVariants.csv');
         $this->setUpBackendUser(1);
+        $this->expectUserDeprecationMessageMatches('/DeeplGlossaryService::syncGlossaries\(\) is deprecated/');
 
         $collisions = $this->get(DeeplGlossaryService::class)->syncGlossaries(2);
 

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace WebVision\Deepltranslate\Glossary\Domain\Repository;
 
+use DeepL\DeepLException;
 use DeepL\GlossaryInfo;
 use DeepL\MultilingualGlossaryInfo;
 use Doctrine\DBAL\Driver\Exception;
@@ -24,7 +25,6 @@ use WebVision\Deepltranslate\Core\Domain\Dto\CurrentPage;
 use WebVision\Deepltranslate\Glossary\Domain\Dto\Glossary;
 use WebVision\Deepltranslate\Glossary\Domain\Dto\GlossaryLanguageSelection;
 use WebVision\Deepltranslate\Glossary\Domain\Dto\GlossarySyncInformation;
-use WebVision\Deepltranslate\Glossary\Service\DeeplGlossaryService;
 use WebVision\Deepltranslate\Glossary\Service\GlossaryLanguageResolver;
 use WebVision\Deepltranslate\Glossary\Service\GlossaryNameService;
 use WebVision\Deepltranslate\Glossary\Service\GlossaryTermSanitizer;
@@ -75,10 +75,15 @@ final class GlossaryRepository
             return [];
         }
         /** @var array{uid: int, title: string} $page */
-        // Not injected on purpose: the deprecated service depends on this repository through
-        // MultilingualGlossaryService, so injecting it would be circular.
-        $availableLanguagePairs = GeneralUtility::makeInstance(DeeplGlossaryService::class)
-            ->getPossibleGlossaryLanguageConfig();
+        // Not injected on purpose: the service depends on this repository, so injecting it would
+        // be circular.
+        try {
+            $availableLanguagePairs = GeneralUtility::makeInstance(MultilingualGlossaryService::class)
+                ->getPossibleLanguagePairs();
+        } catch (DeepLException) {
+            // The API v2 handling reported a failure as no language pair at all.
+            $availableLanguagePairs = [];
+        }
 
         $glossaries = [];
         foreach ($this->getDictionaryDataForSync($pageId, $availableLanguagePairs)->dictionaries as $dictionary) {
@@ -112,6 +117,8 @@ final class GlossaryRepository
      * @throws DBALException
      * @throws Exception
      * @throws SiteNotFoundException
+     *
+     * @internal Used by the glossary synchronisation of this extension, not part of its public API.
      */
     public function getDictionaryDataForSync(int $pageId, array $languagePairs): GlossarySyncInformation
     {
@@ -161,6 +168,8 @@ final class GlossaryRepository
      *
      * @throws Exception
      * @throws \Doctrine\DBAL\Exception
+     *
+     * @internal Used by the glossary synchronisation of this extension, not part of its public API.
      */
     public function findGlossaryRecord(int $pageId): ?array
     {
@@ -187,6 +196,8 @@ final class GlossaryRepository
      *
      * @throws Exception
      * @throws \Doctrine\DBAL\Exception
+     *
+     * @internal Used by the glossary synchronisation of this extension, not part of its public API.
      */
     public function findOrCreateGlossaryRecord(int $pageId): array
     {
@@ -226,6 +237,8 @@ final class GlossaryRepository
      * Mirrors the state DeepL reported back onto the glossary record and its dictionaries.
      *
      * @throws \Doctrine\DBAL\Exception
+     *
+     * @internal Used by the glossary synchronisation of this extension, not part of its public API.
      */
     public function updateGlossaryRecord(MultilingualGlossaryInfo $information, int $uid, int $pageId): void
     {
@@ -258,6 +271,8 @@ final class GlossaryRepository
      * and when DeepL no longer knows the glossary.
      *
      * @throws \Doctrine\DBAL\Exception
+     *
+     * @internal Used by the glossary synchronisation of this extension, not part of its public API.
      */
     public function resetGlossaryRecord(int $uid): void
     {
@@ -333,6 +348,8 @@ final class GlossaryRepository
      * Tells whether a page is a visible folder set up as glossary, the only kind of page
      * synchronised to DeepL. A hidden folder is left out, as its glossary is not used either, and
      * so is a translation of a folder, as the terms of every language belong to the folder itself.
+     *
+     * @internal Used by the glossary synchronisation of this extension, not part of its public API.
      */
     public function isGlossaryFolder(int $pageId): bool
     {
@@ -366,6 +383,8 @@ final class GlossaryRepository
 
     /**
      * Tells whether a page belongs to a site, whose languages a glossary folder is synchronised in.
+     *
+     * @internal Used by the glossary synchronisation of this extension, not part of its public API.
      */
     public function belongsToSite(int $pageId): bool
     {
@@ -706,6 +725,8 @@ final class GlossaryRepository
      * @todo Remove together with {@see MigrateToMultilingualGlossaryWizard}.
      *
      * @throws DBALException
+     *
+     * @internal Used by the glossary synchronisation of this extension, not part of its public API.
      */
     public function hasGlossaryRecordOfApiV2(int $pageId): bool
     {
@@ -727,6 +748,8 @@ final class GlossaryRepository
      *
      * @throws DBALException
      * @throws Exception
+     *
+     * @internal Used by the glossary synchronisation of this extension, not part of its public API.
      */
     public function hasTerms(int $pageId): bool
     {

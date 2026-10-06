@@ -57,4 +57,4 @@ Migration
 No migration required. Synchronize the affected glossary folders to send the
 cleaned terms to DeepL.
 
-.. index:: PHP-API, ext:deepltranslate_glossary
+.. index:: Backend, CLI, ext:deepltranslate_glossary

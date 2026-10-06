@@ -6,8 +6,8 @@
 6.x Changes by type
 ===================
 
-This lists all changes to the Academic Base extension of minor versions
-grouped by their type.
+This lists all changes of the minor versions of the extension
+:guilabel:`web-vision/deepltranslate-glossary`, grouped by their type.
 
 ..  contents:: Table of contents
 ..  _changelog-v6-bc:
@@ -53,5 +53,3 @@ Important notes
     :glob:
 
     /Changelog/6.*/Important-*
-
-.. index:: ext:deepltranslate_glossary, NotScanned

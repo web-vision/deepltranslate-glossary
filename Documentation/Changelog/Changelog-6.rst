@@ -22,5 +22,3 @@ Also available
     :titlesonly:
 
     Changelog-6-combined
-
-.. index:: ext:deepltranslate_glossary, NotScanned

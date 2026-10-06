@@ -86,6 +86,7 @@ locally before you push:
 | Exception codes unique        | `Build/Scripts/runTests.sh -s checkExceptionCodes`   |
 | Test method names             | `Build/Scripts/runTests.sh -s checkTestMethodsPrefix`|
 | UTF-8 without BOM             | `Build/Scripts/runTests.sh -s checkBom`              |
+| Changelog entries             | `Build/Scripts/runTests.sh -s checkRst`              |
 | Documentation renders         | `Build/Scripts/runTests.sh -s renderDocumentation`   |
 
 The same with `-t 14` after `-s composerUpdate -t 14`.
@@ -131,6 +132,49 @@ The same with `-t 14` after `-s composerUpdate -t 14`.
   changelog: `Feature-<Topic>.rst`, `Breaking-...`, `Deprecation-...`,
   `Important-...`. It is part of the same commit. Create the folder of the
   minor version when it does not exist yet.
+- An entry has the format of the TYPO3 Core changelog, without an issue
+  number. `-s checkRst` checks it, as the CI does:
+
+  ```rst
+  .. include:: /Includes.rst.txt
+
+  ..  _feature-glossarynameevent-1791124339:
+
+  ==========================================
+  Feature: Event to modify the glossary name
+  ==========================================
+
+  Description
+  ===========
+
+  Impact
+  ======
+
+  Affected installations
+  ======================
+
+  Migration
+  =========
+
+  .. index:: PHP-API, ext:deepltranslate_glossary
+  ```
+
+  - The first line includes `/Includes.rst.txt`.
+  - A link target unique in the whole manual stands right before the title:
+    the type and the topic in lower case, and the current Unix timestamp.
+  - The title starts with the type of the file name, `Feature: `,
+    `Breaking: `, `Deprecation: ` or `Important: `.
+  - The last line is an `.. index::` line with at least one keyword
+    (`Backend`, `CLI`, `Database`, `Frontend`, `PHP-API`, `TCA`, `YAML` and
+    the others listed in `Build/Scripts/validateRstFiles.php`) and
+    `ext:deepltranslate_glossary`. A `Breaking-` or `Deprecation-` entry
+    ends it with `NotScanned`, as the TYPO3 extension scanner does not know
+    this extension.
+  - Never change the link target of an entry once it is on `main`. The
+    rendered manual is published from there, and links point at it.
+- Only the changelog entries are checked by `-s checkRst`. The other pages
+  of the manual are checked by rendering it with `-s renderDocumentation`,
+  which has to finish without a warning caused by the change.
 
 ## Commit messages
 

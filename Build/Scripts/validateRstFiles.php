@@ -24,8 +24,12 @@ if (PHP_SAPI !== 'cli') {
 use Symfony\Component\Finder\Finder;
 
 /**
- * Check ReST files for integrity. If errors are found, they will be
+ * Check the changelog entries for integrity. If errors are found, they will be
  * output on stdout and the program will exit with exit code 1.
+ *
+ * Only the entries of a minor version are checked, the files below
+ * `Documentation/Changelog/<major>.<minor>/` except `Index.rst`. Every other
+ * page of the manual follows the rules of the rendering only.
  *
  * Optional arguments: -d <directory>
  *
@@ -51,6 +55,11 @@ class validateRstFiles
      */
     protected $baseDir = 'Documentation';
 
+    /**
+     * The types of a changelog entry, used as prefix of its file name and its title.
+     */
+    private const ENTRY_TYPES = ['Breaking', 'Deprecation', 'Feature', 'Important'];
+
     public function __construct(string $dir = '')
     {
         if ($dir) {
@@ -69,6 +78,7 @@ class validateRstFiles
             $this->clearMessages();
             $fileContent = $file->getContents();
             $this->validateContent($fileContent);
+            $this->validateEntryType($file->getFilename(), $fileContent);
             $a = explode(chr(10), trim($fileContent));
             $lastLine = array_pop($a);
             $this->validateLastLine($lastLine);
@@ -79,9 +89,9 @@ class validateRstFiles
                 $shortPath = ltrim($shortPath, '/\\');
                 $count++;
                 printf(
-                    '%-10s | %-12s | %-17s | %s ' . chr(10),
+                    '%-10s | %-20s | %-17s | %s ' . chr(10),
                     $this->messages['include']['title'],
-                    $this->messages['reference']['title'],
+                    $this->messages['type']['title'],
                     $this->messages['index']['title'],
                     $shortPath
                 );
@@ -106,9 +116,9 @@ class validateRstFiles
         $finder
             ->files()
             ->in($this->baseDir)
+            ->path('#^Changelog/[0-9]+\.[0-9]+/[^/]+$#')
             ->name('/\.rst$/')
-            ->notName('Index.rst')
-            ->notName('Howto.rst');
+            ->notName('Index.rst');
 
         return $finder;
     }
@@ -120,7 +130,7 @@ class validateRstFiles
                 'title' => '',
                 'message' => '',
             ],
-            'reference' => [
+            'type' => [
                 'title' => '',
                 'message' => '',
             ],
@@ -151,7 +161,8 @@ class validateRstFiles
             // The TYPO3 core conventions of an issue number inside the headline and a
             // `See :issue:` reference below it are intentionally not checked. This extension
             // documents a change by its topic instead of by a Forge issue number, see the
-            // entries below `Documentation/Changelog`.
+            // entries below `Documentation/Changelog`. The type prefix of the title is checked
+            // by validateEntryType().
         ];
 
         foreach ($checkFor as $values) {
@@ -160,6 +171,33 @@ class validateRstFiles
             }
         }
         $this->validateLinkTarget($fileContent);
+    }
+
+    /**
+     * The file name and the title of an entry start with its type: `Feature-<Topic>.rst`
+     * holds the title `Feature: <title>`.
+     */
+    private function validateEntryType(string $fileName, string $fileContent): void
+    {
+        $types = implode('|', self::ENTRY_TYPES);
+        if (preg_match('#^(' . $types . ')-[A-Za-z0-9]+\.rst$#', $fileName, $matches) !== 1) {
+            $this->setError([
+                'type' => 'type',
+                'title' => 'invalid file name',
+                'message' => 'A changelog entry is named \'<type>-<Topic>.rst\', <type> being one of '
+                    . implode(', ', self::ENTRY_TYPES) . '.',
+            ]);
+            return;
+        }
+        $type = $matches[1];
+        if (preg_match('#\={2,}\n' . $type . ': \S.*\n\={2,}#m', $fileContent) !== 1) {
+            $this->setError([
+                'type' => 'type',
+                'title' => 'invalid title format',
+                'message' => 'The title of a changelog entry has the format \'' . $type . ': <title>\','
+                    . ' matching the type of its file name.',
+            ]);
+        }
     }
 
     private function setError(array $config): void

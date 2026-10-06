@@ -67,7 +67,8 @@ final class GlossaryCleanupCommand extends Command
                 'all',
                 null,
                 InputOption::VALUE_NONE,
-                'Delete all glossaries according to the API key.',
+                'Delete every glossary of the DeepL account of the API key, including those of other installations'
+                . ' or tools sharing the API key.',
             )
             ->addOption(
                 'legacy',
@@ -115,7 +116,10 @@ final class GlossaryCleanupCommand extends Command
                 return Command::FAILURE;
             }
 
-            $io->warning('This will delete all glossaries from DeepL according to the actual API key.');
+            $io->warning(
+                'This deletes every glossary of the DeepL account of the configured API key, not only those of this'
+                . ' installation. Glossaries of other installations or tools sharing the API key are deleted as well.'
+            );
 
             $allDeletionQuestion = new ConfirmationQuestion(
                 'Really delete all glossaries',

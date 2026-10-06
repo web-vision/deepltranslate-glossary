@@ -20,6 +20,10 @@ a synchronise button appears for easy synchronisation of the glossary terms list
 A glossary folder serves the pages of its own site only. Every site that should be
 translated with a glossary needs a glossary folder of its own.
 
+Copying a glossary folder copies its terms, but not its glossary. The copy gets a
+glossary of its own with its first synchronisation, the glossary of the original
+folder stays as it is.
+
 Language pairs
 --------------
 

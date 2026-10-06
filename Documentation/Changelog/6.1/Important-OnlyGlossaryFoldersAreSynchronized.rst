@@ -14,9 +14,9 @@ glossary, a page of type :guilabel:`Folder` with the glossary module
 assigned, and belongs to a site. The backend synchronization button and the
 command :bash:`vendor/bin/typo3 deepl:glossary:sync` apply the same check.
 The glossary of a hidden folder is neither synchronized nor used for
-translations. A translation of a
-glossary folder is not synchronized on its own, as the terms of every
-language belong to the folder in the default language.
+translations. A translation of a glossary folder is not synchronized on its
+own, as the terms of every language belong to the folder in the default
+language.
 
 Before, the backend check let every folder pass, with or without the glossary
 module, and every page with the glossary module, whatever its type. The
@@ -28,21 +28,6 @@ module which is not a folder.
 Translating uses the glossaries of glossary folders only, see
 :ref:`important-glossariesonlyfromcurrentsite-1791313139`. Before, a site
 without a glossary folder used the glossary of any folder of the site.
-
-A failing folder no longer stops the command. The remaining folders are
-synchronized, and every failure is reported at the end with a failing exit
-code. Only a refused API key or an exceeded quota stops the command, as every
-remaining folder would fail the same way. A term translated into a language
-that has been removed from the site configuration is skipped instead of
-failing the folder. The command reports a folder whose glossary was removed
-because it holds no terms, and tells when no glossary folder exists at all.
-
-A folder is synchronized by one process at a time. A synchronization started
-while the folder is being synchronized, for example by a scheduler task while
-an editor clicks the button, does not run. The backend reports that the folder
-is being synchronized already, and the command reports the folder as skipped
-without failing. The lock applies per server, so it does not prevent two
-synchronizations started on different servers.
 
 Impact
 ======
@@ -71,4 +56,4 @@ module to it in its page properties under
 :guilabel:`Behaviour > Use as Container > Contains Plugin`, then synchronize
 it again.
 
-.. index:: CLI, Backend, Frontend, ext:deepltranslate_glossary
+.. index:: Backend, CLI, ext:deepltranslate_glossary

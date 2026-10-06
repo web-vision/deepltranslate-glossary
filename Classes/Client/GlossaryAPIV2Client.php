@@ -38,6 +38,11 @@ final class GlossaryAPIV2Client extends AbstractClient implements GlossaryAPIV2C
      */
     public function getGlossaryLanguagePairs(): array
     {
+        trigger_error(
+            'GlossaryAPIV2Client::getGlossaryLanguagePairs() is deprecated since 6.1 and will be removed in 7.0.'
+            . ' Use the DeepL PHP library deeplcom/deepl-php to access the glossary API directly.',
+            E_USER_DEPRECATED
+        );
         try {
             return $this->client()->getGlossaryLanguages();
         } catch (DeepLException $exception) {
@@ -56,6 +61,11 @@ final class GlossaryAPIV2Client extends AbstractClient implements GlossaryAPIV2C
      */
     public function getAllGlossaries(): array
     {
+        trigger_error(
+            'GlossaryAPIV2Client::getAllGlossaries() is deprecated since 6.1 and will be removed in 7.0.'
+            . ' Use the DeepL PHP library deeplcom/deepl-php to access the glossary API directly.',
+            E_USER_DEPRECATED
+        );
         try {
             return $this->client()->listGlossaries();
         } catch (DeepLException $exception) {
@@ -71,11 +81,14 @@ final class GlossaryAPIV2Client extends AbstractClient implements GlossaryAPIV2C
 
     /**
      * DeepL Glossary API v2
-     *
-     * @depreacted will be removed as soon as DeepL API drops support for v2
      */
     public function getGlossary(string $glossaryId): ?GlossaryInfo
     {
+        trigger_error(
+            'GlossaryAPIV2Client::getGlossary() is deprecated since 6.1 and will be removed in 7.0.'
+            . ' Use the DeepL PHP library deeplcom/deepl-php to access the glossary API directly.',
+            E_USER_DEPRECATED
+        );
         try {
             return $this->client()->getGlossary($glossaryId);
         } catch (DeepLException $exception) {
@@ -92,7 +105,6 @@ final class GlossaryAPIV2Client extends AbstractClient implements GlossaryAPIV2C
     /**
      * DeepL Glossary API v2
      *
-     * @depreacted will be removed as soon as DeepL API drops support for v2
      * @param array<int, array{source: string, target: string}> $entries
      */
     public function createGlossary(
@@ -101,6 +113,11 @@ final class GlossaryAPIV2Client extends AbstractClient implements GlossaryAPIV2C
         string $targetLang,
         array $entries
     ): GlossaryInfo {
+        trigger_error(
+            'GlossaryAPIV2Client::createGlossary() is deprecated since 6.1 and will be removed in 7.0.'
+            . ' Use the DeepL PHP library deeplcom/deepl-php to access the glossary API directly.',
+            E_USER_DEPRECATED
+        );
         try {
             return $this->client()->createGlossary(
                 $glossaryName,
@@ -159,11 +176,14 @@ final class GlossaryAPIV2Client extends AbstractClient implements GlossaryAPIV2C
 
     /**
      * DeepL Glossary API v2
-     *
-     * @depreacted will be removed as soon as DeepL API drops support for v2
      */
     public function deleteGlossary(string $glossaryId): void
     {
+        trigger_error(
+            'GlossaryAPIV2Client::deleteGlossary() is deprecated since 6.1 and will be removed in 7.0.'
+            . ' Use the DeepL PHP library deeplcom/deepl-php to access the glossary API directly.',
+            E_USER_DEPRECATED
+        );
         try {
             $this->client()->deleteGlossary($glossaryId);
         } catch (DeepLException $exception) {
@@ -177,11 +197,14 @@ final class GlossaryAPIV2Client extends AbstractClient implements GlossaryAPIV2C
 
     /**
      * DeepL Glossary API v2
-     *
-     * @depreacted will be removed as soon as DeepL API drops support for v2
      */
     public function getGlossaryEntries(string $glossaryId): ?GlossaryEntries
     {
+        trigger_error(
+            'GlossaryAPIV2Client::getGlossaryEntries() is deprecated since 6.1 and will be removed in 7.0.'
+            . ' Use the DeepL PHP library deeplcom/deepl-php to access the glossary API directly.',
+            E_USER_DEPRECATED
+        );
         try {
             return $this->client()->getGlossaryEntries($glossaryId);
         } catch (DeepLException $exception) {

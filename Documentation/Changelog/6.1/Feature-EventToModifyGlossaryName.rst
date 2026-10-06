@@ -14,12 +14,17 @@ The PSR-14 event
 allows changing the name a glossary folder is published under at DeepL.
 
 By default, a glossary is named after its folder, followed by the page id of
-the folder, for example `Glossary [12]`. A folder without a title is named
-`Glossary` followed by its page id.
+the folder, for example ``Glossary [12]``. A folder without a title is named
+``Glossary`` followed by its page id.
 
 The event is dispatched when the glossary record of a folder is created by its
 first synchronization, and when the upgrade wizard migrates the glossary
-records of a folder. It provides the following properties:
+records of a folder. A listener therefore runs in the backend, on the command
+line and in the install tool. It cannot rely on a request, a backend user or
+a frontend context, and gets everything it needs from the event, the page id
+of the folder above all.
+
+It provides the following properties:
 
 :php:`$pageId`
     The page id of the glossary folder, read-only.
@@ -30,7 +35,8 @@ records of a folder. It provides the following properties:
 
 :php:`$glossaryName`
     The name the glossary is published under. An empty name falls back to the
-    default name, as DeepL refuses a glossary without one.
+    default name, as DeepL refuses a glossary without one. A name longer than
+    255 characters is cut to 255 characters.
 
 Example
 -------

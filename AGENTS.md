@@ -65,9 +65,17 @@ branch `glossary-api-v3` has several). Check its base with
 - The functional tests use a DeepL mock server. Never call the real DeepL
   API, never print, log or write a DeepL key anywhere.
 - `-s downloadGerritPatch` writes into `patches/`. Never commit those files.
+- A changed or new changelog entry is checked with `-s checkRst`, which
+  covers the entries in `Documentation/Changelog/<major.minor>/` only. The
+  format is described in CONTRIBUTING.md, "Documentation and changelog":
+  include line, link target before the title, `<Type>: ` title matching the
+  file name, `.. index::` as last line, with `NotScanned` for `Breaking-` and
+  `Deprecation-` entries. Never change the link target of an entry which is
+  on `main` already.
 - Done means: the suites of the changed area green on **both** v13 and v14,
-  `cgl -n` and `phpstan` green on both, `renderDocumentation` when
-  `Documentation/` changed.
+  `cgl -n` and `phpstan` green on both, `checkRst` and `renderDocumentation`
+  when `Documentation/` changed. Read the warnings of `renderDocumentation`,
+  it does not fail on all of them.
 
 ## Code you are likely to touch
 

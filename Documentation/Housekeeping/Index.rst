@@ -47,9 +47,10 @@ removed with it. The next synchronisation publishes the folder as a new glossary
 
 ..  warning::
 
-    `--all` deletes every glossary of the DeepL account. When several instances
-    share the API key, the glossaries of the other instances are deleted as
-    well. Use `--glossaryId` in that case.
+    :bash:`--all` deletes every glossary of the DeepL account of the API key, not
+    only those of this installation. When other installations or tools share
+    the API key, for example a staging copy of the installation, their
+    glossaries are deleted as well. Use :bash:`--glossaryId` in that case.
 
 At the end you will get a table with all glossary IDs, telling whether DeepL deleted
 the glossary and whether a database record has been detached from it. A glossary
@@ -75,7 +76,7 @@ glossary deleted with `--glossaryId` or `--all` is no longer listed either.
 
     vendor/bin/typo3 deepl:glossary:cleanup --notinsync
 
-With `--notinsync`, the command compares the glossary records with the glossaries
+With :bash:`--notinsync`, the command compares the glossary records with the glossaries
 of the DeepL account. A glossary record pointing at a glossary the DeepL account no
 longer contains loses its sync information, so the next synchronization publishes the
 folder again. Nothing is deleted from DeepL, so instances sharing the API key are not
