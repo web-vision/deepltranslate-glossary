@@ -331,8 +331,9 @@ final class MultilingualGlossaryService
     }
 
     /**
-     * The upgrade wizard removes every glossary stored for a folder of the API v2, a glossary
-     * published by this synchronisation in the meantime included, so such a folder waits for it.
+     * The upgrade wizard detaches every glossary stored for a folder of the API v2 and lists it
+     * for removal with `deepl:glossary:cleanup --legacy`, a glossary published by this
+     * synchronisation in the meantime included, so such a folder waits for it.
      *
      * @todo Remove together with {@see MigrateToMultilingualGlossaryWizard}.
      *

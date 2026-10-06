@@ -29,8 +29,8 @@ glossary.
 Cleanup
 -------
 
-The cleanup command removes glossaries from DeepL, for example glossaries the
-upgrade wizard could not remove while migrating to the glossary API v3.
+The cleanup command removes glossaries from DeepL, for example the glossaries of
+the glossary API v2 the upgrade wizard kept while migrating to the glossary API v3.
 
 ..  code-block:: bash
 
@@ -56,6 +56,20 @@ the glossary and whether a database record has been detached from it. A glossary
 DeepL refuses to delete, for example because of its rate limit, does not stop the
 others from being deleted. Its record keeps pointing at it, and the command reports
 the failure and ends with a failing exit code, so it can be run again.
+
+..  code-block:: bash
+
+    vendor/bin/typo3 deepl:glossary:cleanup --legacy
+
+With `--legacy`, the command deletes exactly the glossaries of the glossary API v2
+the upgrade wizard kept at DeepL and listed, see :ref:`upgrade60to61`. Other
+glossaries of the DeepL account are not touched. A listed glossary a glossary record
+points at again is kept, and a glossary DeepL no longer knows counts as deleted.
+Both are no longer listed. A glossary DeepL refuses to delete does not stop the
+others, stays listed for the next run, and the command ends with a failing exit
+code. Run it only once no other instance sharing the API key still uses these
+glossaries, for example the live system a staging database was copied from. A
+glossary deleted with `--glossaryId` or `--all` is no longer listed either.
 
 ..  code-block:: bash
 

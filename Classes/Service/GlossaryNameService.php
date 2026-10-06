@@ -21,9 +21,10 @@ use WebVision\Deepltranslate\Glossary\Event\ModifyGlossaryNameEvent;
 final readonly class GlossaryNameService
 {
     /**
-     * The longest glossary name DeepL accepts, in UTF-8 bytes.
+     * The longest glossary name, in characters: the record stores up to 255 characters, and 255
+     * characters are at most 1020 UTF-8 bytes, below the 1024 bytes DeepL accepts for a name.
      */
-    public const MAX_NAME_BYTES = 1024;
+    public const MAX_NAME_LENGTH = 255;
 
     public function __construct(
         private ConnectionPool $connectionPool,
@@ -40,32 +41,28 @@ final readonly class GlossaryNameService
         $this->eventDispatcher->dispatch($event);
         $glossaryName = trim($event->glossaryName);
 
-        return $this->cutToByteLimit($glossaryName !== '' ? $glossaryName : $defaultName);
+        return $this->cutToMaximumLength($glossaryName !== '' ? $glossaryName : $defaultName);
     }
 
     /**
      * Returns the name a glossary is published under from the name stored in its record: a new
      * one when the stored name is blank, as DeepL refuses a glossary without a name, and the
-     * stored one cut to the length DeepL accepts otherwise.
+     * stored one cut to the maximum length otherwise.
      */
     public function fitStoredName(string $storedName, int $pageId): string
     {
         $storedName = trim($storedName);
 
-        return $storedName !== '' ? $this->cutToByteLimit($storedName) : $this->getGlossaryName($pageId);
+        return $storedName !== '' ? $this->cutToMaximumLength($storedName) : $this->getGlossaryName($pageId);
     }
 
     /**
-     * Unlike a term, a name may be cut: it only labels the glossary. mb_strcut() never splits a
-     * multibyte character, it cuts in front of it.
+     * Unlike a term, a name may be cut: it only labels the glossary. mb_substr() never splits a
+     * multibyte character.
      */
-    private function cutToByteLimit(string $glossaryName): string
+    private function cutToMaximumLength(string $glossaryName): string
     {
-        if (strlen($glossaryName) <= self::MAX_NAME_BYTES) {
-            return $glossaryName;
-        }
-
-        return rtrim(mb_strcut($glossaryName, 0, self::MAX_NAME_BYTES, 'UTF-8'));
+        return rtrim(mb_substr($glossaryName, 0, self::MAX_NAME_LENGTH));
     }
 
     private function getFolderTitle(int $pageId): string

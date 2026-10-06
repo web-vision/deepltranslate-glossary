@@ -116,7 +116,7 @@ final class GlossaryDictionaryTableTest extends AbstractDeepLTestCase
     }
 
     #[Test]
-    public function glossaryRecordCarriesNoLanguagePair(): void
+    public function glossaryRecordKeepsGlossaryIdSyncStateAndDictionaries(): void
     {
         $glossarySchema = $this->get(ConnectionPool::class)
             ->getConnectionForTable('tx_deepltranslate_glossary')
@@ -124,8 +124,8 @@ final class GlossaryDictionaryTableTest extends AbstractDeepLTestCase
             ->listTableColumns('tx_deepltranslate_glossary');
         $columns = array_keys($glossarySchema);
 
-        // The glossary record is the single entry point per folder, so it keeps the DeepL id and
-        // the synchronisation state only.
+        // The glossary record is the single entry point per folder. It keeps the DeepL id, the
+        // synchronisation state and its dictionaries, which carry the language pairs.
         self::assertContains('glossary_id', $columns);
         self::assertContains('glossary_ready', $columns);
         self::assertContains('dictionaries', $columns);

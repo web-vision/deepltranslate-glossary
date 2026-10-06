@@ -15,8 +15,11 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Question\ConfirmationQuestion;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Contracts\Service\Attribute\Required;
+use WebVision\Deepltranslate\Core\Exception\ApiKeyNotSetException;
 use WebVision\Deepltranslate\Glossary\Client\GlossaryAPIV3ClientInterface;
 use WebVision\Deepltranslate\Glossary\Domain\Repository\GlossaryRepository;
+use WebVision\Deepltranslate\Glossary\Upgrade\LegacyGlossaryIdStore;
+use WebVision\Deepltranslate\Glossary\Upgrade\MigrateToMultilingualGlossaryWizard;
 
 /**
  * @todo: Rename Command
@@ -30,6 +33,7 @@ final class GlossaryCleanupCommand extends Command
 {
     private GlossaryAPIV3ClientInterface $client;
     private GlossaryRepository $glossaryRepository;
+    private LegacyGlossaryIdStore $legacyGlossaryIdStore;
 
     #[Required]
     public function injectGlossaryClient(GlossaryAPIV3ClientInterface $client): void
@@ -41,6 +45,12 @@ final class GlossaryCleanupCommand extends Command
     public function injectGlossaryRepository(GlossaryRepository $glossaryRepository): void
     {
         $this->glossaryRepository = $glossaryRepository;
+    }
+
+    #[Required]
+    public function injectLegacyGlossaryIdStore(LegacyGlossaryIdStore $legacyGlossaryIdStore): void
+    {
+        $this->legacyGlossaryIdStore = $legacyGlossaryIdStore;
     }
 
     protected function configure(): void
@@ -58,6 +68,12 @@ final class GlossaryCleanupCommand extends Command
                 null,
                 InputOption::VALUE_NONE,
                 'Delete all glossaries according to the API key.',
+            )
+            ->addOption(
+                'legacy',
+                null,
+                InputOption::VALUE_NONE,
+                'Delete the glossaries of the DeepL glossary API v2 the upgrade wizard kept at DeepL.',
             )
             ->addOption(
                 'notinsync',
@@ -85,6 +101,10 @@ final class GlossaryCleanupCommand extends Command
         // Remove single glossary by deepl-id
         $glossaryId = $input->getOption('glossaryId');
         if ($glossaryId !== null && !$this->removeGlossaries($io, [$glossaryId])) {
+            return Command::FAILURE;
+        }
+        // Remove the glossaries of the API v2 the upgrade wizard kept
+        if (!empty($input->getOption('legacy')) && !$this->removeLegacyGlossaries($io)) {
             return Command::FAILURE;
         }
         // Remove all glossaries
@@ -124,6 +144,7 @@ final class GlossaryCleanupCommand extends Command
 
     /**
      * @throws DeepLException
+     * @throws ApiKeyNotSetException
      */
     private function removeGlossary(string $id): bool
     {
@@ -132,6 +153,7 @@ final class GlossaryCleanupCommand extends Command
         } catch (GlossaryNotFoundException) {
             // Already gone at DeepL, the local synchronisation state still has to be cleared.
         }
+        $this->legacyGlossaryIdStore->remove([$id]);
 
         return $this->glossaryRepository->removeGlossarySync($id);
     }
@@ -150,7 +172,7 @@ final class GlossaryCleanupCommand extends Command
             try {
                 $dbUpdated = $this->removeGlossary($glossaryId);
                 $rows[] = [$glossaryId, 'yes', $dbUpdated ? 'yes' : 'no'];
-            } catch (DeepLException $exception) {
+            } catch (DeepLException|ApiKeyNotSetException $exception) {
                 // DeepL still holds the glossary, so its folder keeps pointing at it.
                 $rows[] = [$glossaryId, 'no', 'no'];
                 $failures[] = sprintf('%s: %s (%d)', $glossaryId, $exception->getMessage(), $exception->getCode());
@@ -167,6 +189,54 @@ final class GlossaryCleanupCommand extends Command
             ],
             $rows
         );
+        if ($failures !== []) {
+            $io->error($failures);
+        }
+
+        return $failures === [];
+    }
+
+    /**
+     * Deletes exactly the glossaries {@see MigrateToMultilingualGlossaryWizard} kept at DeepL.
+     * A glossary a record points at again is in use, so it is kept and no longer listed. A
+     * glossary DeepL refuses to delete stays listed for the next run, without stopping the others.
+     */
+    private function removeLegacyGlossaries(SymfonyStyle $io): bool
+    {
+        $glossaryIds = $this->legacyGlossaryIdStore->getGlossaryIds();
+        if ($glossaryIds === []) {
+            $io->info('No glossaries of the DeepL glossary API v2 are left from the migration.');
+            return true;
+        }
+        $referencedGlossaryIds = array_column($this->glossaryRepository->getGlossariesDeeplConnected(), 'glossary_id', 'glossary_id');
+
+        $rows = [];
+        $failures = [];
+        $doneGlossaryIds = [];
+        $io->progressStart(count($glossaryIds));
+        foreach ($glossaryIds as $glossaryId) {
+            $io->progressAdvance();
+            if (isset($referencedGlossaryIds[$glossaryId])) {
+                $rows[] = [$glossaryId, 'no, used by a glossary record'];
+                $doneGlossaryIds[] = $glossaryId;
+                continue;
+            }
+            try {
+                $this->client->deleteGlossary($glossaryId);
+                $rows[] = [$glossaryId, 'yes'];
+                $doneGlossaryIds[] = $glossaryId;
+            } catch (GlossaryNotFoundException) {
+                $rows[] = [$glossaryId, 'already gone'];
+                $doneGlossaryIds[] = $glossaryId;
+            } catch (DeepLException|ApiKeyNotSetException $exception) {
+                $rows[] = [$glossaryId, 'no'];
+                $failures[] = sprintf('%s: %s (%d)', $glossaryId, $exception->getMessage(), $exception->getCode());
+            }
+        }
+        $io->progressFinish();
+        $this->legacyGlossaryIdStore->remove($doneGlossaryIds);
+
+        $io->table(['Glossary ID of the API v2', 'Deleted at DeepL'], $rows);
         if ($failures !== []) {
             $io->error($failures);
         }

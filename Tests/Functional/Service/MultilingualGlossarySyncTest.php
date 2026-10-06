@@ -521,6 +521,24 @@ final class MultilingualGlossarySyncTest extends AbstractDeepLTestCase
     }
 
     #[Test]
+    public function recordOfApiV2ReusedBySyncNoLongerCarriesALanguagePair(): void
+    {
+        $this->insertGlossaryRecordOfApiV2('');
+        $this->get(Registry::class)->set('installUpdate', MigrateToMultilingualGlossaryWizard::class, 1);
+        $subject = $this->get(MultilingualGlossaryService::class);
+
+        $subject->syncGlossary(2);
+
+        // Otherwise the upgrade wizard would take the published glossary for one of the API v2.
+        $glossaries = $this->fetchGlossaryRecords();
+        self::assertCount(1, $glossaries);
+        self::assertNotSame('', $glossaries[0]['glossary_id']);
+        self::assertSame('', $glossaries[0]['source_lang']);
+        self::assertSame('', $glossaries[0]['target_lang']);
+        self::assertFalse($this->get(GlossaryRepository::class)->hasGlossaryRecordOfApiV2(2));
+    }
+
+    #[Test]
     public function hiddenGlossaryFolderIsRejected(): void
     {
         $this->get(ConnectionPool::class)
@@ -831,7 +849,7 @@ final class MultilingualGlossarySyncTest extends AbstractDeepLTestCase
             ->getQueryBuilderForTable('tx_deepltranslate_glossary');
 
         return $queryBuilder
-            ->select('uid', 'glossary_id', 'glossary_name', 'glossary_lastsync', 'glossary_ready')
+            ->select('uid', 'glossary_id', 'glossary_name', 'glossary_lastsync', 'glossary_ready', 'source_lang', 'target_lang')
             ->from('tx_deepltranslate_glossary')
             ->where(
                 $queryBuilder->expr()->eq(

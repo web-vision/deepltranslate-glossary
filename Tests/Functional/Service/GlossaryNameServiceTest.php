@@ -49,6 +49,18 @@ final class GlossaryNameServiceTest extends AbstractDeepLTestCase
     }
 
     #[Test]
+    public function nameOfAListenerIsCutToTheLengthOfTheRecord(): void
+    {
+        // The record stores 255 characters, multibyte ones included.
+        $this->registerNameListener(static function (ModifyGlossaryNameEvent $event): void {
+            $event->glossaryName = str_repeat('ü', 300);
+        });
+        $subject = $this->get(GlossaryNameService::class);
+
+        self::assertSame(str_repeat('ü', 255), $subject->getGlossaryName(2));
+    }
+
+    #[Test]
     public function emptyNameOfAListenerFallsBackToTheDefaultName(): void
     {
         // DeepL refuses a glossary without a name, so an empty name would fail every sync.
@@ -58,18 +70,6 @@ final class GlossaryNameServiceTest extends AbstractDeepLTestCase
         $subject = $this->get(GlossaryNameService::class);
 
         self::assertSame('Glossary [2]', $subject->getGlossaryName(2));
-    }
-
-    #[Test]
-    public function nameOfAListenerAboveTheByteLimitIsCutOnACharacterBoundary(): void
-    {
-        // An umlaut takes two UTF-8 bytes, the cut must not split the one crossing 1024 bytes.
-        $this->registerNameListener(static function (ModifyGlossaryNameEvent $event): void {
-            $event->glossaryName = 'a' . str_repeat('ü', 600);
-        });
-        $subject = $this->get(GlossaryNameService::class);
-
-        self::assertSame('a' . str_repeat('ü', 511), $subject->getGlossaryName(2));
     }
 
     #[Test]
@@ -90,19 +90,19 @@ final class GlossaryNameServiceTest extends AbstractDeepLTestCase
     }
 
     #[Test]
-    public function storedNameAboveTheByteLimitIsCutOnACharacterBoundary(): void
+    public function storedNameAboveTheMaximumLengthIsCutOnACharacterBoundary(): void
     {
         $subject = $this->get(GlossaryNameService::class);
 
-        self::assertSame('a' . str_repeat('ü', 511), $subject->fitStoredName('a' . str_repeat('ü', 600), 2));
+        self::assertSame('a' . str_repeat('ü', 254), $subject->fitStoredName('a' . str_repeat('ü', 600), 2));
     }
 
     #[Test]
-    public function storedNameOfExactlyTheByteLimitIsKept(): void
+    public function storedNameOfExactlyTheMaximumLengthIsKept(): void
     {
         $subject = $this->get(GlossaryNameService::class);
 
-        self::assertSame(str_repeat('ü', 512), $subject->fitStoredName(str_repeat('ü', 512), 2));
+        self::assertSame(str_repeat('ü', 255), $subject->fitStoredName(str_repeat('ü', 255), 2));
     }
 
     private function registerNameListener(\Closure $listener): void

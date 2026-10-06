@@ -55,9 +55,8 @@ Update the database schema first, the wizard needs the new table
     vendor/bin/typo3 upgrade:run deepltranslateGlossary_migrateToMultilingualGlossary
 
 The wizard collapses the existing records of a folder into a single glossary
-record and removes the glossaries created with the API v2 from the DeepL
-account, because a glossary of the API v2 covers one language pair and cannot
-become a dictionary of a multilingual glossary.
+record. A glossary of the API v2 covers one language pair and cannot become a
+dictionary of a multilingual glossary, so the folder gets a new glossary.
 
 The record is detached from its former glossary, so the next synchronization
 publishes the folder through the API v3 and creates its dictionaries. Run the
@@ -66,14 +65,25 @@ backend or with :bash:`deepl:glossary:sync`.
 
 Until the wizard ran, a folder still holding glossaries of the API v2 is not
 synchronized. The synchronization fails with a message naming the wizard, as
-the wizard would otherwise remove the glossary published in the meantime.
+the wizard would otherwise detach the glossary published in the meantime.
 
-The wizard migrates the records even when no API key is configured or DeepL
-cannot be reached. The glossaries then stay on the DeepL account. The wizard
-logs the id of each of them, remove them one by one with
-:bash:`deepl:glossary:cleanup --glossaryId <id>`. Do not use
-:bash:`deepl:glossary:cleanup --all` when other instances share the API key, it
-removes their glossaries as well.
+The wizard migrates locally only and needs no connection to DeepL. The
+glossaries of the API v2 stay on the DeepL account, so a copy of the database
+sharing the API key, a staging system for example, does not delete the
+glossaries the live system still translates with. The wizard lists their ids
+and the commands to remove them. Once no other instance uses them, remove all
+of them with:
+
+..  code-block:: bash
+
+    vendor/bin/typo3 deepl:glossary:cleanup --legacy
+
+Do not use :bash:`deepl:glossary:cleanup --all` when other instances share the
+API key, it removes their glossaries as well.
+
+When upgrading from version 4, run the wizard
+:guilabel:`Glossary table migration` first. The wizard waits for it and fails
+with a message naming it until the glossaries are copied.
 
 The columns :sql:`source_lang` and :sql:`target_lang` are kept on
 :sql:`tx_deepltranslate_glossary` until the wizard has run and are removed

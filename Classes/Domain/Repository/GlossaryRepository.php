@@ -241,6 +241,11 @@ final class GlossaryRepository
                         // DeepL keeps the creation time of a glossary edited in place.
                         'glossary_lastsync' => $this->context->getPropertyFromAspect('date', 'timestamp'),
                         'glossary_ready' => 1,
+                        // A record of the API v2 reused by the synchronisation is no longer
+                        // one, so the upgrade wizard does not migrate it again.
+                        // @todo Remove together with MigrateToMultilingualGlossaryWizard.
+                        'source_lang' => '',
+                        'target_lang' => '',
                     ],
                     ['uid' => $uid]
                 );
