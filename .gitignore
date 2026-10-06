@@ -20,3 +20,4 @@ Build/node_modules/
 /vendor
 /tailor-version-artefact/
 /tailor-version-upload/
+/.agent/
