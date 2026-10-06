@@ -15,6 +15,10 @@ and source languages.
 On pages with Doktype 254 (Folder) and "Use Container" set to "DeepL Glossary",
 a synchronise button appears for easy synchronisation of the glossary terms listed in this page.
 
+Only such a folder is synchronised. A folder without the glossary module, or a
+page of another type with the glossary module, is rejected. Change the type of
+such a page to Folder to synchronise its terms.
+
 Possible glossary combinations in multiple language translation modes are built
 on the fly, so your glossary can be used from any target to source, **except** the
 default system language.
