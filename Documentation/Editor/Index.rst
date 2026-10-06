@@ -19,6 +19,12 @@ Only such a folder is synchronised. A folder without the glossary module, or a
 page of another type with the glossary module, is rejected. Change the type of
 such a page to Folder to synchronise its terms.
 
+A glossary folder serves the pages of its own site only. Every site that should be
+translated with a glossary needs a glossary folder of its own. A site without one
+uses a glossary stored in another folder of the same site, for example one
+synchronised by the command line. When several glossaries qualify, the one with
+the lowest uid is used. Glossaries of other sites are never used.
+
 Possible glossary combinations in multiple language translation modes are built
 on the fly, so your glossary can be used from any target to source, **except** the
 default system language.
