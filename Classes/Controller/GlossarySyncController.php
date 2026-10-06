@@ -63,12 +63,15 @@ final class GlossarySyncController
             return new RedirectResponse($processingParameters['returnUrl']);
         }
 
-        // Check page configuration of glossary type
-        /** @var array{uid: int, doktype: string|int, module: string} $pages */
-        $pages = BackendUtility::getRecord('pages', (int)$processingParameters['uid']);
-        if ((int)$pages['doktype'] !== PageRepository::DOKTYPE_SYSFOLDER && $pages['module'] !== 'glossary') {
+        // Only a folder set up as glossary, a sysfolder with module `glossary`, is synchronised.
+        $pageUid = (int)$processingParameters['uid'];
+        $page = BackendUtility::getRecord('pages', $pageUid, 'uid,doktype,module');
+        if ($page === null
+            || (int)($page['doktype'] ?? 0) !== PageRepository::DOKTYPE_SYSFOLDER
+            || ($page['module'] ?? '') !== 'glossary'
+        ) {
             $this->flashMessageService->getMessageQueueByIdentifier()->enqueue(new FlashMessage(
-                sprintf('Page "%d" not configured for glossary synchronization.', $pages['uid']),
+                sprintf('Page "%d" not configured for glossary synchronization.', $pageUid),
                 $this->languageService->sL('LLL:EXT:deepltranslate_glossary/Resources/Private/Language/locallang.xlf:glossary.sync.title.invalid'),
                 ContextualFeedbackSeverity::ERROR,
                 true
@@ -77,8 +80,8 @@ final class GlossarySyncController
         }
 
         try {
-            $collisions = $this->deeplGlossaryService->syncGlossaries((int)$processingParameters['uid']);
-            $this->enqueueCollisionWarnings($collisions, (int)$processingParameters['uid']);
+            $collisions = $this->deeplGlossaryService->syncGlossaries($pageUid);
+            $this->enqueueCollisionWarnings($collisions, $pageUid);
             $this->flashMessageService->getMessageQueueByIdentifier()->enqueue(new FlashMessage(
                 $this->languageService->sL('LLL:EXT:deepltranslate_glossary/Resources/Private/Language/locallang.xlf:glossary.sync.message'),
                 $this->languageService->sL('LLL:EXT:deepltranslate_glossary/Resources/Private/Language/locallang.xlf:glossary.sync.title'),
