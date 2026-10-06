@@ -91,6 +91,9 @@
             <trans-unit id="glossary.sync.message.denied">
                 <source>You are not allowed to synchronize the glossary of this folder with DeepL.</source>
             </trans-unit>
+            <trans-unit id="glossary.sync.message.noSite">
+                <source>The glossary folder belongs to no site and cannot be synchronized with DeepL.</source>
+            </trans-unit>
             <trans-unit id="glossary.sync.collision.title">
                 <source>Glossary folder %1$d: language code "%2$s" is shared by several site languages</source>
             </trans-unit>

@@ -252,7 +252,6 @@ final class GlossaryRepository
      * @return Glossary
      *
      * @throws Exception
-     * @throws SiteNotFoundException
      * @throws \Doctrine\DBAL\Exception
      */
     public function getGlossaryBySourceAndTarget(
@@ -462,7 +461,6 @@ final class GlossaryRepository
     }
 
     /**
-     * @throws SiteNotFoundException
      * @throws Exception
      * @throws \Doctrine\DBAL\Exception
      */
@@ -554,13 +552,22 @@ final class GlossaryRepository
     }
 
     /**
+     * Glossary module folders of the site of the given page.
+     *
+     * A page outside any site has none. A glossary module folder outside any site belongs to no
+     * site, it is skipped and does not prevent the lookup for the other folders.
+     *
      * @return int[]
-     * @throws SiteNotFoundException
      * @throws Exception
      * @throws \Doctrine\DBAL\Exception
      */
     private function getGlossariesInRootByCurrentPage(int $pageId): array
     {
+        $rootPage = $this->findRootPageIdOrNull($pageId);
+        if ($rootPage === null) {
+            return [];
+        }
+
         $db = GeneralUtility::makeInstance(ConnectionPool::class)
             ->getQueryBuilderForTable('pages');
 
@@ -578,21 +585,13 @@ final class GlossaryRepository
                 $db->expr()->eq('module', $db->createNamedParameter('glossary'))
             )->executeQuery();
 
-        $rows = $result->fetchAllAssociative();
-        if (count($rows) === 0) {
-            return [];
-        }
-
-        $rootPage = $this->findRootPageId($pageId);
-
         $ids = [];
-        foreach ($rows as $row) {
-            $glossaryRootPageID = $this->findRootPageId($row['uid']);
-            if ($glossaryRootPageID !== $rootPage) {
+        foreach ($result->fetchAllAssociative() as $row) {
+            if ($this->findRootPageIdOrNull((int)$row['uid']) !== $rootPage) {
                 continue;
             }
 
-            $ids[] = $row['uid'];
+            $ids[] = (int)$row['uid'];
         }
         return $ids;
     }

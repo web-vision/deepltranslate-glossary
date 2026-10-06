@@ -83,6 +83,10 @@
                 <source>You are not allowed to synchronize the glossary of this folder with DeepL.</source>
                 <target>Sie dürfen das Glossar dieses Ordners nicht mit DeepL synchronisieren.</target>
             </trans-unit>
+            <trans-unit id="glossary.sync.message.noSite">
+                <source>The glossary folder belongs to no site and cannot be synchronized with DeepL.</source>
+                <target>Der Glossar-Ordner gehört zu keiner Site und kann nicht mit DeepL synchronisiert werden.</target>
+            </trans-unit>
             <trans-unit id="glossary.not-sync.message">
                 <source>Glossary synchronization with DeepL is pending. Your glossaries are not operational.</source>
                 <target>Die Glossar-Synchronisierung mit DeepL ist steht aus. Ihre Glossare sind nicht einsatzbereit.</target>
