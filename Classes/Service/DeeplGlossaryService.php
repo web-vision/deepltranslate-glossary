@@ -10,6 +10,7 @@ use DeepL\GlossaryInfo;
 use DeepL\GlossaryLanguagePair;
 use Symfony\Component\DependencyInjection\Attribute\Autoconfigure;
 use WebVision\Deepltranslate\Glossary\Client\GlossaryAPIV2ClientInterface;
+use WebVision\Deepltranslate\Glossary\Domain\Dto\GlossaryLanguageCollision;
 use WebVision\Deepltranslate\Glossary\Exception\GlossaryEntriesNotExistException;
 use WebVision\Deepltranslate\Glossary\Exception\GlossaryFolderNotSyncableException;
 
@@ -116,11 +117,14 @@ final readonly class DeeplGlossaryService
      * Synchronises a glossary folder through the glossary API v3, see
      * {@see MultilingualGlossaryService::syncGlossary()}.
      *
+     * @return list<GlossaryLanguageCollision> site languages sharing a glossary language code the site
+     *     configuration does not resolve unambiguously, to be reported to the user
+     *
      * @throws DeepLException
      * @throws GlossaryFolderNotSyncableException
      */
-    public function syncGlossaries(int $uid): void
+    public function syncGlossaries(int $uid): array
     {
-        $this->multilingualGlossaryService->syncGlossary($uid);
+        return $this->multilingualGlossaryService->syncGlossary($uid)->collisions;
     }
 }

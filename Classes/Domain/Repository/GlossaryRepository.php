@@ -22,7 +22,10 @@ use TYPO3\CMS\Core\Site\SiteFinder;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use WebVision\Deepltranslate\Core\Domain\Dto\CurrentPage;
 use WebVision\Deepltranslate\Glossary\Domain\Dto\Glossary;
+use WebVision\Deepltranslate\Glossary\Domain\Dto\GlossaryLanguageSelection;
+use WebVision\Deepltranslate\Glossary\Domain\Dto\GlossarySyncInformation;
 use WebVision\Deepltranslate\Glossary\Service\DeeplGlossaryService;
+use WebVision\Deepltranslate\Glossary\Service\GlossaryLanguageResolver;
 use WebVision\Deepltranslate\Glossary\Service\GlossaryNameService;
 use WebVision\Deepltranslate\Glossary\Service\GlossaryTermSanitizer;
 use WebVision\Deepltranslate\Glossary\Service\MultilingualGlossaryService;
@@ -42,6 +45,7 @@ final class GlossaryRepository
         private readonly SiteFinder $siteFinder,
         private readonly TranslationConfigurationProvider $translationConfigurationProvider,
         private readonly GlossaryNameService $glossaryNameService,
+        private readonly GlossaryLanguageResolver $glossaryLanguageResolver,
     ) {
     }
 
@@ -77,7 +81,7 @@ final class GlossaryRepository
             ->getPossibleGlossaryLanguageConfig();
 
         $glossaries = [];
-        foreach ($this->getDictionaryDataForSync($pageId, $availableLanguagePairs) as $dictionary) {
+        foreach ($this->getDictionaryDataForSync($pageId, $availableLanguagePairs)->dictionaries as $dictionary) {
             $glossaryInformation = $this->getGlossaryBySourceAndTargetForSync($dictionary['sourceLanguage'], $dictionary['targetLanguage'], $page);
             $glossaryInformation->sourceLanguage = $dictionary['sourceLanguage'];
             $glossaryInformation->targetLanguage = $dictionary['targetLanguage'];
@@ -99,21 +103,35 @@ final class GlossaryRepository
      * any record. Used by the glossary API v3 synchronisation, which needs the dictionaries of
      * a folder before it knows whether a glossary has to be created at all.
      *
+     * DeepL glossaries only know base language codes, so site languages like `en_GB` and
+     * `en_US` compete for one code. {@see GlossaryLanguageResolver} decides which of them
+     * provides the terms, the collisions it reports come with the dictionaries.
+     *
      * @param array<string, array<array-key, string>> $languagePairs target languages by source language
-     * @return array<int, array{sourceLanguage: string, targetLanguage: string, entries: array<string, string>}>
      *
      * @throws DBALException
      * @throws Exception
      * @throws SiteNotFoundException
      */
-    public function getDictionaryDataForSync(int $pageId, array $languagePairs): array
+    public function getDictionaryDataForSync(int $pageId, array $languagePairs): GlossarySyncInformation
     {
-        $localizationArray = $this->collectTermsByLanguage($pageId);
-        if ($localizationArray === []) {
-            return [];
+        $entries = $this->getOriginalEntries($pageId);
+        if ($entries === []) {
+            return new GlossarySyncInformation([], []);
         }
-        // The terms of the default language are collected first.
-        $sourceLangIsoCode = (string)array_key_first($localizationArray);
+        $site = $this->siteFinder->getSiteByPageId($pageId);
+        $siteLanguages = $site->getAllLanguages();
+        $entriesByLanguageId = [0 => $entries];
+        foreach ($this->getAvailableLocalizations($pageId) as $localizationLanguageId) {
+            // A translation in a language removed from the site configuration has no language code.
+            if (!isset($siteLanguages[$localizationLanguageId])) {
+                continue;
+            }
+            $entriesByLanguageId[$localizationLanguageId] = $this->getLocalizedEntries($pageId, $localizationLanguageId);
+        }
+        $languageSelection = $this->glossaryLanguageResolver->resolve($site, array_map('count', $entriesByLanguageId));
+        $localizationArray = $this->collectTermsByLanguageCode($entriesByLanguageId, $languageSelection);
+        $sourceLangIsoCode = $site->getDefaultLanguage()->getLocale()->getLanguageCode();
 
         $dictionaries = [];
         foreach ($languagePairs as $sourceLang => $availableTargets) {
@@ -121,19 +139,19 @@ final class GlossaryRepository
                 if ($targetLang === $sourceLangIsoCode) {
                     continue;
                 }
-                $entries = $this->buildEntriesForPair($localizationArray, $sourceLang, $targetLang);
+                $entries = $this->buildEntriesForPair($localizationArray, (string)$sourceLang, $targetLang);
                 if ($entries === []) {
                     continue;
                 }
                 $dictionaries[] = [
-                    'sourceLanguage' => $sourceLang,
+                    'sourceLanguage' => (string)$sourceLang,
                     'targetLanguage' => $targetLang,
                     'entries' => $entries,
                 ];
             }
         }
 
-        return $dictionaries;
+        return new GlossarySyncInformation($dictionaries, $languageSelection->collisions);
     }
 
     /**
@@ -283,30 +301,19 @@ final class GlossaryRepository
     }
 
     /**
-     * @return array<string, array<int, array{uid: int, term: string}>>
+     * The cleaned terms of the site language selected for each glossary language code. Terms are
+     * never mixed between site languages sharing a code.
      *
-     * @throws DBALException
-     * @throws Exception
-     * @throws SiteNotFoundException
+     * @param array<int, array<int|string, mixed>> $entriesByLanguageId
+     * @return array<string, array<int, array{uid: int, term: string}>>
      */
-    private function collectTermsByLanguage(int $pageId): array
+    private function collectTermsByLanguageCode(array $entriesByLanguageId, GlossaryLanguageSelection $languageSelection): array
     {
-        $entries = $this->getOriginalEntries($pageId);
-        if ($entries === []) {
-            return [];
-        }
-        $site = $this->siteFinder->getSiteByPageId($pageId);
-        $localizationArray = [
-            $site->getDefaultLanguage()->getLocale()->getLanguageCode() => $this->normalizeTerms($entries),
-        ];
-        $siteLanguages = $site->getAllLanguages();
-        foreach ($this->getAvailableLocalizations($pageId) as $localizationLanguageId) {
-            // A translation in a language removed from the site configuration has no language code.
-            if (!isset($siteLanguages[$localizationLanguageId])) {
-                continue;
+        $localizationArray = [];
+        foreach ($languageSelection->languageIdsByCode as $languageCode => $languageId) {
+            if (isset($entriesByLanguageId[$languageId])) {
+                $localizationArray[(string)$languageCode] = $this->normalizeTerms($entriesByLanguageId[$languageId]);
             }
-            $localizationArray[$siteLanguages[$localizationLanguageId]->getLocale()->getLanguageCode()]
-                = $this->normalizeTerms($this->getLocalizedEntries($pageId, $localizationLanguageId));
         }
 
         return $localizationArray;

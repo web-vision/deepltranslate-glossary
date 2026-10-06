@@ -178,6 +178,7 @@ final class MultilingualGlossarySyncTest extends AbstractDeepLTestCase
             $this->get(GlossaryRepository::class),
             $this->get(Registry::class),
             $this->get(LockFactory::class),
+            new NullLogger(),
         );
 
         $subject->syncGlossary(2);
@@ -298,7 +299,7 @@ final class MultilingualGlossarySyncTest extends AbstractDeepLTestCase
     {
         $subject = $this->get(MultilingualGlossaryService::class);
 
-        self::assertTrue($subject->syncGlossary(2));
+        self::assertTrue($subject->syncGlossary(2)->hasGlossary);
     }
 
     #[Test]
@@ -310,7 +311,7 @@ final class MultilingualGlossarySyncTest extends AbstractDeepLTestCase
             ->getConnectionForTable('tx_deepltranslate_glossaryentry')
             ->delete('tx_deepltranslate_glossaryentry', ['pid' => 2]);
 
-        self::assertFalse($subject->syncGlossary(2));
+        self::assertFalse($subject->syncGlossary(2)->hasGlossary);
     }
 
     #[Test]

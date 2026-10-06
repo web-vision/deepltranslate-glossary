@@ -20,7 +20,9 @@ use TYPO3\CMS\Core\Utility\MathUtility;
 use WebVision\Deepltranslate\Core\Exception\ApiKeyNotSetException;
 use WebVision\Deepltranslate\Core\Exception\InvalidArgumentException;
 use WebVision\Deepltranslate\Glossary\Access\GlossarySyncPermission;
+use WebVision\Deepltranslate\Glossary\Domain\Dto\GlossaryLanguageCollision;
 use WebVision\Deepltranslate\Glossary\Exception\GlossaryFolderNotSyncableException;
+use WebVision\Deepltranslate\Glossary\Service\GlossaryLanguageCollisionMessageBuilder;
 use WebVision\Deepltranslate\Glossary\Service\MultilingualGlossaryService;
 
 /**
@@ -37,6 +39,7 @@ final class GlossarySyncController
     public function __construct(
         private readonly MultilingualGlossaryService $multilingualGlossaryService,
         private readonly FlashMessageService $flashMessageService,
+        private readonly GlossaryLanguageCollisionMessageBuilder $collisionMessageBuilder,
         private readonly GlossarySyncPermission $glossarySyncPermission,
         private readonly UriBuilder $uriBuilder,
         LanguageServiceFactory $languageServiceFactory
@@ -78,7 +81,9 @@ final class GlossarySyncController
         }
 
         try {
-            $this->reportSynchronisedFolder($this->multilingualGlossaryService->syncGlossary($pageId));
+            $result = $this->multilingualGlossaryService->syncGlossary($pageId);
+            $this->enqueueCollisionWarnings($result->collisions, $pageId);
+            $this->reportSynchronisedFolder($result->hasGlossary);
         } catch (GlossaryFolderNotSyncableException $exception) {
             $this->flashMessageService->getMessageQueueByIdentifier()->enqueue(new FlashMessage(
                 $exception->getMessage(),
@@ -139,6 +144,21 @@ final class GlossarySyncController
 
         // "web_list" is the list module of TYPO3 v13 and an alias of the records module of v14.
         return (string)$this->uriBuilder->buildUriFromRoute('web_list', $pageId > 0 ? ['id' => $pageId] : []);
+    }
+
+    /**
+     * @param list<GlossaryLanguageCollision> $collisions
+     */
+    private function enqueueCollisionWarnings(array $collisions, int $pageId): void
+    {
+        foreach ($collisions as $collision) {
+            $this->flashMessageService->getMessageQueueByIdentifier()->enqueue(new FlashMessage(
+                $this->collisionMessageBuilder->buildMessage($collision, $this->languageService),
+                $this->collisionMessageBuilder->buildTitle($collision, $pageId, $this->languageService),
+                ContextualFeedbackSeverity::WARNING,
+                true
+            ));
+        }
     }
 
     private function reportSynchronisedFolder(bool $hasGlossary): void

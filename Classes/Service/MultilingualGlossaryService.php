@@ -10,6 +10,7 @@ use DeepL\MultilingualGlossaryDictionaryEntries;
 use DeepL\MultilingualGlossaryDictionaryInfo;
 use DeepL\MultilingualGlossaryInfo;
 use Doctrine\DBAL\Exception as DBALException;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autoconfigure;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use TYPO3\CMS\Core\Cache\Frontend\FrontendInterface;
@@ -17,7 +18,10 @@ use TYPO3\CMS\Core\Locking\Exception\LockAcquireWouldBlockException;
 use TYPO3\CMS\Core\Locking\LockFactory;
 use TYPO3\CMS\Core\Locking\LockingStrategyInterface;
 use TYPO3\CMS\Core\Registry;
+use TYPO3\CMS\Core\Site\Entity\SiteLanguage;
 use WebVision\Deepltranslate\Glossary\Client\GlossaryAPIV3ClientInterface;
+use WebVision\Deepltranslate\Glossary\Domain\Dto\GlossaryLanguageCollision;
+use WebVision\Deepltranslate\Glossary\Domain\Dto\GlossarySyncResult;
 use WebVision\Deepltranslate\Glossary\Domain\Repository\GlossaryRepository;
 use WebVision\Deepltranslate\Glossary\Exception\GlossaryFolderNotSyncableException;
 use WebVision\Deepltranslate\Glossary\Upgrade\MigrateToMultilingualGlossaryWizard;
@@ -35,6 +39,7 @@ final class MultilingualGlossaryService
         private readonly GlossaryRepository $glossaryRepository,
         private readonly Registry $registry,
         private readonly LockFactory $lockFactory,
+        private readonly LoggerInterface $logger,
     ) {
     }
 
@@ -44,12 +49,13 @@ final class MultilingualGlossaryService
      * The glossary of a folder is created once and edited afterwards, so the glossary id stays
      * stable and pages referencing it keep working across synchronisations.
      *
-     * @return bool false when the folder holds no term any more, so its glossary was removed
+     * Site languages sharing a glossary language code the site configuration does not decide
+     * unambiguously are logged and returned, so the caller can report them.
      *
      * @throws DeepLException
      * @throws GlossaryFolderNotSyncableException
      */
-    public function syncGlossary(int $pageId): bool
+    public function syncGlossary(int $pageId): GlossarySyncResult
     {
         $this->assertSyncableFolder($pageId);
         $this->assertMigratedFolder($pageId);
@@ -65,19 +71,44 @@ final class MultilingualGlossaryService
      * @throws DeepLException
      * @throws GlossaryFolderNotSyncableException
      */
-    private function synchroniseFolder(int $pageId): bool
+    private function synchroniseFolder(int $pageId): GlossarySyncResult
     {
-        $dictionaries = $this->buildDictionaries($this->glossaryRepository->getDictionaryDataForSync($pageId, $this->getPossibleLanguagePairs()));
+        $syncInformation = $this->glossaryRepository->getDictionaryDataForSync($pageId, $this->getPossibleLanguagePairs());
+        $this->logCollisions($pageId, $syncInformation->collisions);
+        $dictionaries = $this->buildDictionaries($syncInformation->dictionaries);
         if ($dictionaries === []) {
             $this->dropGlossaryOfEmptiedFolder($pageId);
-            return false;
+            return new GlossarySyncResult(false, $syncInformation->collisions);
         }
 
         $record = $this->glossaryRepository->findOrCreateGlossaryRecord($pageId);
         $information = $this->pushDictionaries($record, $dictionaries);
         $this->storeSyncedGlossary($information, $record, $pageId);
 
-        return true;
+        return new GlossarySyncResult(true, $syncInformation->collisions);
+    }
+
+    /**
+     * @param list<GlossaryLanguageCollision> $collisions
+     */
+    private function logCollisions(int $pageId, array $collisions): void
+    {
+        foreach ($collisions as $collision) {
+            $this->logger->warning(
+                'Glossary folder {pageId}: site languages share the glossary language code "{languageCode}" ({reason}).'
+                . ' Terms of site language {selectedLanguageId} are used, terms of site languages {ignoredLanguageIds} are ignored.',
+                [
+                    'pageId' => $pageId,
+                    'languageCode' => $collision->languageCode,
+                    'reason' => $collision->reason->value,
+                    'selectedLanguageId' => $collision->selectedLanguage->getLanguageId(),
+                    'ignoredLanguageIds' => implode(', ', array_map(
+                        static fn (SiteLanguage $language): int => $language->getLanguageId(),
+                        $collision->ignoredLanguages
+                    )),
+                ]
+            );
+        }
     }
 
     /**
@@ -185,7 +216,7 @@ final class MultilingualGlossaryService
      * The terms come cleaned from {@see GlossaryRepository::getDictionaryDataForSync()}, which
      * also skips a pair left without any term, as DeepL refuses a dictionary without entries.
      *
-     * @param array<int, array{sourceLanguage: string, targetLanguage: string, entries: array<string, string>}> $dictionaryData
+     * @param list<array{sourceLanguage: string, targetLanguage: string, entries: array<string, string>}> $dictionaryData
      * @return MultilingualGlossaryDictionaryEntries[]
      *
      * @throws DeepLException
