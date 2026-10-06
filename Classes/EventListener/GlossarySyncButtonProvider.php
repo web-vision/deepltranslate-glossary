@@ -13,6 +13,7 @@ use TYPO3\CMS\Backend\Template\Components\ModifyButtonBarEvent;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Attribute\AsEventListener;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
+use TYPO3\CMS\Core\Domain\Repository\PageRepository;
 use TYPO3\CMS\Core\Imaging\IconFactory;
 use TYPO3\CMS\Core\Imaging\IconSize;
 use TYPO3\CMS\Core\Information\Typo3Version;
@@ -21,6 +22,7 @@ use TYPO3\CMS\Core\Localization\LanguageServiceFactory;
 use TYPO3\CMS\Core\Type\Bitmask\Permission;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use WebVision\Deepltranslate\Glossary\Access\AllowedGlossarySyncAccess;
+use WebVision\Deepltranslate\Glossary\Controller\GlossarySyncController;
 
 /**
  * Listens to {@see ModifyButtonBarEvent} to display the `glossary sync`button
@@ -56,7 +58,7 @@ final class GlossarySyncButtonProvider
         $page = BackendUtility::getRecord(
             'pages',
             $id,
-            'uid,module'
+            'uid,doktype,module'
         );
 
         if (!$id
@@ -66,8 +68,7 @@ final class GlossarySyncButtonProvider
             || !$this->canCreateNewRecord($id)
             || !in_array($module->getIdentifier(), $this->getAllowedModules(), true)
             || ($module->getIdentifier() === $this->getRecordsOrListModuleIdentifier() && !$this->isCreationAllowed($pageTSconfig['mod.']['web_list.'] ?? []))
-            || !isset($page['module'])
-            || $page['module'] !== 'glossary'
+            || !$this->isGlossaryFolder($page)
         ) {
             return;
         }
@@ -99,6 +100,19 @@ final class GlossarySyncButtonProvider
         $buttons[ButtonBar::BUTTON_POSITION_LEFT][5][] = $button;
 
         $event->setButtons($buttons);
+    }
+
+    /**
+     * Same condition as the guard of {@see GlossarySyncController::update()},
+     * the button is offered only where the route synchronises.
+     *
+     * @param array<string, mixed>|null $page
+     */
+    private function isGlossaryFolder(?array $page): bool
+    {
+        return $page !== null
+            && (int)($page['doktype'] ?? 0) === PageRepository::DOKTYPE_SYSFOLDER
+            && ($page['module'] ?? '') === 'glossary';
     }
 
     protected function getRequest(ModifyButtonBarEvent $event): ServerRequestInterface
