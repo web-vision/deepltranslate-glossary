@@ -83,8 +83,9 @@ branch `glossary-api-v3` has several). Check its base with
   deepltranslate-mass skip these by name. Do not rename them without being
   asked, and name the follow-up changes when it is asked.
 - `Classes/Hooks/UpdatedGlossaryEntryTermHook.php` runs on every DataHandler
-  save, also when records are imported. It calls no DeepL API. A DataHandler
-  hook that does has to skip runs with `$dataHandler->isImporting` set.
+  save and command, also when records are imported. It calls no DeepL API.
+  A DataHandler hook that does has to skip runs with
+  `$dataHandler->isImporting` set.
 - The v13/v14 differences are handled in place
   (`GlossarySyncButtonProvider`, the TCA overrides). Do not add new version
   checks, see the code rules in CONTRIBUTING.md.
