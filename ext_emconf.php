@@ -15,7 +15,7 @@ $EM_CONF[$_EXTKEY] = [
             'typo3' => '13.4.34-14.3.99',
             'backend' => '13.4.34-14.3.99',
             'install' => '13.4.34-14.3.99',
-            'deepltranslate_core' => '6.1.0-6.1.99',
+            'deepltranslate_core' => '6.0.8-6.1.99',
         ],
         'conflicts' => [
             'wv_deepltranslate' => '',
