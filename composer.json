@@ -50,7 +50,7 @@
 		"typo3/cms-backend": "~13.4.34@dev || ~14.3.6@dev",
 		"typo3/cms-core": "~13.4.34@dev || ~14.3.6@dev",
 		"typo3/cms-install": "~13.4.34@dev || ~14.3.6@dev",
-		"web-vision/deepltranslate-core": "~6.1.0@dev"
+		"web-vision/deepltranslate-core": "~6.0.8@dev || ~6.1.0@dev"
 	},
 	"require-dev": {
 		"friendsofphp/php-cs-fixer": "^3.95.0",
