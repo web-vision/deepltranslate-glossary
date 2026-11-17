@@ -89,8 +89,8 @@ Prerequisites:
 ```bash
 echo '>> Create release' ; \
   RELEASE_BRANCH='main' ; \
-  RELEASE_VERSION='6.0.3' ; \
-  NEXT_DEV_VERSION='6.0.4' ; \
+  RELEASE_VERSION='6.0.4' ; \
+  NEXT_DEV_VERSION='6.0.5' ; \
   git checkout main && \
   git fetch --all && \
   git pull --rebase && \
